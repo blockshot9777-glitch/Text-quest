@@ -100,4 +100,4 @@ python sim.py selftest
 
 Если менялся `ruleset.json`: `python worldgen.py checkrules --rules ruleset.json`.
 
-Полная передача для разработки, архитектурные запреты и честный список дыр — [HANDOFF.md](HANDOFF.md). Порядок правки фич — [FEATURE_GUIDE.md](FEATURE_GUIDE.md).
+Полная передача для разработки, архитектурные запреты и честный список дыр — [HANDOFF.md](HANDOFF.md). Порядок правки фич — [FEATURE_GUIDE.md](FEATURE_GUIDE.md). Строительство пока только заметка: [BUILDING_NOTES.md](BUILDING_NOTES.md).
