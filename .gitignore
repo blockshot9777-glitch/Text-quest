@@ -1,0 +1,17 @@
+*.bak
+*.snap_*.json
+play_state.json
+state.json
+__pycache__/
+*.pyc
+.DS_Store
+/tmp/
+
+# окружение контейнера, не часть проекта
+.cache/
+.config/
+.local/
+.npm/
+.npm-global/
+.npmrc
+.wget-hsts

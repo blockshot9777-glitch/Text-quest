@@ -1,0 +1,408 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""ИГРА — окно, выбор модели, свой сценарий.
+
+Архитектура конвейера (в ней весь смысл):
+
+    намерение игрока
+        -> вызов 1: модель переводит его в МЕХАНИКУ (строгий JSON, темп. 0.2)
+        -> ДВИЖОК считает исход. Модель на него не влияет.
+        -> вызов 2: модель пишет ПРОЗУ, получая только симптомы (темп. 0.9)
+        -> игрок
+
+Модель никогда не видит сырых чисел и никогда не решает, чем кончилось.
+Без этого разделения получается чат-бот с красивой рамкой.
+
+Запуск:  python3 app.py           затем открыть http://localhost:8765
+Зависимостей нет — только стандартная библиотека.
+"""
+import json, os, sys, re, urllib.request, urllib.error, subprocess, threading, webbrowser
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SIM = os.path.join(HERE, "sim.py")
+SAVE = os.path.join(HERE, "state.json")
+PORT = int(os.environ.get("PORT", 8765))
+
+
+# ─────────────────────────── ПРОВАЙДЕРЫ МОДЕЛЕЙ ───────────────────────────
+
+def _post(url, payload, headers, timeout=180):
+    req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"),
+                                 headers={"Content-Type": "application/json", **headers})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.loads(r.read().decode("utf-8"))
+
+
+def call_llm(cfg, system, user, temperature, max_tokens=1200):
+    """Единый вызов для любого провайдера. Возвращает текст."""
+    kind = cfg.get("provider", "ollama")
+    model = cfg.get("model", "")
+    if kind == "ollama":
+        base = cfg.get("base_url") or "http://localhost:11434"
+        d = _post(f"{base}/api/chat", {
+            "model": model, "stream": False,
+            "options": {"temperature": temperature, "num_predict": max_tokens},
+            "messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": user}]}, {})
+        return d.get("message", {}).get("content", "")
+    if kind == "openai":
+        base = cfg.get("base_url") or "https://api.openai.com/v1"
+        d = _post(f"{base}/chat/completions", {
+            "model": model, "temperature": temperature, "max_tokens": max_tokens,
+            "messages": [{"role": "system", "content": system},
+                         {"role": "user", "content": user}]},
+            {"Authorization": f"Bearer {cfg.get('api_key','')}"})
+        return d["choices"][0]["message"]["content"]
+    if kind == "anthropic":
+        base = cfg.get("base_url") or "https://api.anthropic.com/v1"
+        d = _post(f"{base}/messages", {
+            "model": model, "max_tokens": max_tokens, "temperature": temperature,
+            "system": system, "messages": [{"role": "user", "content": user}]},
+            {"x-api-key": cfg.get("api_key", ""), "anthropic-version": "2023-06-01"})
+        return "".join(b.get("text", "") for b in d.get("content", []))
+    if kind == "mock":                      # для проверки конвейера без модели
+        return cfg.get("_mock", "")
+    raise ValueError(f"неизвестный провайдер: {kind}")
+
+
+def list_models(cfg):
+    """Список доступных моделей — для выпадающего списка в окне."""
+    try:
+        if cfg.get("provider") == "ollama":
+            base = cfg.get("base_url") or "http://localhost:11434"
+            with urllib.request.urlopen(f"{base}/api/tags", timeout=5) as r:
+                return [m["name"] for m in json.loads(r.read())["models"]]
+    except Exception:
+        pass
+    return []
+
+
+def json_from(text):
+    """Модели любят обрамлять JSON текстом и ```-заборами. Достаём объект."""
+    if not text:
+        return None
+    t = re.sub(r"```(?:json)?|```", "", text).strip()
+    try:
+        return json.loads(t)
+    except Exception:
+        pass
+    depth, start = 0, None
+    for i, ch in enumerate(t):
+        if ch == "{":
+            if depth == 0: start = i
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0 and start is not None:
+                try:
+                    return json.loads(t[start:i+1])
+                except Exception:
+                    start = None
+    return None
+
+
+# ─────────────────────────── ВЫЗОВЫ ДВИЖКА ───────────────────────────
+
+def sim(args, state=SAVE):
+    env = dict(os.environ, SIM_STATE=state)
+    r = subprocess.run([sys.executable, SIM, *args], capture_output=True, text=True,
+                       env=env, cwd=HERE)
+    return r.returncode, r.stdout, r.stderr
+
+
+def symptoms_only(report):
+    """Из служебного отчёта берём ТОЛЬКО то, что можно показать модели-рассказчику:
+    симптомы, события мира и словесный итог броска. Никаких шкал и целей."""
+    out, mode = [], None
+    for line in report.splitlines():
+        s = line.strip()
+        if s.startswith("СИМПТОМЫ"): mode = "sym"; out.append("Состояние тела:"); continue
+        if s.startswith("СОБЫТИЯ МИРА"): mode = "ev"; out.append("Что произошло в мире:"); continue
+        if s.startswith("ДОСТУПНО"): mode = "av"; out.append("Под рукой прямо сейчас:"); continue
+        if s.startswith("БРОСКИ"): mode = "roll"; continue
+        if s.startswith("ШКАЛЫ") or s.startswith("===") or s.startswith("---"): mode = None; continue
+        if not s or mode is None: continue
+        if mode == "roll":
+            m = re.search(r"->\s*([А-ЯЁ ()а-яё:,]+)$", s)
+            if m: out.append("Исход попытки: " + m.group(1).strip())
+            if "ПОСЛЕДСТВИЕ:" in s: out.append("Что ухудшилось: " + s.split("ПОСЛЕДСТВИЕ:")[1].strip())
+            continue
+        if mode == "av":
+            out.append("  " + re.sub(r"\s*\(\d+ с\)", "", s)); continue
+        if mode == "sym" and s.startswith("прогноз"): continue
+        out.append("  " + s.lstrip("• ").strip())
+    # место, время, погода — их игрок ощущает
+    for line in report.splitlines():
+        if line.startswith("место:"):
+            out.insert(0, "Место: " + line.split("место:")[1].split("z=")[0].strip())
+        if line.startswith("среда:"):
+            env = line.split("·")[0].replace("среда:", "").strip()
+            out.insert(1, "Вокруг: " + env)
+    return "\n".join(out)
+
+
+# ─────────────────────────── ПРОМПТЫ ───────────────────────────
+
+SYS_MECH = """Ты — переводчик намерений в механику симулятора. Отвечай ТОЛЬКО JSON, без пояснений.
+
+Схема:
+{"minutes": число, "activity": 0|1|2, "checks": [{"skill":"...","difficulty":0-60,"label":"...","adv":0,"domain":"движение|точная|восприятие|среда|социальное|борьба"}], "to": null|"путь площадки", "reason":"кратко"}
+
+Правила:
+- minutes — реальная длительность: осмотреться 2-5, обыскать 30-40, костёр 20, переход — по времени пути.
+- activity: 0 покой, 1 обычное движение, 2 тяжёлая работа.
+- checks: не больше ДВУХ. Простое и гарантированное действие — пустой список.
+- difficulty: 0 легко, 20 обычно, 40 трудно, 60 почти невозможно.
+- to заполняй ТОЛЬКО если игрок явно уходит на другую площадку из списка доступных.
+Навыки: %s
+Доступные площадки: %s"""
+
+SYS_PROSE = """Ты — рассказчик безжалостного симулятора выживания. Пиши по-русски, 120-200 слов.
+
+ЖЁСТКИЕ ЗАПРЕТЫ:
+- Никаких чисел из механики: ни шкал, ни процентов, ни вероятностей, ни времени в минутах.
+- Никаких служебных слов: ход, бросок, проверка, сложность, навык, успех, провал, катастрофа, инвентарь, счётчик.
+- Не спасай игрока от последствий и не подкидывай нужный предмет.
+- Если сказано, что тело чувствует тепло и покой при сильном холоде — пиши облегчение, а не тревогу. Тело врёт, и это правильно.
+- Не упоминай предметы, которых нет в списке «под рукой».
+
+Пиши плотно и конкретно: что видно, слышно, чем пахнет, что чувствует тело.
+В конце — ровно четыре варианта действия одной строкой каждый, пронумерованные, как намерения без пояснения цены. Пятым пунктом: «5. Своё действие»."""
+
+SYS_WORLD = """Ты — генератор миров. Отвечай ТОЛЬКО JSON по схеме замысла, без пояснений.
+
+{"seed": целое, "setting":"...", "tech_ceiling":"primitive|preindustrial|industrial|spacefaring",
+ "ladder":["уровень","..."], "ladder_root":"корень", "z_ref":"...", "z_unit":"м",
+ "physics_on":["холод","голод","жажда","сон","раны","нагрузка","погода"],
+ "start_path":"корень/.../площадка", "start_local":"где именно стоит", "start_z":0, "start_hour":12.0,
+ "weather":"...", "ambient_c":число, "wind_ms":число,
+ "climate":{"t_min":число,"t_max":число,"sunrise":6.0,"sunset":19.0,"note":"..."},
+ "epoch":"...", "start_date":"...", "seasons":["..."],
+ "needs":{"hunger":0,"thirst":0,"fatigue":0,"cold_stress":0,"stress":0},
+ "skills":{"survival":30},
+ "carryover":{"context":"auto"},
+ "chain":[{"path":"корень","scale":"...","canon":"..."}],
+ "sites":[{"path":"start_path","name":"...","z_m":0,"desc_true":"объективно, включая скрытое",
+   "exits":[{"to":"...","mode":"пешком","travel_min":30,"dz_m":0,"difficulty":15,"gate":null}],
+   "resources":[],"hazards":[],"objects":[],"touched":true}],
+ "npcs":[{"id":"npc_01","name":"...","path":"...","goal":"...","long_goal":"...",
+   "resources":["..."],"disposition":0,"knows_about_pc":[],"alive":true,"schedule":"...","faction":"fac_01"}],
+ "factions":[{"id":"fac_01","name":"...","goal":"...","power":5,"stance_to_pc":0,"relations":{}}],
+ "clocks":[{"name":"...","filled":1,"max":6,"period_h":12,"hidden":true,"payoff":"..."}],
+ "truths":["то, что верно, но игрок не знает"],
+ "opening_fact":"..."}
+
+Требования: 4-8 площадок с реальными расстояниями; 4-6 NPC со своими целями;
+2-4 фракции с relations друг к другу; 3-5 счётчиков разных периодов; 4-6 скрытых истин.
+Мир не подстроен под выживание игрока. Если персонаж — попаданец из наших дней,
+оставь "carryover" как есть: снаряжение сгенерируется само."""
+
+
+# ─────────────────────────── ХОД ИГРЫ ───────────────────────────
+
+def state_facts():
+    try:
+        S = json.load(open(SAVE, encoding="utf-8"))
+    except Exception:
+        return None
+    return {
+        "skills": list(S["pc"].get("skills", {}).keys()),
+        "sites": [x["path"] for x in S["world"]["sites_canon"]],
+        "status": S.get("status", "alive"),
+        "turn": S["meta"]["turn"],
+    }
+
+
+def play_turn(cfg, intent):
+    f = state_facts()
+    if not f:
+        return {"error": "мир не создан"}
+    if f["status"] == "dead":
+        return {"prose": "Игра окончена.", "dead": True}
+
+    # ── вызов 1: механика, строгий JSON, низкая температура
+    raw = call_llm(cfg, SYS_MECH % (", ".join(f["skills"]), "; ".join(f["sites"])),
+                   f"Намерение игрока: {intent}", temperature=0.2, max_tokens=400)
+    plan = json_from(raw) or {}
+    minutes = max(0, min(100000, float(plan.get("minutes", 10) or 10)))
+    activity = int(plan.get("activity", 1) or 1)
+    checks = (plan.get("checks") or [])[:2]
+
+    args = ["act", "--minutes", str(minutes), "--activity", str(max(0, min(2, activity))), "--window", "30"]
+    for c in checks:
+        sk = c.get("skill", f["skills"][0] if f["skills"] else "athletics")
+        args += ["--check", f"{sk}:{int(c.get('difficulty',20))}:{c.get('label','действие')}:"
+                            f"{int(c.get('adv',0))}:{c.get('domain','движение')}"]
+    if plan.get("to") in f["sites"]:
+        args += ["--to", plan["to"]]
+
+    code, report, err = sim(args)
+    if code != 0:
+        return {"error": (err or report).strip()[:400], "plan": plan}
+
+    # ── вызов 2: проза, только симптомы, высокая температура
+    facts = symptoms_only(report)
+    prose = call_llm(cfg, SYS_PROSE,
+                     f"Игрок решил: {intent}\n\nЧто это дало:\n{facts}",
+                     temperature=0.9, max_tokens=900)
+    after = state_facts()
+    return {"prose": prose.strip(), "plan": plan, "facts": facts,
+            "dead": after and after["status"] == "dead", "turn": after["turn"] if after else 0}
+
+
+def new_game(cfg, scenario):
+    raw = call_llm(cfg, SYS_WORLD, f"Сценарий игрока: {scenario}", temperature=0.8, max_tokens=4000)
+    brief = json_from(raw)
+    if not brief:
+        return {"error": "модель не выдала корректный JSON замысла. Для слабых моделей "
+                         "попробуй сценарий проще или модель покрупнее."}
+    brief.setdefault("seed", abs(hash(scenario)) % 10**7)
+    bpath = os.path.join(HERE, "_brief.json")
+    json.dump(brief, open(bpath, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    code, out, err = sim(["new", "--brief", bpath, "--out", SAVE])
+    if code != 0:
+        return {"error": "замысел не прошёл проверку:\n" + (out or err)[:600], "brief": brief}
+    code, report, _ = sim(["look", "--window", "30"])
+    prose = call_llm(cfg, SYS_PROSE,
+                     "Начало игры. Опиши первую сцену.\n\n" + symptoms_only(report),
+                     temperature=0.9, max_tokens=900)
+    return {"prose": prose.strip(), "gen": out.strip()}
+
+
+# ─────────────────────────── ОКНО ───────────────────────────
+
+HTML = """<!doctype html><html lang="ru"><meta charset="utf-8">
+<title>Симулятор</title>
+<style>
+:root{--bg:#12100e;--fg:#e8e2d8;--dim:#8a8175;--acc:#c8843c;--panel:#1b1815}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 Georgia,serif;display:flex;height:100vh}
+#side{width:310px;background:var(--panel);padding:18px;overflow-y:auto;border-right:1px solid #2a2622}
+#main{flex:1;display:flex;flex-direction:column}
+#log{flex:1;overflow-y:auto;padding:28px 40px;max-width:820px;margin:0 auto;width:100%}
+#bar{padding:14px 40px;border-top:1px solid #2a2622;max-width:820px;margin:0 auto;width:100%;display:flex;gap:10px}
+h1{font-size:17px;letter-spacing:.06em;text-transform:uppercase;color:var(--acc);margin:0 0 18px}
+label{display:block;font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 5px}
+input,select,textarea,button{width:100%;background:#100e0c;color:var(--fg);border:1px solid #332e28;
+ border-radius:4px;padding:9px 11px;font:14px/1.5 Georgia,serif}
+textarea{min-height:96px;resize:vertical}
+button{background:var(--acc);color:#160f07;border:0;font-weight:bold;cursor:pointer;letter-spacing:.03em}
+button:hover{filter:brightness(1.12)} button:disabled{opacity:.45;cursor:default}
+#bar input{flex:1} #bar button{width:130px}
+.turn{margin-bottom:30px;white-space:pre-wrap}
+.you{color:var(--acc);font-style:italic;margin-bottom:10px}
+.sys{color:var(--dim);font-size:13px;font-style:italic}
+.err{color:#d9704f;white-space:pre-wrap;font-size:14px}
+details{margin-top:10px;color:var(--dim);font-size:13px}
+summary{cursor:pointer}
+</style>
+<div id="side">
+  <h1>Симулятор</h1>
+  <label>Провайдер</label>
+  <select id="prov">
+    <option value="ollama">Ollama (локально)</option>
+    <option value="openai">OpenAI-совместимый</option>
+    <option value="anthropic">Anthropic</option>
+  </select>
+  <label>Адрес</label><input id="base" placeholder="http://localhost:11434">
+  <label>Ключ (если нужен)</label><input id="key" type="password" placeholder="—">
+  <label>Модель</label>
+  <input id="model" list="models" placeholder="например llama3.1:8b">
+  <datalist id="models"></datalist>
+  <button id="refresh" style="margin-top:8px">Обновить список</button>
+  <label>Сценарий</label>
+  <textarea id="scen" placeholder="Например: попаданец из наших дней, окраины Новгорода, 1052 год"></textarea>
+  <button id="start" style="margin-top:12px">Начать игру</button>
+  <div class="sys" style="margin-top:16px" id="hint">
+    Движок считает физику сам. Модель только переводит намерение в действие и пишет прозу —
+    исход она не решает.
+  </div>
+</div>
+<div id="main">
+  <div id="log"><div class="sys">Слева выбери модель, впиши сценарий и нажми «Начать игру».</div></div>
+  <div id="bar"><input id="inp" placeholder="Что делаешь?" disabled><button id="send" disabled>Ход</button></div>
+</div>
+<script>
+const $=id=>document.getElementById(id), log=$('log');
+const cfg=()=>({provider:$('prov').value,base_url:$('base').value.trim()||null,
+                api_key:$('key').value.trim(),model:$('model').value.trim()});
+function add(cls,txt){const d=document.createElement('div');d.className=cls;d.textContent=txt;
+  log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
+async function api(path,body){const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify(body)});return r.json()}
+$('refresh').onclick=async()=>{const d=await api('/api/models',{cfg:cfg()});
+  $('models').innerHTML=(d.models||[]).map(m=>`<option value="${m}">`).join('');
+  if(!d.models||!d.models.length)add('sys','Список пуст: проверь, запущен ли сервер модели.')};
+$('start').onclick=async()=>{
+  if(!$('model').value.trim())return add('err','Укажи модель.');
+  if(!$('scen').value.trim())return add('err','Впиши сценарий.');
+  $('start').disabled=true;log.innerHTML='';
+  const w=add('sys','Мир создаётся. Это самый долгий шаг — модель пишет весь канон...');
+  const d=await api('/api/new',{cfg:cfg(),scenario:$('scen').value});
+  w.remove();
+  if(d.error){add('err',d.error);$('start').disabled=false;return}
+  if(d.gen)add('sys',d.gen);
+  add('turn',d.prose);
+  $('inp').disabled=false;$('send').disabled=false;$('start').disabled=false;$('inp').focus()};
+async function turn(){
+  const t=$('inp').value.trim();if(!t)return;
+  $('inp').value='';$('inp').disabled=true;$('send').disabled=true;
+  add('you','> '+t);const w=add('sys','...');
+  const d=await api('/api/turn',{cfg:cfg(),intent:t});w.remove();
+  if(d.error){add('err','Движок отказал: '+d.error)}
+  else{add('turn',d.prose);
+    if(d.facts){const dt=document.createElement('details');
+      dt.innerHTML='<summary>что посчитал движок</summary><pre style="white-space:pre-wrap">'+
+        d.facts.replace(/</g,'&lt;')+'</pre>';log.appendChild(dt)}}
+  if(d.dead){add('sys','Персонаж мёртв. Игра окончена.');return}
+  $('inp').disabled=false;$('send').disabled=false;$('inp').focus()}
+$('send').onclick=turn;
+$('inp').onkeydown=e=>{if(e.key==='Enter')turn()};
+</script></html>"""
+
+
+class H(BaseHTTPRequestHandler):
+    def log_message(self, *a): pass
+
+    def _send(self, code, body, ctype="application/json"):
+        b = body.encode("utf-8") if isinstance(body, str) else body
+        self.send_response(code)
+        self.send_header("Content-Type", f"{ctype}; charset=utf-8")
+        self.send_header("Content-Length", str(len(b)))
+        self.end_headers()
+        self.wfile.write(b)
+
+    def do_GET(self):
+        self._send(200, HTML, "text/html")
+
+    def do_POST(self):
+        n = int(self.headers.get("Content-Length", 0))
+        try:
+            req = json.loads(self.rfile.read(n) or b"{}")
+        except Exception:
+            return self._send(400, json.dumps({"error": "битый запрос"}))
+        cfg = req.get("cfg", {})
+        try:
+            if self.path == "/api/models":
+                return self._send(200, json.dumps({"models": list_models(cfg)}, ensure_ascii=False))
+            if self.path == "/api/new":
+                return self._send(200, json.dumps(new_game(cfg, req.get("scenario", "")), ensure_ascii=False))
+            if self.path == "/api/turn":
+                return self._send(200, json.dumps(play_turn(cfg, req.get("intent", "")), ensure_ascii=False))
+        except urllib.error.URLError as e:
+            return self._send(200, json.dumps({"error": f"модель недоступна: {e}"}, ensure_ascii=False))
+        except Exception as e:
+            return self._send(200, json.dumps({"error": f"{type(e).__name__}: {e}"}, ensure_ascii=False))
+        self._send(404, json.dumps({"error": "нет такого пути"}))
+
+
+if __name__ == "__main__":
+    if not os.path.exists(SIM):
+        sys.exit(f"рядом должен лежать sim.py (ожидался {SIM})")
+    print(f"Открой http://localhost:{PORT}")
+    try:
+        threading.Timer(1.0, lambda: webbrowser.open(f"http://localhost:{PORT}")).start()
+    except Exception:
+        pass
+    HTTPServer(("127.0.0.1", PORT), H).serve_forever()

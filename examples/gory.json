@@ -1,0 +1,424 @@
+{
+ "meta": {
+  "seed": 5150,
+  "turn": 0,
+  "setting": "Заброшенная метеостанция в горах. Обвал отрезал спуск.",
+  "tech_ceiling": "industrial",
+  "tone": "безжалостный реализм"
+ },
+ "profile": {
+  "ladder": [
+   "мир",
+   "хребет",
+   "станция",
+   "помещение"
+  ],
+  "root": "gory",
+  "z_ref": "уровень моря",
+  "z_unit": "м",
+  "physics_on": [
+   "холод",
+   "голод",
+   "жажда",
+   "сон",
+   "раны",
+   "гипоксия",
+   "нагрузка",
+   "погода"
+  ],
+  "physics_off": [
+   "жара",
+   "болезни",
+   "давление",
+   "радиация",
+   "вакуум",
+   "углекислота",
+   "невесомость",
+   "сезоны",
+   "ветер"
+  ],
+  "special_laws": []
+ },
+ "calendar": {
+  "day_hours": 24,
+  "year_days": 365,
+  "seasons": [
+   "осень"
+  ],
+  "epoch_label": "конец октября",
+  "start_date": "1979-10-28",
+  "natural_light": true
+ },
+ "time": {
+  "t_h": 15.5,
+  "weather": "низовая метель",
+  "light": "день"
+ },
+ "position": {
+  "path": "gory/hrebet/stanciya/apparatnaya",
+  "z_m": 2400,
+  "local": "у остывшей печи"
+ },
+ "pc": {
+  "name": "игрок",
+  "posture": "стоит",
+  "needs": {
+   "hunger": 25,
+   "thirst": 30,
+   "fatigue": 55,
+   "cold_stress": 38,
+   "stress": 50
+  },
+  "vitals": {
+   "blood_loss_pct": 0,
+   "infection": 0,
+   "core_temp_c": 36.6
+  },
+  "skills": {
+   "athletics": 35,
+   "stealth": 30,
+   "perception": 40,
+   "craft": 50,
+   "medicine": 25,
+   "social": 35,
+   "survival": 45,
+   "combat": 25
+  },
+  "wounds": [],
+  "conditions": [],
+  "attempts": {},
+  "body_mass_kg": 75,
+  "carry_base_kg": 25.0
+ },
+ "gear": {
+  "hands": {
+   "slots": 2,
+   "held": []
+  },
+  "worn": [
+   {
+    "id": "wrn_01",
+    "name": "термобельё",
+    "kg": 0.35,
+    "clo": 0.8,
+    "layer": "—",
+    "wet": 0.0
+   },
+   {
+    "id": "wrn_02",
+    "name": "свитер шерстяной",
+    "kg": 0.6,
+    "clo": 1.0,
+    "layer": "—",
+    "wet": 0.0
+   },
+   {
+    "id": "wrn_03",
+    "name": "парка зимняя",
+    "kg": 1.8,
+    "clo": 2.0,
+    "layer": "—",
+    "wet": 0.0
+   }
+  ],
+  "containers": [
+   {
+    "id": "cnt_00",
+    "name": "руки",
+    "mount": "тело",
+    "access_s": 0,
+    "cap_l": null,
+    "cap_kg": null,
+    "rigid": true,
+    "kg": 0
+   },
+   {
+    "id": "cnt_01",
+    "name": "карман куртки",
+    "mount": "тело",
+    "access_s": 2,
+    "cap_l": 1.5,
+    "cap_kg": 1.5,
+    "rigid": false,
+    "kg": 0.0
+   },
+   {
+    "id": "cnt_02",
+    "name": "поясной подсумок",
+    "mount": "тело",
+    "access_s": 4,
+    "cap_l": 2.5,
+    "cap_kg": 3.0,
+    "rigid": false,
+    "kg": 0.15
+   },
+   {
+    "id": "cnt_03",
+    "name": "рюкзак 35 л",
+    "mount": "тело",
+    "access_s": 40,
+    "cap_l": 35.0,
+    "cap_kg": 20.0,
+    "rigid": false,
+    "kg": 1.1
+   }
+  ],
+  "lashed": [],
+  "cache": []
+ },
+ "items": [
+  {
+   "id": "itm_01",
+   "name": "нож",
+   "kg": 0.2,
+   "l": 0.3,
+   "qty": 1,
+   "in": "cnt_02",
+   "depth": 0,
+   "condition": 1.0,
+   "tags": [
+    "резак",
+    "оружие"
+   ]
+  },
+  {
+   "id": "itm_02",
+   "name": "спички",
+   "kg": 0.02,
+   "l": 0.05,
+   "qty": 1,
+   "in": "cnt_01",
+   "depth": 0,
+   "condition": 1.0,
+   "tags": [
+    "огонь"
+   ]
+  },
+  {
+   "id": "itm_03",
+   "name": "фляга 1 л",
+   "kg": 1.1,
+   "l": 1.1,
+   "qty": 1,
+   "in": "cnt_02",
+   "depth": 1,
+   "condition": 1.0,
+   "tags": [
+    "вода"
+   ]
+  },
+  {
+   "id": "itm_04",
+   "name": "суточный паёк",
+   "kg": 0.5,
+   "l": 0.9,
+   "qty": 1,
+   "in": "cnt_03",
+   "depth": 0,
+   "condition": 1.0,
+   "tags": [
+    "еда"
+   ]
+  },
+  {
+   "id": "itm_05",
+   "name": "верёвка 40 м",
+   "kg": 3.2,
+   "l": 6.0,
+   "qty": 1,
+   "in": "cnt_03",
+   "depth": 1,
+   "condition": 1.0,
+   "tags": [
+    "альпинизм"
+   ]
+  },
+  {
+   "id": "itm_06",
+   "name": "аптечка",
+   "kg": 0.7,
+   "l": 2.0,
+   "qty": 1,
+   "in": "cnt_03",
+   "depth": 2,
+   "condition": 1.0,
+   "tags": [
+    "медицина"
+   ]
+  },
+  {
+   "id": "itm_07",
+   "name": "фонарь",
+   "kg": 0.25,
+   "l": 0.4,
+   "qty": 1,
+   "in": "cnt_03",
+   "depth": 3,
+   "condition": 1.0,
+   "tags": [
+    "свет"
+   ]
+  },
+  {
+   "id": "itm_08",
+   "name": "компас",
+   "kg": 0.05,
+   "l": 0.06,
+   "qty": 1,
+   "in": "cnt_01",
+   "depth": 1,
+   "condition": 1.0,
+   "tags": [
+    "навигация"
+   ]
+  }
+ ],
+ "envelope": {
+  "ambient_c": -23.7,
+  "wind_ms": 12,
+  "windchill_c": -39.5,
+  "gravity_g": 1.0,
+  "breathable": true,
+  "ttl_min": null,
+  "po2_kpa": 15.8
+ },
+ "world": {
+  "gravity_g": 1.0,
+  "lapse_c_per_km": 6.5,
+  "geotherm_c_per_km": 25,
+  "atmosphere": {
+   "o2_frac": 0.209,
+   "p0_atm": 1.0,
+   "scale_height_m": 8400
+  },
+  "climate": {
+   "t_min": -22,
+   "t_max": -8,
+   "sunrise": 8.2,
+   "sunset": 16.4,
+   "note": "поздняя осень в горах"
+  },
+  "chain": [
+   {
+    "path": "gory",
+    "scale": "мир",
+    "laws": "обычная физика",
+    "canon": "Горный хребет, высоты до 3200."
+   },
+   {
+    "path": "gory/hrebet",
+    "scale": "хребет",
+    "canon": "Тропа вниз перекрыта свежим обвалом.",
+    "z_range_m": [
+     900,
+     3200
+    ]
+   }
+  ],
+  "sites_canon": [
+   {
+    "path": "gory/hrebet/stanciya/apparatnaya",
+    "name": "Аппаратная",
+    "z_m": 2400,
+    "desc_true": "Печь остыла двое суток назад. За фальшпанелью — вторая радиостанция, рабочая.",
+    "exits": [
+     {
+      "to": "…/stanciya/sklad",
+      "mode": "пешком",
+      "travel_min": 2,
+      "dz_m": 0,
+      "difficulty": 5,
+      "gate": null
+     },
+     {
+      "to": "…/hrebet/tropa",
+      "mode": "пешком",
+      "travel_min": 35,
+      "dz_m": -180,
+      "difficulty": 40,
+      "gate": "обвал"
+     }
+    ],
+    "resources": [],
+    "hazards": [
+     "выбито окно"
+    ],
+    "objects": [],
+    "touched": true
+   }
+  ],
+  "npcs": [
+   {
+    "id": "npc_01",
+    "name": "Сергеев, зимовщик",
+    "path": "gory/hrebet/stanciya/sklad",
+    "goal": "дождаться вертолёта",
+    "long_goal": "не отвечать за пропавшего напарника",
+    "resources": [
+     "ключи",
+     "карабин"
+    ],
+    "disposition": -20,
+    "knows_about_pc": [],
+    "alive": true,
+    "schedule": "на складе"
+   }
+  ],
+  "factions": []
+ },
+ "clocks": [
+  {
+   "id": "clk_01",
+   "name": "Метель усиливается",
+   "filled": 2,
+   "max": 6,
+   "scale": "региональный",
+   "period_h": 6,
+   "last_tick_h": 15.5,
+   "hidden": false,
+   "payoff": "Видимость нулевая, выход со станции невозможен."
+  },
+  {
+   "id": "clk_02",
+   "name": "Топливо в печи",
+   "filled": 4,
+   "max": 7,
+   "scale": "региональный",
+   "period_h": 8,
+   "last_tick_h": 15.5,
+   "hidden": true,
+   "payoff": "Печь топить нечем. В помещении устанавливается уличная температура."
+  },
+  {
+   "id": "clk_03",
+   "name": "Пропавший напарник",
+   "filled": 3,
+   "max": 5,
+   "scale": "региональный",
+   "period_h": 24,
+   "last_tick_h": 15.5,
+   "hidden": true,
+   "payoff": "Его находят. Виноватым назначают того, кто чужой."
+  }
+ ],
+ "known": {
+  "paths": [
+   "gory/hrebet/stanciya/apparatnaya"
+  ],
+  "npcs": [],
+  "facts": []
+ },
+ "hidden_truths": [
+  "За фальшпанелью аппаратной — рабочая радиостанция, Сергеев о ней знает и молчит.",
+  "Обвал сошёл не сам: под тропой рвали лёд.",
+  "Напарник Сергеева жив и сидит в верхнем балке.",
+  "Топлива на двоих не хватит до вертолёта."
+ ],
+ "log": [
+  {
+   "turn": 0,
+   "fact": "Метеостанция, поздняя осень. Спуск перекрыт обвалом."
+  }
+ ],
+ "status": "alive"
+}

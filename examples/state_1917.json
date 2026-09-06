@@ -1,0 +1,827 @@
+{
+ "meta": {
+  "seed": 19170308,
+  "turn": 18,
+  "setting": "Петроград, 23 февраля 1917 (8 марта по новому стилю). Российская империя на грани. Попаданец из XXI века.",
+  "tech_ceiling": "industrial",
+  "tone": "безжалостный реализм"
+ },
+ "profile": {
+  "ladder": [
+   "империя",
+   "столица",
+   "район",
+   "место"
+  ],
+  "root": "rossiya",
+  "z_ref": "уровень моря",
+  "z_unit": "м",
+  "physics_on": [
+   "холод",
+   "голод",
+   "жажда",
+   "сон",
+   "раны",
+   "болезни",
+   "нагрузка",
+   "погода"
+  ],
+  "physics_off": [
+   "жара",
+   "гипоксия",
+   "давление",
+   "радиация",
+   "вакуум",
+   "углекислота",
+   "невесомость",
+   "сезоны",
+   "ветер"
+  ],
+  "special_laws": []
+ },
+ "calendar": {
+  "day_hours": 24,
+  "year_days": 365,
+  "seasons": [
+   "зима"
+  ],
+  "epoch_label": "23 февраля 1917, старый стиль",
+  "start_date": "1917-02-23",
+  "natural_light": true
+ },
+ "time": {
+  "t_h": 15.86666666666666,
+  "weather": "переменная облачность",
+  "light": "день",
+  "_weather_period": 2
+ },
+ "position": {
+  "path": "rossiya/petrograd/vyborg/neva",
+  "z_m": 2.0,
+  "local": "neva"
+ },
+ "pc": {
+  "name": "чужак",
+  "posture": "стоит",
+  "needs": {
+   "hunger": 20.539999999999996,
+   "thirst": 34.7,
+   "fatigue": 49.16666666666664,
+   "cold_stress": 100.0,
+   "stress": 46.53333333333336
+  },
+  "vitals": {
+   "blood_loss_pct": 0,
+   "infection": 0,
+   "core_temp_c": 32.9
+  },
+  "skills": {
+   "athletics": 38,
+   "stealth": 28,
+   "perception": 42,
+   "craft": 30,
+   "medicine": 20,
+   "social": 22,
+   "survival": 20,
+   "combat": 18
+  },
+  "wounds": [],
+  "conditions": [
+   "не знает, какой сегодня день по старому стилю",
+   "одежда и вещи выдают чужого",
+   "перенесён в момент: шёл с работы"
+  ],
+  "attempts": {
+   "переход|16": {
+    "roll": 49,
+    "outcome": "ПРОВАЛ",
+    "consequence": "ударился, ушиб"
+   },
+   "переход|22": {
+    "roll": 70,
+    "outcome": "ПРОВАЛ",
+    "consequence": "ударился, ушиб"
+   },
+   "разговор|5": {
+    "roll": null,
+    "outcome": "ПРОВАЛ (без броска: невозможно в таком состоянии)",
+    "consequence": "сказал лишнее"
+   },
+   "переход|24": {
+    "roll": 30,
+    "outcome": "УСПЕХ ЦЕНОЙ",
+    "consequence": "потерял из рук то, что держал"
+   },
+   "укрытие|5": {
+    "roll": null,
+    "outcome": "ПРОВАЛ (без броска: невозможно в таком состоянии)",
+    "consequence": "шум на весь отсек"
+   },
+   "осмотр|11": {
+    "roll": 33,
+    "outcome": "ПРОВАЛ",
+    "consequence": "ничего не разобрал"
+   },
+   "переход|8": {
+    "roll": 84,
+    "outcome": "ПРОВАЛ",
+    "consequence": "ударился, ушиб"
+   },
+   "переход|9": {
+    "roll": 26,
+    "outcome": "УСПЕХ ЦЕНОЙ",
+    "consequence": "отбросило от опоры, время вдвое"
+   }
+  },
+  "body_mass_kg": 75,
+  "carry_base_kg": 25.0
+ },
+ "gear": {
+  "hands": {
+   "slots": 2,
+   "held": []
+  },
+  "worn": [
+   {
+    "id": "wrn_01",
+    "name": "футболка",
+    "kg": 0.14,
+    "clo": 0.08,
+    "layer": "—",
+    "wet": 0.0
+   },
+   {
+    "id": "wrn_02",
+    "name": "рубашка",
+    "kg": 0.29,
+    "clo": 0.18,
+    "layer": "—",
+    "wet": 0.0
+   },
+   {
+    "id": "wrn_03",
+    "name": "джинсы",
+    "kg": 0.52,
+    "clo": 0.38,
+    "layer": "—",
+    "wet": 0.0
+   },
+   {
+    "id": "wrn_04",
+    "name": "куртка демисезонная",
+    "kg": 1.1,
+    "clo": 0.73,
+    "layer": "—",
+    "wet": 0.0
+   },
+   {
+    "id": "wrn_05",
+    "name": "кроссовки",
+    "kg": 0.85,
+    "clo": 0.11,
+    "layer": "—",
+    "wet": 0.0
+   }
+  ],
+  "containers": [
+   {
+    "id": "cnt_00",
+    "name": "руки",
+    "mount": "тело",
+    "access_s": 0,
+    "cap_l": null,
+    "cap_kg": null,
+    "rigid": true,
+    "kg": 0.0
+   },
+   {
+    "id": "cnt_01",
+    "name": "карман куртки",
+    "mount": "тело",
+    "access_s": 2,
+    "cap_l": 1.5,
+    "cap_kg": 1.5,
+    "rigid": false,
+    "kg": 0.0
+   },
+   {
+    "id": "cnt_02",
+    "name": "карман джинсов",
+    "mount": "тело",
+    "access_s": 3,
+    "cap_l": 0.8,
+    "cap_kg": 0.9,
+    "rigid": false,
+    "kg": 0.0
+   },
+   {
+    "id": "cnt_03",
+    "name": "рюкзак городской",
+    "mount": "тело",
+    "access_s": 35,
+    "cap_l": 22.0,
+    "cap_kg": 12.0,
+    "rigid": false,
+    "kg": 0.85
+   }
+  ],
+  "lashed": [],
+  "cache": []
+ },
+ "items": [
+  {
+   "id": "itm_01",
+   "name": "фонарик-брелок",
+   "kg": 0.05,
+   "l": 0.01,
+   "qty": 1,
+   "in": "cnt_02",
+   "depth": 0,
+   "condition": 0.68,
+   "tags": [
+    "свет"
+   ],
+   "charge_pct": 32
+  },
+  {
+   "id": "itm_02",
+   "name": "кошелёк",
+   "kg": 0.18,
+   "l": 0.12,
+   "qty": 1,
+   "in": "cnt_01",
+   "depth": 0,
+   "condition": 0.74,
+   "tags": [
+    "бумага",
+    "металл"
+   ]
+  },
+  {
+   "id": "itm_03",
+   "name": "документы",
+   "kg": 0.09,
+   "l": 0.1,
+   "qty": 1,
+   "in": "cnt_03",
+   "depth": 0,
+   "condition": 0.53,
+   "tags": [
+    "бумага",
+    "улика"
+   ]
+  },
+  {
+   "id": "itm_04",
+   "name": "перчатки рабочие",
+   "kg": 0.09,
+   "l": 0.29,
+   "qty": 1,
+   "in": "cnt_01",
+   "depth": 1,
+   "condition": 0.91,
+   "tags": [
+    "защита"
+   ]
+  },
+  {
+   "id": "itm_05",
+   "name": "ноутбук",
+   "kg": 1.37,
+   "l": 2.76,
+   "qty": 1,
+   "in": "cnt_03",
+   "depth": 1,
+   "condition": 0.62,
+   "tags": [
+    "стекло",
+    "улика",
+    "знание"
+   ],
+   "charge_pct": 72
+  },
+  {
+   "id": "itm_06",
+   "name": "смартфон",
+   "kg": 0.23,
+   "l": 0.1,
+   "qty": 1,
+   "in": "cnt_03",
+   "depth": 2,
+   "condition": 0.51,
+   "tags": [
+    "стекло",
+    "улика",
+    "знание",
+    "свет"
+   ],
+   "charge_pct": 97
+  }
+ ],
+ "envelope": {
+  "ambient_c": -3.2,
+  "wind_ms": 7,
+  "windchill_c": -10.0,
+  "gravity_g": 1.0,
+  "breathable": true,
+  "ttl_min": null,
+  "pressure_atm": 1.0,
+  "po2_kpa": 21.2
+ },
+ "world": {
+  "gravity_g": 1.0,
+  "lapse_c_per_km": 6.5,
+  "geotherm_c_per_km": 25,
+  "atmosphere": {
+   "o2_frac": 0.209,
+   "p0_atm": 1.0,
+   "scale_height_m": 8400
+  },
+  "climate": {
+   "t_min": -18,
+   "t_max": -3,
+   "sunrise": 8.1,
+   "sunset": 17.2,
+   "note": "поздняя зима, Петроград, голодный февраль"
+  },
+  "chain": [
+   {
+    "path": "rossiya",
+    "scale": "империя",
+    "laws": "обычная физика, войны и очереди, не чудеса",
+    "canon": "Российская империя, третий год мировой войны. Хлеб по карточкам, дезертирство, слухи."
+   },
+   {
+    "path": "rossiya/petrograd",
+    "scale": "столица",
+    "canon": "Петроград. Заводы Выборга, очереди, казаки, слухи о том, что царь в ставке.",
+    "z_range_m": [
+     0,
+     25
+    ]
+   }
+  ],
+  "sites_canon": [
+   {
+    "path": "rossiya/petrograd/vyborg/dvor",
+    "name": "Двор бараков",
+    "z_m": 6,
+    "desc_true": "Деревянные бараки Путиловского переполнены. В подвале двора прячут листовки. Дворник Фёдор знает об этом и молчит за табак.",
+    "exits": [
+     {
+      "to": "rossiya/petrograd/vyborg/ochered",
+      "mode": "пешком",
+      "travel_min": 12,
+      "dz_m": 0,
+      "difficulty": 10,
+      "gate": null
+     },
+     {
+      "to": "rossiya/petrograd/vyborg/traktir",
+      "mode": "пешком",
+      "travel_min": 8,
+      "dz_m": 1,
+      "difficulty": 8,
+      "gate": null
+     },
+     {
+      "to": "rossiya/petrograd/vyborg/neva",
+      "mode": "пешком",
+      "travel_min": 25,
+      "dz_m": -4,
+      "difficulty": 18,
+      "gate": "ветер с Невы"
+     }
+    ],
+    "resources": [
+     {
+      "name": "дрова во дворе",
+      "amount": 3.82,
+      "renew_per_day": 0
+     }
+    ],
+    "hazards": [
+     "скользкий лёд",
+     "чужой во дворе сразу виден"
+    ],
+    "objects": [
+     "колодец замёрз"
+    ],
+    "touched": true
+   },
+   {
+    "path": "rossiya/petrograd/vyborg/ochered",
+    "name": "Очередь за хлебом",
+    "z_m": 6,
+    "desc_true": "Очередь с пяти утра. Пекарь держит заднюю дверь для своих. Сегодня карточек не хватит на всех — это уже решено.",
+    "exits": [
+     {
+      "to": "rossiya/petrograd/vyborg/dvor",
+      "mode": "пешком",
+      "travel_min": 12,
+      "dz_m": 0,
+      "difficulty": 10,
+      "gate": null
+     },
+     {
+      "to": "rossiya/petrograd/vyborg/uchastok",
+      "mode": "пешком",
+      "travel_min": 15,
+      "dz_m": 0,
+      "difficulty": 12,
+      "gate": null
+     },
+     {
+      "to": "rossiya/petrograd/vyborg/traktir",
+      "mode": "пешком",
+      "travel_min": 10,
+      "dz_m": 1,
+      "difficulty": 8,
+      "gate": null
+     }
+    ],
+    "resources": [
+     {
+      "name": "чёрный хлеб",
+      "amount": 6.34,
+      "renew_per_day": 2
+     }
+    ],
+    "hazards": [
+     "давка",
+     "провокатор в очереди"
+    ],
+    "objects": [
+     "закрытая дверь пекарни"
+    ],
+    "touched": false
+   },
+   {
+    "path": "rossiya/petrograd/vyborg/traktir",
+    "name": "Трактир «Самовар»",
+    "z_m": 7,
+    "desc_true": "Хозяйка Марья подаёт кипяток за деньги и слухи даром. В задней комнате ночует дезертир с винтовкой без патронов.",
+    "exits": [
+     {
+      "to": "rossiya/petrograd/vyborg/dvor",
+      "mode": "пешком",
+      "travel_min": 8,
+      "dz_m": -1,
+      "difficulty": 8,
+      "gate": null
+     },
+     {
+      "to": "rossiya/petrograd/vyborg/ochered",
+      "mode": "пешком",
+      "travel_min": 10,
+      "dz_m": -1,
+      "difficulty": 8,
+      "gate": null
+     },
+     {
+      "to": "rossiya/petrograd/vyborg/neva",
+      "mode": "пешком",
+      "travel_min": 20,
+      "dz_m": -5,
+      "difficulty": 16,
+      "gate": null
+     }
+    ],
+    "resources": [
+     {
+      "name": "кипяток",
+      "amount": 8.18,
+      "renew_per_day": 3
+     }
+    ],
+    "hazards": [
+     "дым, теснота, кто угодно может подслушать"
+    ],
+    "objects": [
+     "печь",
+     "задняя комната на засове"
+    ],
+    "touched": false
+   },
+   {
+    "path": "rossiya/petrograd/vyborg/neva",
+    "name": "Набережная Невы",
+    "z_m": 2,
+    "desc_true": "Лёд ещё держит у берега, дальше — полынья. Ночью здесь сбрасывают лишнее: тела, ящики, листовки.",
+    "exits": [
+     {
+      "to": "rossiya/petrograd/vyborg/dvor",
+      "mode": "пешком",
+      "travel_min": 25,
+      "dz_m": 4,
+      "difficulty": 20,
+      "gate": "ветер с Невы"
+     },
+     {
+      "to": "rossiya/petrograd/vyborg/traktir",
+      "mode": "пешком",
+      "travel_min": 20,
+      "dz_m": 5,
+      "difficulty": 16,
+      "gate": null
+     }
+    ],
+    "resources": [],
+    "hazards": [
+     "ветер",
+     "полынья",
+     "патруль по льду"
+    ],
+    "objects": [
+     "чугунная тумба",
+     "обледеневшие ступени"
+    ],
+    "touched": false
+   },
+   {
+    "path": "rossiya/petrograd/vyborg/uchastok",
+    "name": "Участок околоточных",
+    "z_m": 6,
+    "desc_true": "Дежурный околоточный уже получил ориентировку: задерживать одетых не по сезону и с «немецкими штуками». Телефон в участке работает.",
+    "exits": [
+     {
+      "to": "rossiya/petrograd/vyborg/ochered",
+      "mode": "пешком",
+      "travel_min": 15,
+      "dz_m": 0,
+      "difficulty": 12,
+      "gate": null
+     },
+     {
+      "to": "rossiya/petrograd/vyborg/dvor",
+      "mode": "пешком",
+      "travel_min": 18,
+      "dz_m": 0,
+      "difficulty": 14,
+      "gate": null
+     }
+    ],
+    "resources": [],
+    "hazards": [
+     "задержание с ходу",
+     "обыск"
+    ],
+    "objects": [
+     "решётка",
+     "книга учёта"
+    ],
+    "touched": false
+   }
+  ],
+  "npcs": [
+   {
+    "id": "npc_01",
+    "name": "Фёдор, дворник",
+    "path": "rossiya/petrograd/vyborg/traktir",
+    "goal": "не впустить беду во двор",
+    "long_goal": "дотянуть до весны на табаке и молчании",
+    "resources": [
+     "метла",
+     "связка ключей",
+     "табак"
+    ],
+    "disposition": -15,
+    "knows_about_pc": [
+     {
+      "turn": 1,
+      "source": "услышал шум рядом",
+      "fact": "что-то происходит поблизости"
+     },
+     {
+      "turn": 6,
+      "source": "видел лично",
+      "fact": "чужак на площадке"
+     }
+    ],
+    "alive": true,
+    "schedule": "двор с рассвета",
+    "faction": "fac_dvor",
+    "_last_acted_period": 2,
+    "_knew_at_h": 7.816666666666667
+   },
+   {
+    "id": "npc_02",
+    "name": "Анна, ткачиха",
+    "path": "rossiya/petrograd/vyborg/ochered",
+    "goal": "унести хоть корку детям",
+    "long_goal": "чтобы муж не сгинул на фронте зря",
+    "resources": [
+     "карточки на хлеб",
+     "узел с тряпьём"
+    ],
+    "disposition": 5,
+    "knows_about_pc": [
+     {
+      "turn": 2,
+      "source": "услышал шум рядом",
+      "fact": "что-то происходит поблизости"
+     }
+    ],
+    "alive": true,
+    "schedule": "очередь до обеда",
+    "faction": "fac_rabochie",
+    "_last_acted_period": 2,
+    "_knew_at_h": 8.15
+   },
+   {
+    "id": "npc_03",
+    "name": "Марья, хозяйка трактира",
+    "path": "rossiya/petrograd/vyborg/traktir",
+    "goal": "не впустить полицию в заднюю комнату",
+    "long_goal": "удержать заведение, пока город не рухнет",
+    "resources": [
+     "кипяток",
+     "медные деньги",
+     "слух обо всех"
+    ],
+    "disposition": 10,
+    "knows_about_pc": [
+     {
+      "turn": 1,
+      "source": "услышал шум рядом",
+      "fact": "что-то происходит поблизости"
+     },
+     {
+      "turn": 2,
+      "source": "видел лично",
+      "fact": "чужак на площадке"
+     }
+    ],
+    "alive": true,
+    "schedule": "за стойкой",
+    "faction": "fac_dvor",
+    "_last_acted_period": 2,
+    "_knew_at_h": 7.816666666666667
+   },
+   {
+    "id": "npc_04",
+    "name": "рядовой Семён, дезертир",
+    "path": "rossiya/petrograd/vyborg/traktir",
+    "goal": "не попасться патрулю",
+    "long_goal": "исчезнуть в деревне, пока не расстреляли",
+    "resources": [
+     "винтовка без патронов",
+     "шинель"
+    ],
+    "disposition": -25,
+    "knows_about_pc": [
+     {
+      "turn": 1,
+      "source": "услышал шум рядом",
+      "fact": "что-то происходит поблизости"
+     },
+     {
+      "turn": 2,
+      "source": "видел лично",
+      "fact": "чужак на площадке"
+     }
+    ],
+    "alive": true,
+    "schedule": "задняя комната",
+    "faction": "fac_garnizon",
+    "_last_acted_period": 2,
+    "_knew_at_h": 7.816666666666667
+   },
+   {
+    "id": "npc_05",
+    "name": "околоточный Крылов",
+    "path": "rossiya/petrograd/vyborg/uchastok",
+    "goal": "взять хоть кого к отчёту",
+    "long_goal": "выжить в чине, когда улица пойдёт",
+    "resources": [
+     "наган",
+     "свисток",
+     "ориентировка"
+    ],
+    "disposition": -55,
+    "knows_about_pc": [],
+    "alive": true,
+    "schedule": "дежурство",
+    "faction": "fac_okhrana",
+    "_last_acted_period": 2
+   }
+  ],
+  "factions": [
+   {
+    "id": "fac_rabochie",
+    "name": "выборгские рабочие",
+    "goal": "хлеб и конец войны",
+    "power": 6,
+    "stance_to_pc": 0,
+    "relations": {
+     "fac_okhrana": -80,
+     "fac_garnizon": -20,
+     "fac_dvor": 40
+    }
+   },
+   {
+    "id": "fac_okhrana",
+    "name": "полиция и околоточные",
+    "goal": "удержать порядок любой ценой",
+    "power": 7,
+    "stance_to_pc": -40,
+    "relations": {
+     "fac_rabochie": -80,
+     "fac_garnizon": 20,
+     "fac_dvor": -10
+    }
+   },
+   {
+    "id": "fac_garnizon",
+    "name": "запасной батальон",
+    "goal": "не стрелять в своих, не попасть под трибунал",
+    "power": 5,
+    "stance_to_pc": -10,
+    "relations": {
+     "fac_rabochie": -20,
+     "fac_okhrana": 20,
+     "fac_dvor": 0
+    }
+   },
+   {
+    "id": "fac_dvor",
+    "name": "жители двора",
+    "goal": "не высовываться",
+    "power": 3,
+    "stance_to_pc": -5,
+    "relations": {
+     "fac_rabochie": 40,
+     "fac_okhrana": -10,
+     "fac_garnizon": 0
+    }
+   }
+  ],
+  "_society_period": 0
+ },
+ "clocks": [
+  {
+   "id": "clk_01",
+   "name": "Хлебная очередь срывается",
+   "filled": 4,
+   "max": 6,
+   "scale": "региональный",
+   "period_h": 4,
+   "last_tick_h": 11.4,
+   "hidden": false,
+   "payoff": "Давка у пекарни. Витрину бьют. Околоточные требуют документы у всех чужих."
+  },
+  {
+   "id": "clk_02",
+   "name": "Ориентировка на чужака",
+   "filled": 2,
+   "max": 5,
+   "scale": "региональный",
+   "period_h": 6,
+   "last_tick_h": 13.4,
+   "hidden": true,
+   "payoff": "По участкам разослан приметы: одежда не по сезону, стекло в кармане. Задержание без разговора."
+  },
+  {
+   "id": "clk_03",
+   "name": "Дезертир не выдерживает",
+   "filled": 2,
+   "max": 7,
+   "scale": "региональный",
+   "period_h": 8,
+   "last_tick_h": 7.4,
+   "hidden": true,
+   "payoff": "Семён выходит на улицу с пустой винтовкой. Патруль уже близко."
+  },
+  {
+   "id": "clk_04",
+   "name": "Мороз держит город",
+   "filled": 2,
+   "max": 8,
+   "scale": "региональный",
+   "period_h": 12,
+   "last_tick_h": 7.4,
+   "hidden": false,
+   "payoff": "Нева трещит. Без укрытия холод убивает за ночь."
+  }
+ ],
+ "known": {
+  "paths": [
+   "rossiya/petrograd/vyborg/dvor"
+  ],
+  "npcs": [],
+  "facts": []
+ },
+ "hidden_truths": [
+  "23 февраля — начало беспорядков, которые через дни свалят монархию. Игрок этого не знает как факта календаря.",
+  "Пекарь держит хлеб для своих через заднюю дверь; очередь обречена.",
+  "Околоточный Крылов получит премию, если приведёт «шпиона в странной одежде».",
+  "Винтовка Семёна не заряжена. Он этого стыдится больше, чем дезертирства."
+ ],
+ "log": [
+  {
+   "turn": 0,
+   "fact": "Петроград, февраль 1917. Снегопад. Чужак стоит во дворе бараков в одежде не этого века. Момент переноса: шёл с работы."
+  }
+ ],
+ "status": "dead"
+}
