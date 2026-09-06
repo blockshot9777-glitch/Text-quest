@@ -1,7 +1,7 @@
 {
  "meta": {
   "seed": 55020714,
-  "turn": 30,
+  "turn": 100,
   "setting": "Малый курьер «Релей» дрейфует без тяги. Попаданец из XXI века с амнезией: не знает, кто он здесь, чей это корабль и сколько на нём воздуха, воды и тепла.",
   "tech_ceiling": "spacefaring",
   "tone": "безжалостный реализм"
@@ -48,24 +48,24 @@
   "natural_light": false
  },
  "time": {
-  "t_h": 8.466666666666665,
+  "t_h": 35.83333333333332,
   "weather": "—",
-  "light": "аварийное освещение"
+  "light": "экраны вполовину яркости"
  },
  "position": {
-  "path": "sol/drift/relay/cryo",
+  "path": "sol/drift/relay/bridge",
   "z_m": 0.0,
-  "local": "cryo"
+  "local": "bridge"
  },
  "pc": {
   "name": "без имени",
   "posture": "стоит",
   "needs": {
-   "hunger": 24.420000000000005,
-   "thirst": 40.099999999999994,
-   "fatigue": 65.16666666666667,
-   "cold_stress": 13.60866666666666,
-   "stress": 61.93333333333335
+   "hunger": 32.630000000000024,
+   "thirst": 81.15000000000003,
+   "fatigue": 46.583333333333336,
+   "cold_stress": 3.3866666666666654,
+   "stress": 34.566666666666684
   },
   "vitals": {
    "blood_loss_pct": 0,
@@ -75,7 +75,7 @@
   "skills": {
    "athletics": 33,
    "stealth": 22,
-   "perception": 41,
+   "perception": 42,
    "craft": 28,
    "medicine": 18,
    "social": 20,
@@ -144,18 +144,73 @@
     "roll": 23,
     "outcome": "УСПЕХ ЦЕНОЙ",
     "consequence": "устал глазами, время вдвое"
+   },
+   "поручень|6": {
+    "roll": 22,
+    "outcome": "УСПЕХ ЦЕНОЙ",
+    "consequence": "шум на весь отсек"
+   },
+   "переход|11": {
+    "roll": 35,
+    "outcome": "ПРОВАЛ",
+    "consequence": "отбросило от опоры, время вдвое"
+   },
+   "осмотр|18": {
+    "roll": 6,
+    "outcome": "УСПЕХ",
+    "consequence": null
+   },
+   "поручень|12": {
+    "roll": 22,
+    "outcome": "УСПЕХ ЦЕНОЙ",
+    "consequence": "потерял из рук то, что держал"
+   },
+   "панель|5": {
+    "roll": null,
+    "outcome": "ПРОВАЛ (без броска: невозможно в таком состоянии)",
+    "consequence": "сделал хуже, чем было"
+   },
+   "поручень|8": {
+    "roll": 8,
+    "outcome": "УСПЕХ",
+    "consequence": null
+   },
+   "переход|7": {
+    "roll": 76,
+    "outcome": "ПРОВАЛ",
+    "consequence": "ударился, ушиб"
+   },
+   "осмотр|11": {
+    "roll": 77,
+    "outcome": "ПРОВАЛ",
+    "consequence": "устал глазами, время вдвое"
+   },
+   "осмотр|12": {
+    "roll": 22,
+    "outcome": "УСПЕХ ЦЕНОЙ",
+    "consequence": "ничего не разобрал"
+   },
+   "осмотр|9": {
+    "roll": 11,
+    "outcome": "УСПЕХ ЦЕНОЙ",
+    "consequence": "принял одно за другое — ложный вывод"
+   },
+   "осмотр|6": {
+    "roll": 73,
+    "outcome": "ПРОВАЛ",
+    "consequence": "устал глазами, время вдвое"
    }
   },
   "body_mass_kg": 75,
   "carry_base_kg": 25.0,
-  "circadian_drift_h": 0.24200000000000005,
+  "circadian_drift_h": 1.0629999999999995,
   "skill_growth_day": {
    "athletics": {
     "day": 0,
     "gained": 1
    },
    "perception": {
-    "day": 0,
+    "day": 1,
     "gained": 1
    }
   }
@@ -264,17 +319,17 @@
   }
  ],
  "envelope": {
-  "ambient_c": 8.0,
+  "ambient_c": 12.0,
   "wind_ms": 0,
-  "windchill_c": 8.0,
+  "windchill_c": 12.0,
   "gravity_g": 0.0,
   "breathable": true,
   "ttl_min": null,
-  "pressure_atm": 0.78,
-  "po2_kpa": 14.8,
-  "pco2_kpa": 2.066,
-  "dose_rate_msv_h": 0.04,
-  "dose_sv": 0.000536
+  "pressure_atm": 0.8,
+  "po2_kpa": 15.9,
+  "pco2_kpa": 1.188,
+  "dose_rate_msv_h": 0.06,
+  "dose_sv": 0.001998
  },
  "world": {
   "gravity_g": 0.0,
@@ -324,7 +379,7 @@
      "ambient_c": 8.0,
      "pressure_atm": 0.78,
      "po2_kpa": 14.8,
-     "pco2_kpa": 2.066,
+     "pco2_kpa": 3.101,
      "pco2_rise_kpa_h": 0.18,
      "dose_rate_msv_h": 0.04,
      "breathable": true,
@@ -369,7 +424,7 @@
      "ambient_c": 11.0,
      "pressure_atm": 0.8,
      "po2_kpa": 15.6,
-     "pco2_kpa": 0.845,
+     "pco2_kpa": 1.695,
      "pco2_rise_kpa_h": 0.08,
      "dose_rate_msv_h": 0.05,
      "breathable": true,
@@ -430,7 +485,7 @@
      "ambient_c": 16.0,
      "pressure_atm": 0.82,
      "po2_kpa": 16.4,
-     "pco2_kpa": 0.517,
+     "pco2_kpa": 0.651,
      "pco2_rise_kpa_h": 0.06,
      "dose_rate_msv_h": 0.03,
      "breathable": true,
@@ -486,7 +541,7 @@
      "ambient_c": 12.0,
      "pressure_atm": 0.8,
      "po2_kpa": 15.9,
-     "pco2_kpa": 0.6,
+     "pco2_kpa": 1.188,
      "pco2_rise_kpa_h": 0.07,
      "dose_rate_msv_h": 0.06,
      "breathable": true,
@@ -531,7 +586,7 @@
      "ambient_c": 4.0,
      "pressure_atm": 0.74,
      "po2_kpa": 13.9,
-     "pco2_kpa": 0.963,
+     "pco2_kpa": 0.999,
      "pco2_rise_kpa_h": 0.1,
      "dose_rate_msv_h": 0.35,
      "breathable": true,
@@ -598,50 +653,50 @@
     }
    }
   ],
-  "_society_period": 0
+  "_society_period": 1
  },
  "clocks": [
   {
    "id": "clk_01",
    "name": "Углекислота в криоотсеке",
-   "filled": 4,
+   "filled": 6,
    "max": 6,
    "scale": "региональный",
    "period_h": 3,
-   "last_tick_h": 6.4,
+   "last_tick_h": 33.4,
    "hidden": false,
    "payoff": "Скруббер криоотсека встаёт. Дальше — оглушение, если не уйти или не найти другой контур воздуха."
   },
   {
    "id": "clk_02",
    "name": "Тепловой контур садится",
-   "filled": 2,
+   "filled": 7,
    "max": 7,
    "scale": "региональный",
    "period_h": 5,
-   "last_tick_h": 5.4,
+   "last_tick_h": 35.4,
    "hidden": true,
    "payoff": "Жилой теплеет в последний раз, потом металл отдаёт холод космоса. Без второго контура отсеки сравняются с машинным."
   },
   {
    "id": "clk_03",
    "name": "Вода, которой ты не видишь",
-   "filled": 1,
+   "filled": 4,
    "max": 8,
    "scale": "региональный",
    "period_h": 8,
-   "last_tick_h": 8.4,
+   "last_tick_h": 32.4,
    "hidden": true,
    "payoff": "Регенератор так и не включён. Готовая вода под палубой есть, но без рубильника это просто бак в темноте."
   },
   {
    "id": "clk_04",
    "name": "Автопилот жжёт ориентацию",
-   "filled": 3,
+   "filled": 7,
    "max": 9,
    "scale": "региональный",
    "period_h": 6,
-   "last_tick_h": 6.4,
+   "last_tick_h": 30.4,
    "hidden": true,
    "payoff": "Топливо ориентации кончится. Корабль начнёт кувыркаться быстрее. Антенна уже не поймает луч, даже если бы было кому звать."
   }

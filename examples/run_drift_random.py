@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""30 ходов: попаданец с амнезией на дрейфующем малом корабле. Вариант каждый ход — случайный."""
+"""100 ходов: попаданец с амнезией на дрейфующем малом корабле. Вариант каждый ход — случайный."""
 import json, os, sys, io, copy, random
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -178,7 +178,7 @@ def main():
         "turns": [],
         "ended": None,
     }
-    for i in range(1, 31):
+    for i in range(1, 101):
         S = engine.load()
         if S.get("status") != "alive":
             history["ended"] = {"at_planned_turn": i, "status": S.get("status"), "reason": "уже не alive до хода"}
@@ -213,7 +213,7 @@ def main():
             history["ended"] = {"at_planned_turn": i, "status": S2.get("status")}
             break
     else:
-        history["ended"] = {"at_planned_turn": 30, "status": engine.load().get("status"), "reason": "лимит 30 ходов"}
+        history["ended"] = {"at_planned_turn": 100, "status": engine.load().get("status"), "reason": "лимит 100 ходов"}
 
     history["final"] = snapshot_pc(engine.load())
     json.dump(history, open(LOG, "w", encoding="utf-8"), ensure_ascii=False, indent=1)

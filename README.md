@@ -66,7 +66,7 @@ python examples/run_1917_random.py
 
 Сценарий каждый ход даёт 4 варианта и выбирает случайный. Лог: `examples/run_1917_log.json`. На seed `19170308` два ожидания у печи в трактире **снижают** холод (35→32→29): `--sheltered` убирает ветер, `--fire` добавляет `cold_model.fire_bonus_c`. Дальше RNG гоняет чужака на Неву без печи — смерть на 26-м ходу уже от честного мороза, не от дыры в укрытии.
 
-Другие замыслы и миры: `examples/brief_*.json`, Новгород 1052, Кастор, «Римворлд». Дрейф малого корабля с амнезией: `python examples/run_drift_random.py` (seed `55020714`, лог `examples/run_drift_log.json`).
+Другие замыслы и миры: `examples/brief_*.json`, Новгород 1052, Кастор, «Римворлд». Дрейф малого корабля с амнезией: `python examples/run_drift_random.py` (seed `55020714`, 100 ходов, лог `examples/run_drift_log.json`).
 
 ## Карта репозитория
 
