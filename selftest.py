@@ -661,5 +661,18 @@ ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'часы раньше холода того же часа':<40}"
       f"{_ord['pc']['needs']['cold_stress']:.1f} vs {_ctrl['pc']['needs']['cold_stress']:.1f}")
 
+_hdoc = open(os.path.join(HERE, "HANDOFF.md"), encoding="utf-8").read()
+good = "не идемпотентен и не обязан быть" in _hdoc and "не идемпотентен и не обязан быть" in _src3
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'контракт add записан в HANDOFF и код':<40}{'да' if good else 'нет'}")
+
+_dup = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_dup["clocks"][0]["on_complete"] = [{"path": "envelope.dose_sv", "add": 1}]
+_dup["clocks"][1]["on_complete"] = [{"path": "envelope.dose_sv", "add": 2}]
+_e_dup, _w_dup = _wg_validate(_dup)
+good = any("не идемпотентен и не обязан быть" in w for w in _w_dup)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'validate предупреждает о сложении add':<40}{'да' if good else 'нет'}")
+
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)

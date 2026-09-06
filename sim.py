@@ -1528,6 +1528,7 @@ def validate(S):
                 if f not in e: err.append(f"{s['name']}: у выхода нет поля {f}")
 
     CLOCK_PATH_ROOTS = {"pc","world","time","envelope","meta","position","profile","calendar"}
+    add_hits = {}
     for c in S["clocks"]:
         for f in ("period_h","max","filled","payoff"):
             if f not in c: err.append(f"счётчик {c.get('name','?')}: нет поля {f}")
@@ -1571,8 +1572,14 @@ def validate(S):
                     err.append(f"счётчик {name} on_complete[{i}]: путь должен начинаться с известного корня")
                 if has_add and not isinstance(fx.get("add"), (int, float)):
                     err.append(f"счётчик {name} on_complete[{i}]: add должен быть числом")
+                elif has_add:
+                    add_hits.setdefault(fx.get("path"), []).append(name)
             else:
                 err.append(f"счётчик {name} on_complete[{i}]: неизвестная операция")
+    for path, names in add_hits.items():
+        if len(names) > 1:
+            warn.append(f"счётчики {', '.join(names)}: add на {path} сложится — "
+                        f"add не идемпотентен и не обязан быть, это не баг движка")
     if not S["clocks"]: warn.append("нет ни одного счётчика — мир не будет развиваться сам")
     if len(S["hidden_truths"]) < 3: warn.append("меньше трёх скрытых истин — разведка обесценится")
     if "холод" in on and not any(s.get("env") for s in S["world"]["sites_canon"]) \
@@ -1990,8 +1997,9 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
     while rem > 1e-6:
         h = min(1.0, rem); rem -= h
         S["time"]["t_h"] += h
-        # Счётчик раньше среды и нужд этого часа: сработавший on_complete
-        # уже в силе для холода/CO2/add, а не «после всех часов акта».
+        # Часы → среда → нужды этого часа. on_complete не читает уже
+        # пересчитанный envelope («если было холоднее X»); исключению
+        # нужен второй проход, не сдвиг этой строки.
         tick_clocks(S, log)
         recompute_env(S, sheltered, fire)
         wet_step(S, h, sheltered, fire)
@@ -2238,9 +2246,10 @@ def _clock_set_path(S, path, set_v=None, add_v=None):
     return True
 
 def apply_clock_effects(S, clock, log):
-    """Мутации из on_complete. Идемпотентность — не здесь: set безопасен
-    повтором, add нет. Повтор одного счётчика режет флаг fired в tick_clocks.
-    Два разных счётчика с add на одно поле складываются — это замысел, не баг.
+    """Мутации из on_complete.
+    add не идемпотентен и не обязан быть: два счётчика на одно поле
+    складываются — выбор автора данных, не пробел движка. set безопасен
+    повтором. Повтор одного счётчика режет флаг fired в tick_clocks.
     Пересчёт envelope делает tick() после часов, со флагами sheltered/fire."""
     effects = clock.get("on_complete") or []
     if not effects:

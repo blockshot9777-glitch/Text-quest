@@ -321,6 +321,7 @@ def validate(S):
                 if f not in e: err.append(f"{s['name']}: у выхода нет поля {f}")
 
     CLOCK_PATH_ROOTS = {"pc","world","time","envelope","meta","position","profile","calendar"}
+    add_hits = {}
     for c in S["clocks"]:
         for f in ("period_h","max","filled","payoff"):
             if f not in c: err.append(f"счётчик {c.get('name','?')}: нет поля {f}")
@@ -364,8 +365,14 @@ def validate(S):
                     err.append(f"счётчик {name} on_complete[{i}]: путь должен начинаться с известного корня")
                 if has_add and not isinstance(fx.get("add"), (int, float)):
                     err.append(f"счётчик {name} on_complete[{i}]: add должен быть числом")
+                elif has_add:
+                    add_hits.setdefault(fx.get("path"), []).append(name)
             else:
                 err.append(f"счётчик {name} on_complete[{i}]: неизвестная операция")
+    for path, names in add_hits.items():
+        if len(names) > 1:
+            warn.append(f"счётчики {', '.join(names)}: add на {path} сложится — "
+                        f"add не идемпотентен и не обязан быть, это не баг движка")
     if not S["clocks"]: warn.append("нет ни одного счётчика — мир не будет развиваться сам")
     if len(S["hidden_truths"]) < 3: warn.append("меньше трёх скрытых истин — разведка обесценится")
     if "холод" in on and not any(s.get("env") for s in S["world"]["sites_canon"]) \

@@ -99,6 +99,7 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
  clocks — 3-5 [{name,filled,max,period_h,hidden,payoff, on_complete?, fired?}],
    on_complete — список операций при срабатывании (site/sites+env или path+set/add);
    sites:"*" — только площадки уже в sites_canon на момент срабатывания;
+   add на одно поле у двух счётчиков складывается (не идемпотентен и не обязан быть);
    без on_complete payoff остаётся только строкой в журнале;
  truths — 4-6 строк (то, что верно, но игрок не знает),
  opening_fact (строка).

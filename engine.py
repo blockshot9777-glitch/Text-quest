@@ -312,8 +312,9 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
     while rem > 1e-6:
         h = min(1.0, rem); rem -= h
         S["time"]["t_h"] += h
-        # Счётчик раньше среды и нужд этого часа: сработавший on_complete
-        # уже в силе для холода/CO2/add, а не «после всех часов акта».
+        # Часы → среда → нужды этого часа. on_complete не читает уже
+        # пересчитанный envelope («если было холоднее X»); исключению
+        # нужен второй проход, не сдвиг этой строки.
         tick_clocks(S, log)
         recompute_env(S, sheltered, fire)
         wet_step(S, h, sheltered, fire)
@@ -561,9 +562,10 @@ def _clock_set_path(S, path, set_v=None, add_v=None):
     return True
 
 def apply_clock_effects(S, clock, log):
-    """Мутации из on_complete. Идемпотентность — не здесь: set безопасен
-    повтором, add нет. Повтор одного счётчика режет флаг fired в tick_clocks.
-    Два разных счётчика с add на одно поле складываются — это замысел, не баг.
+    """Мутации из on_complete.
+    add не идемпотентен и не обязан быть: два счётчика на одно поле
+    складываются — выбор автора данных, не пробел движка. set безопасен
+    повтором. Повтор одного счётчика режет флаг fired в tick_clocks.
     Пересчёт envelope делает tick() после часов, со флагами sheltered/fire."""
     effects = clock.get("on_complete") or []
     if not effects:
