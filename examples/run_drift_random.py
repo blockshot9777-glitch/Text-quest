@@ -18,6 +18,15 @@ engine.STATE = STATE
 engine._RULES = None
 
 
+def take_spec(st, tag, amount):
+    for r in st.get("resources") or []:
+        if (r.get("amount") or 0) <= 0:
+            continue
+        if tag in (r.get("tags") or []) or tag in (r.get("name") or "").lower():
+            return f"{r['name']}:{amount}"
+    return None
+
+
 def run_argv(argv):
     buf, old = io.StringIO(), sys.stdout
     sys.argv = ["engine.py"] + argv
@@ -105,10 +114,19 @@ def options(S, rng):
         fourth = {"label": "Пристегнуться к койке и попытаться уснуть", "kind": "сон",
                   "argv": ["act", "--minutes", "180", "--activity", "0", "--sleeping",
                            "--sheltered", "--window", "60"]}
+    elif n.get("thirst", 0) >= 20 and take_spec(st, "вода", 0.5):
+        fourth = {"label": "Набрать воды из того, что есть на площадке", "kind": "добыча",
+                  "argv": ["act", "--minutes", "8", "--activity", "1",
+                           "--take-resource", take_spec(st, "вода", 0.5),
+                           "--sheltered", "--window", "30"]}
     elif water and n.get("thirst", 0) >= 20:
         fourth = {"label": "Пить то, что с собой", "kind": "питьё",
                   "argv": ["act", "--minutes", "8", "--activity", "0", "--water", "0.4",
                            "--sheltered", "--window", "30"]}
+    elif n.get("hunger", 0) >= 20 and take_spec(st, "еда", 1):
+        fourth = {"label": "Взять еду с площадки", "kind": "добыча",
+                  "argv": ["act", "--minutes", "10", "--activity", "1",
+                           "--take-resource", take_spec(st, "еда", 1), "--window", "30"]}
     elif food and n.get("hunger", 0) >= 20:
         fourth = {"label": "Есть то, что с собой", "kind": "еда",
                   "argv": ["act", "--minutes", "15", "--activity", "0", "--food", "0.35",

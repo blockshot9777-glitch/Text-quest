@@ -85,8 +85,11 @@ for tgt in (5,30,60,95):
 
 print("\n── универсальность: два набора правил на одном движке ──")
 _st_h = os.path.join(TMP, "st_h.json")
+_st_m = os.path.join(TMP, "st_m.json")
+import shutil
+shutil.copy("examples/mech_state.json", _st_m)
 for rules_f, state_f, who in [("ruleset.json", _st_h, "человек"),
-                              ("ruleset_mech.json", "examples/mech_state.json", "механоид")]:
+                              ("ruleset_mech.json", _st_m, "механоид")]:
     if rules_f == "ruleset.json":
         import shutil; shutil.copy("examples/rimworld2.json", _st_h)
     skill = "athletics" if who == "человек" else "сервоприводы"
@@ -673,6 +676,87 @@ _e_dup, _w_dup = _wg_validate(_dup)
 good = any("не идемпотентен и не обязан быть" in w for w in _w_dup)
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'validate предупреждает о сложении add':<40}{'да' if good else 'нет'}")
+
+print("\n── ресурс площадки в руки, расход fill и заряда ──")
+_src4 = open(os.path.join(HERE, "engine.py"), encoding="utf-8").read()
+good = "def take_site_resource(" in _src4 and "--take-resource" in _src4
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'act принимает --take-resource':<40}{'да' if good else 'нет'}")
+_Ruse = _json.load(open(os.path.join(HERE, "ruleset.json"), encoding="utf-8"))
+good = isinstance(_Ruse.get("item_use", {}).get("charge_per_h"), (int, float))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'item_use.charge_per_h в ruleset':<40}{_Ruse.get('item_use', {}).get('charge_per_h')}")
+
+_td = _wg_expand(_json.load(open("examples/brief_drift.json", encoding="utf-8")))
+_hab = next(s for s in _td["world"]["sites_canon"] if s["path"].endswith("/hab"))
+_td["position"]["path"] = _hab["path"]
+_td["pc"]["needs"] = {k: 0.0 for k in _td["pc"]["needs"]}
+_td["profile"]["physics_on"] = []
+_amt0 = next(r["amount"] for r in _hab["resources"] if "вода" in (r.get("tags") or []))
+_tlog = []
+good_take = _eng.take_site_resource(_td, "вода:0.5", _tlog)
+_water_it = [i for i in _td["items"] if "вода" in i.get("tags", [])]
+_amt1 = next(r["amount"] for r in _hab["resources"] if "вода" in (r.get("tags") or []))
+good = good_take and abs(_amt0 - _amt1 - 0.5) < 0.001 and _water_it and _water_it[-1]["in"] == "cnt_00"
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'взял воду с палубы в руки':<40}{_amt0}->{_amt1} n={len(_water_it)}")
+
+_tlog2 = []
+good = not _eng.take_site_resource(_td, "неттакого:1", _tlog2) and any("ОТКАЗ" in x for x in _tlog2)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'нет ресурса — отказ, amount цел':<40}{'да' if good else 'нет'}")
+
+_ghost = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_ghost["pc"]["needs"] = {k: 0.0 for k in _ghost["pc"]["needs"]}
+_ghost["pc"]["needs"]["thirst"] = 40.0
+_ghost["profile"]["physics_on"] = []
+_ghost["items"] = [i for i in _ghost["items"] if "вода" not in i.get("tags", [])]
+_glog = []
+_drank = _eng.consume_tagged(_ghost, "вода", 0.4, _glog)
+good = _drank == 0.0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'питьё без предмета не списывает воду':<40}{_drank}")
+
+_fill = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_fill["items"] = [{"id": "itm_w", "name": "фляга", "kg": 1.0, "l": 1.0, "qty": 1,
+                   "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["вода"], "fill": 1.0}]
+_fill["gear"]["hands"]["held"] = ["itm_w"]
+_clog = []
+_got = _eng.consume_tagged(_fill, "вода", 0.4, _clog)
+good = abs(_got - 0.4) < 0.01 and abs(_fill["items"][0]["fill"] - 0.6) < 0.02
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'питьё списывает fill':<40}fill={_fill['items'][0]['fill']}")
+
+_ch = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_ch["ruleset"] = _json.load(open("ruleset.json", encoding="utf-8"))
+_ch["items"] = [{"id": "itm_f", "name": "фонарик", "kg": 0.2, "l": 0.2, "qty": 1,
+                 "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["свет"], "charge_pct": 100}]
+_ch["gear"]["hands"]["held"] = ["itm_f"]
+_ch["pc"]["needs"] = {k: 0.0 for k in _ch["pc"]["needs"]}
+_ch["profile"]["physics_on"] = []
+_eng.spend_held_charge(_ch, 1.0, [])
+good = abs(_ch["items"][0]["charge_pct"] - (100 - _ch["ruleset"]["item_use"]["charge_per_h"])) < 0.2
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'заряд в руках падает за час':<40}{_ch['items'][0]['charge_pct']}")
+
+_bag = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_bag["ruleset"] = _json.load(open("ruleset.json", encoding="utf-8"))
+_bag["items"] = [{"id": "itm_f", "name": "фонарик", "kg": 0.2, "l": 0.2, "qty": 1,
+                  "in": "cnt_01", "depth": 0, "condition": 1.0, "tags": ["свет"], "charge_pct": 100}]
+_bag["gear"]["hands"]["held"] = []
+_eng.spend_held_charge(_bag, 1.0, [])
+good = abs(_bag["items"][0]["charge_pct"] - 100) < 0.01
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'заряд в сумке не тратится':<40}{_bag['items'][0]['charge_pct']}")
+
+_med = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_med["ruleset"] = _json.load(open("ruleset.json", encoding="utf-8"))
+_med["items"] = [{"id": "itm_m", "name": "аптечка", "kg": 0.5, "l": 1.0, "qty": 1,
+                  "in": "cnt_01", "depth": 0, "condition": 1.0, "tags": ["медицина"], "fill": 1.0}]
+_eng.spend_medicine_fill(_med, [])
+good = abs(_med["items"][0]["fill"] - (1.0 - _med["ruleset"]["item_use"]["medicine_fill_per_treat"])) < 0.001
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'перевязка тратит fill аптечки':<40}{_med['items'][0]['fill']}")
 
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)

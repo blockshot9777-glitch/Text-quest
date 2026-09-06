@@ -19,5 +19,5 @@ alwaysApply: true
 
 ```text
 # плохо: поправил consequence(), объявил готово
-# хорошо: grep CONSEQUENCES engine.py пуст; selftest 103/103; код выхода 0
+# хорошо: grep CONSEQUENCES engine.py пуст; selftest 112/112; код выхода 0
 ```

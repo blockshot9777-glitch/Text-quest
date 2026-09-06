@@ -124,6 +124,10 @@ SYS_MECH = """Ты — разборщик намерений для симуля
             если исход не под вопросом — пустой список
  to       — полный путь площадки, если игрок переходит (только из списка выходов!)
  local    — краткое новое описание позиции, если сместился в пределах площадки
+ take_resource — строка "имя:количество", взять из resources текущей площадки
+            (только то, что есть в ресурсы_площадки; количество — литры/порции)
+ water, food  — сколько выпить/съесть из предметов с тегами вода/еда (спишет fill)
+            без такого предмета нужда не падает
  sheltered, fire, sleeping — true/false
  window   — секунды доступного времени: схватка 2, падение 2, обвал 5, обычно 60
 
@@ -159,11 +163,14 @@ def scene_context(S):
               "difficulty": e.get("difficulty"), "gate": e.get("gate")}
              for e in site.get("exits", [])]
     avail = sim.available(S, 60)
+    res = [{"name": r.get("name"), "есть": (r.get("amount") or 0) > 0}
+           for r in (site.get("resources") or [])]
     return {
         "место": S["position"]["local"],
         "площадка": site.get("name", ""),
         "путь": S["position"]["path"],
         "выходы": exits,
+        "ресурсы_площадки": res,
         "под_рукой": [n for n, _ in avail],
         "в_руках": [sim.item_name(S, i) for i in S["gear"]["hands"]["held"]],
         "погода": S["time"].get("weather"),
@@ -192,6 +199,10 @@ def play_turn(cfg, intent):
         args += ["--check", c]
     if m.get("to"):    args += ["--to", m["to"]]
     if m.get("local"): args += ["--local", m["local"]]
+    if m.get("take_resource"):
+        args += ["--take-resource", str(m["take_resource"])]
+    if m.get("water"): args += ["--water", str(m["water"])]
+    if m.get("food"):  args += ["--food", str(m["food"])]
     for f in ("sheltered", "fire", "sleeping"):
         if m.get(f): args.append("--" + f)
     args += ["--window", str(int(m.get("window", 60)))]

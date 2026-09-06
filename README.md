@@ -26,7 +26,7 @@ python selftest.py
 python sim.py selftest
 ```
 
-Ожидается ноль ошибок в `audit.py`, **103/103** в `selftest.py`, **21/21** в `sim.py selftest`, код выхода `0`.
+Ожидается ноль ошибок в `audit.py`, **112/112** в `selftest.py`, **21/21** в `sim.py selftest`, код выхода `0`.
 
 ## Как это устроено
 
@@ -47,6 +47,8 @@ python sim.py new --brief examples/brief_1917.json --out state.json
 python sim.py check --state state.json
 python sim.py look --window 5
 python sim.py act --minutes 40 --activity 1 --check "perception:20:осмотр::восприятие"
+python sim.py act --minutes 8 --take-resource "вода:0.5"
+python sim.py act --minutes 8 --water 0.4
 python sim.py fight --foe "имя:45:10:0"
 python sim.py treat --supplies 20
 python sim.py snapshot --tag имя

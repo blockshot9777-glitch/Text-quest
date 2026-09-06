@@ -51,7 +51,7 @@
     {"to": "rossiya/petrograd/vyborg/uchastok", "mode": "пешком", "travel_min": 15, "dz_m": 0, "difficulty": 12, "gate": null},
     {"to": "rossiya/petrograd/vyborg/traktir", "mode": "пешком", "travel_min": 10, "dz_m": 1, "difficulty": 8, "gate": null}
    ],
-   "resources": [{"name": "чёрный хлеб", "amount": 6, "renew_per_day": 2}],
+   "resources": [{"name": "чёрный хлеб", "amount": 6, "renew_per_day": 2, "tags": ["еда"]}],
    "hazards": ["давка", "провокатор в очереди"],
    "objects": ["закрытая дверь пекарни"],
    "touched": false
@@ -66,7 +66,7 @@
     {"to": "rossiya/petrograd/vyborg/ochered", "mode": "пешком", "travel_min": 10, "dz_m": -1, "difficulty": 8, "gate": null},
     {"to": "rossiya/petrograd/vyborg/neva", "mode": "пешком", "travel_min": 20, "dz_m": -5, "difficulty": 16, "gate": null}
    ],
-   "resources": [{"name": "кипяток", "amount": 8, "renew_per_day": 3}],
+   "resources": [{"name": "кипяток", "amount": 8, "renew_per_day": 3, "tags": ["вода"]}],
    "hazards": ["дым, теснота, кто угодно может подслушать"],
    "objects": ["печь", "задняя комната на засове"],
    "touched": false

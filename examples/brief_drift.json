@@ -110,8 +110,8 @@
     {"to": "sol/drift/relay/bridge", "mode": "люк", "travel_min": 3, "dz_m": 0, "difficulty": 12, "gate": null}
    ],
    "resources": [
-    {"name": "вода под палубой", "amount": 40, "renew_per_day": 0},
-    {"name": "пайки в сетке", "amount": 9, "renew_per_day": 0}
+    {"name": "вода под палубой", "amount": 40, "renew_per_day": 0, "tags": ["вода"]},
+    {"name": "пайки в сетке", "amount": 9, "renew_per_day": 0, "tags": ["еда"]}
    ],
    "hazards": ["неподписанные ёмкости", "плавающие мелочи"],
    "objects": ["койка с ремнями", "тёмный индикатор бака", "сетка с пайками"],

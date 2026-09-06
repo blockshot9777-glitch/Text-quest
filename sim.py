@@ -542,6 +542,11 @@ EMBEDDED_RULES = {
   "note": "перевязанная рана затягивается неделями, не часами",
   "penalty_per_day": 6.0,
   "infection_per_h": 0.8
+ },
+ "item_use": {
+  "note": "списание при использовании: заряд у предмета в руках, fill у воды/еды/аптечки. --water/--food без предмета больше не восполняют нужду.",
+  "charge_per_h": 12.0,
+  "medicine_fill_per_treat": 0.25
  }
 }
 
@@ -1827,6 +1832,203 @@ def available(S, window_s):
         if t <= window_s: out.append((it["name"], t))
     return sorted(out, key=lambda x: x[1])
 
+def _matter_fn(name):
+    """В сборке matter.py влит в тот же модуль; отдельно — обычный импорт."""
+    m = sys.modules.get("matter")
+    if m is None:
+        m = sys.modules[__name__]
+    return getattr(m, name)
+
+def next_item_id(S):
+    n = 0
+    for it in S.get("items") or []:
+        iid = it.get("id") or ""
+        if iid.startswith("itm_"):
+            try:
+                n = max(n, int(iid[4:]))
+            except ValueError:
+                pass
+    return f"itm_{n+1:02d}"
+
+def resource_tags(res):
+    if res.get("tags"):
+        return list(res["tags"])
+    n = (res.get("name") or "").lower()
+    tags = []
+    for needle, tag in (("вод", "вода"), ("кипят", "вода"), ("хлеб", "еда"),
+                        ("пайк", "еда"), ("еда", "еда"), ("сухар", "еда"),
+                        ("зерн", "еда")):
+        if needle in n and tag not in tags:
+            tags.append(tag)
+    return tags or ["ресурс"]
+
+def find_site_resource(site, query):
+    q = (query or "").strip().lower()
+    if not q:
+        return None, "пустой запрос"
+    pool = list(site.get("resources") or [])
+    hits = []
+    for r in pool:
+        names = (r.get("name") or "").lower()
+        tags = [t.lower() for t in (r.get("tags") or [])]
+        if q == names or q in names or q in tags:
+            hits.append(r)
+    # уникальные объекты, не дубли по двум условиям
+    uniq, seen = [], set()
+    for r in hits:
+        k = id(r)
+        if k not in seen:
+            seen.add(k); uniq.append(r)
+    if not uniq:
+        return None, f"на площадке нет ресурса «{query}»"
+    if len(uniq) > 1:
+        return None, "несколько ресурсов подходят — уточни имя"
+    return uniq[0], None
+
+def item_from_resource(S, res, amount):
+    """Порция ресурса — предмет из вещества, не строка в журнале."""
+    make_item = _matter_fn("make_item")
+    tech = S.get("profile", {}).get("tech_ceiling", "industrial")
+    h = hashlib.sha256(f"{S['meta']['seed']}|{S['meta']['turn']}|{res.get('name')}|{amount}".encode()).digest()
+    rng = random.Random(int.from_bytes(h[:8], "big"))
+    tags = resource_tags(res)
+    name = res.get("name") or "ресурс"
+    side = max(1.0, (max(amount, 0.05) * 1000.0) ** (1.0 / 3.0))
+    if "вода" in tags:
+        it = make_item(f"{name} ({amount:g})",
+                       [("вода", "жидкость", side, side, side)],
+                       tags=["вода"], tech_ceiling=tech, rng=rng, condition=1.0, packing=1.0)
+        it["fill"] = 1.0
+    elif "еда" in tags:
+        it = make_item(f"{name} ({amount:g})",
+                       [("мясо/еда", "сыпучее", side, side, side)],
+                       tags=["еда"], tech_ceiling=tech, rng=rng, condition=1.0, packing=1.0)
+        it["fill"] = 1.0
+    else:
+        it = make_item(f"{name} ({amount:g})",
+                       [("дерево", "пластина", max(4.0, side), max(3.0, side * 0.6), 2.0)],
+                       tags=tags, tech_ceiling=tech, rng=rng, condition=1.0)
+        it["fill"] = 1.0
+    it["id"] = next_item_id(S)
+    it["qty"] = 1
+    it["depth"] = 0
+    return it
+
+def place_new_item(S, it, log):
+    hands = S["gear"]["hands"]
+    if len(hands["held"]) < hands.get("slots", 2):
+        it["in"] = "cnt_00"
+        hands["held"].append(it["id"])
+        S["items"].append(it)
+        log.append(f"в руки: {it['name']}")
+        return True
+    conts = [c for c in S["gear"]["containers"] if c.get("id") != "cnt_00"]
+    for c in conts:
+        inside = [x for x in S["items"] if x["in"] == c["id"]]
+        vol = sum(x["l"] * x.get("qty", 1) for x in inside) + it["l"]
+        mas = sum(x["kg"] * x.get("qty", 1) for x in inside) + it["kg"]
+        cap_l, cap_kg = c.get("cap_l"), c.get("cap_kg")
+        if cap_l and vol > cap_l * (1.3 if not c.get("rigid") else 1.0):
+            continue
+        if cap_kg and mas > cap_kg:
+            continue
+        it["in"] = c["id"]
+        it["depth"] = len(inside)
+        S["items"].append(it)
+        log.append(f"убрано: {it['name']} -> {c['name']}")
+        return True
+    log.append(f"[ОТКАЗ] некуда положить {it['name']}")
+    return False
+
+def take_site_resource(S, spec, log):
+    """Списать resources[].amount на текущей площадке и создать предмет."""
+    name, amt_s = spec, "1"
+    if ":" in spec:
+        name, amt_s = spec.rsplit(":", 1)
+    try:
+        amount = float(amt_s)
+    except ValueError:
+        log.append("[ОТКАЗ] количество ресурса должно быть числом")
+        return False
+    if amount <= 0:
+        log.append("[ОТКАЗ] взять можно только положительное количество")
+        return False
+    site = site_of(S)
+    res, err = find_site_resource(site, name.strip())
+    if err:
+        log.append(f"[ОТКАЗ] {err}")
+        return False
+    have = res.get("amount") or 0
+    if amount > have + 1e-9:
+        log.append(f"[ОТКАЗ] «{res.get('name')}»: нужно {amount:g}, есть {have:g}")
+        return False
+    it = item_from_resource(S, res, amount)
+    if not place_new_item(S, it, log):
+        return False
+    res["amount"] = round(have - amount, 4)
+    log.append(f"[ресурс] взял из «{res.get('name')}»")
+    return True
+
+def consume_tagged(S, tag, amount, log):
+    """Списать fill с предметов по тегу. Возвращает фактически взятое количество."""
+    if not amount or amount <= 0:
+        return 0.0
+    got = 0.0
+    items = sorted(S["items"], key=lambda it: access_time(S, it))
+    for it in items:
+        if tag not in (it.get("tags") or []):
+            continue
+        cap = it.get("l") if tag == "вода" else (it.get("kg") or 0)
+        if not cap:
+            continue
+        fill = it.get("fill")
+        if fill is None:
+            fill = 1.0
+        have = cap * fill * it.get("qty", 1)
+        if have <= 0:
+            continue
+        take = min(amount - got, have)
+        remain = have - take
+        denom = cap * it.get("qty", 1)
+        it["fill"] = round(remain / denom, 4) if denom else 0.0
+        if tag == "вода":
+            it["kg"] = round(max(0.0, (it.get("kg") or 0) - take), 3)
+        else:
+            it["kg"] = round(max(0.0, (it.get("kg") or 0) - take), 3)
+        got += take
+        log.append(f"[запас] {it['name']}")
+        if got >= amount - 1e-9:
+            break
+    if got + 1e-9 < amount:
+        log.append(f"[запас] {tag}: хватило {got:g} из {amount:g}")
+    return got
+
+def spend_held_charge(S, hours, log):
+    rate = (rules(S).get("item_use") or {}).get("charge_per_h")
+    if not rate or hours <= 0:
+        return
+    held = set(S["gear"]["hands"].get("held") or [])
+    for it in S["items"]:
+        if "charge_pct" not in it or it.get("id") not in held:
+            continue
+        before = it["charge_pct"]
+        it["charge_pct"] = max(0.0, round(before - rate * hours, 2))
+        if before > 0 and it["charge_pct"] <= 0:
+            log.append(f"[заряд] {it['name']} сел.")
+
+def spend_medicine_fill(S, log):
+    frac = (rules(S).get("item_use") or {}).get("medicine_fill_per_treat", 0.0)
+    if not frac:
+        return
+    for it in S["items"]:
+        if "медицина" not in (it.get("tags") or []):
+            continue
+        if "fill" not in it:
+            it["fill"] = 1.0
+        it["fill"] = max(0.0, round(it["fill"] - frac, 3))
+        log.append(f"[запас] {it['name']}")
+        return
+
 # ─────────────────────────── БРОСКИ ───────────────────────────
 
 def d100(seed, turn, idx):
@@ -2426,6 +2628,8 @@ def main():
     p.add_argument("--sleeping", action="store_true")
     p.add_argument("--water", type=float, default=0)
     p.add_argument("--food", type=float, default=0)
+    p.add_argument("--take-resource", dest="take_resource", action="append", default=[],
+                   help="имя:количество — списать resources площадки, создать предмет")
     p.add_argument("--window", type=int, default=None)
     p.add_argument("--check", action="append", default=[],
                    help="навык:сложность:метка[:преимущество][:домен][:lethal]")
@@ -2465,6 +2669,7 @@ def main():
                 L.append(f"кровь остановлена, но сделано грубо: рана мешает сильнее (−{w['penalty']:.0f})")
             else:
                 L.append(f"кровотечение остановлено, рана перевязана")
+            spend_medicine_fill(S, L)
         else:
             w["dirty"] = True
             L.append("обработать не вышло, рана загрязнена сильнее")
@@ -2587,7 +2792,13 @@ def main():
         S["position"]["local"] = a.to.split("/")[-1]
     if a.local: S["position"]["local"] = a.local
     if a.z is not None: S["position"]["z_m"] = a.z
-    log = tick(S, a.minutes/60, a.activity, a.sheltered, a.fire, a.sleeping, a.water, a.food)
+    log = []
+    for spec in (a.take_resource or []):
+        take_site_resource(S, spec, log)
+    water = consume_tagged(S, "вода", a.water, log) if a.water else 0.0
+    food = consume_tagged(S, "еда", a.food, log) if a.food else 0.0
+    log = tick(S, a.minutes/60, a.activity, a.sheltered, a.fire, a.sleeping, water, food, log)
+    spend_held_charge(S, a.minutes/60, log)
     rolls = []
     for i, spec in enumerate(a.check, start=1):
         f = spec.split(":")
