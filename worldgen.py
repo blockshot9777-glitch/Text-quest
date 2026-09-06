@@ -263,7 +263,8 @@ def expand(brief):
         clk = {"id":f"clk_{i:02d}","name":c["name"],"filled":c["filled"],
                "max":c["max"],"scale":c.get("scale","региональный"),
                "period_h":c["period_h"],"last_tick_h":S["time"]["t_h"],
-               "hidden":c.get("hidden",True),"payoff":c["payoff"]}
+               "hidden":c.get("hidden",True),"payoff":c["payoff"],
+               "fired": bool(c.get("fired", False))}
         if c.get("on_complete"):
             clk["on_complete"] = json.loads(json.dumps(c["on_complete"]))
         S["clocks"].append(clk)

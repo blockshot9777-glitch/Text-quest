@@ -607,5 +607,59 @@ ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'Релей: CO2 и тепло меняют отсеки':<40}"
       f"rise={_cryo['env']['pco2_rise_kpa_h']} hab={_hab['env']['ambient_c']}")
 
+_rb, _ = _clock_fixture([{"path": "envelope.dose_sv", "add": 10}])
+_rb["envelope"]["dose_sv"] = 1.0
+_eng.tick(_rb, 1.05, activity=0, log=[])
+_rb["clocks"][0]["filled"] = 0
+_rb["clocks"][0]["last_tick_h"] = _rb["time"]["t_h"]
+_eng.tick(_rb, 3.0, activity=0, log=[])
+good = bool(_rb["clocks"][0].get("fired")) and abs(_rb["envelope"]["dose_sv"] - 11.0) < 0.01
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'fired держит add после отката filled':<40}{_rb['envelope']['dose_sv']}")
+
+_stack, _ = _clock_fixture()
+_stack["envelope"]["dose_sv"] = 1.0
+_t0 = _stack["time"]["t_h"]
+_stack["clocks"] = [
+    {"name": "a", "filled": 2, "max": 3, "period_h": 1, "last_tick_h": _t0,
+     "payoff": "a", "hidden": True, "on_complete": [{"path": "envelope.dose_sv", "add": 10}]},
+    {"name": "b", "filled": 2, "max": 3, "period_h": 1, "last_tick_h": _t0,
+     "payoff": "b", "hidden": True, "on_complete": [{"path": "envelope.dose_sv", "add": 7}]},
+]
+_eng.tick(_stack, 1.05, activity=0, log=[])
+good = abs(_stack["envelope"]["dose_sv"] - 18.0) < 0.01
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'два счётчика add складываются':<40}{_stack['envelope']['dose_sv']}")
+
+_star, _shere = _clock_fixture([{"sites": "*", "env": {"ambient_c": 4.0}}])
+_eng.tick(_star, 1.05, activity=0, log=[])
+_star["world"]["sites_canon"].append({
+    "path": _shere + "/late", "name": "поздно",
+    "env": {"ambient_c": 16.0, "light": "дежурный", "breathable": True},
+    "exits": [], "touched": False
+})
+_eng.tick(_star, 1.0, activity=0, log=[])
+_late = next(s for s in _star["world"]["sites_canon"] if s["path"].endswith("/late"))
+_here_s = next(s for s in _star["world"]["sites_canon"] if s["path"] == _shere)
+good = abs(_late["env"]["ambient_c"] - 16.0) < 0.01 and abs(_here_s["env"]["ambient_c"] - 4.0) < 0.01
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'* не трогает площадку после срабатывания':<40}{_late['env']['ambient_c']}")
+
+_ord, _ohere = _clock_fixture()
+_ord["clocks"][0]["on_complete"] = [{"site": _ohere, "env": {"ambient_c": -20.0}}]
+_ord["profile"]["physics_on"] = ["холод"]
+_ord["pc"]["needs"]["cold_stress"] = 10.0
+_ord["gear"]["worn"] = [{"id": "t", "name": "t", "kg": 1, "clo": 0.3, "wet": 0.0}]
+_ctrl = _cp.deepcopy(_ord)
+_ctrl["clocks"][0]["filled"] = 3
+_ctrl["clocks"][0]["fired"] = True
+_eng.tick(_ord, 1.0, activity=0, log=[])
+_eng.tick(_ctrl, 1.0, activity=0, log=[])
+good = (_ord["pc"]["needs"]["cold_stress"] > _ctrl["pc"]["needs"]["cold_stress"] + 1.0
+        and abs(_ord["envelope"]["ambient_c"] + 20.0) < 0.2)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'часы раньше холода того же часа':<40}"
+      f"{_ord['pc']['needs']['cold_stress']:.1f} vs {_ctrl['pc']['needs']['cold_stress']:.1f}")
+
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)

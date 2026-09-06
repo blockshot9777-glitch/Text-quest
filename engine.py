@@ -312,6 +312,9 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
     while rem > 1e-6:
         h = min(1.0, rem); rem -= h
         S["time"]["t_h"] += h
+        # Счётчик раньше среды и нужд этого часа: сработавший on_complete
+        # уже в силе для холода/CO2/add, а не «после всех часов акта».
+        tick_clocks(S, log)
         recompute_env(S, sheltered, fire)
         wet_step(S, h, sheltered, fire)
         R = rules(S)
@@ -401,7 +404,6 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
     if society is not None:
         society.society_step(S, log, hours, rules(S))
     weather_step(S, log)
-    tick_clocks(S, log)
     return log
 
 def death_check(S):
@@ -526,6 +528,9 @@ def _clock_target_sites(S, fx):
         return [st for st in canon if st.get("path") == fx["site"]]
     sel = fx.get("sites")
     if sel == "*":
+        # Только площадки, уже лежащие в sites_canon и имеющие env.
+        # Позже сгенерированные (и вернувшиеся после compact) не наследуют
+        # прошедшее событие: игрок ту стадию просто не застал.
         return [st for st in canon if isinstance(st.get("env"), dict)]
     if isinstance(sel, list):
         want = set(sel)
@@ -556,12 +561,13 @@ def _clock_set_path(S, path, set_v=None, add_v=None):
     return True
 
 def apply_clock_effects(S, clock, log):
-    """Один раз при срабатывании: payoff — фраза, on_complete — мутация состояния."""
+    """Мутации из on_complete. Идемпотентность — не здесь: set безопасен
+    повтором, add нет. Повтор одного счётчика режет флаг fired в tick_clocks.
+    Два разных счётчика с add на одно поле складываются — это замысел, не баг.
+    Пересчёт envelope делает tick() после часов, со флагами sheltered/fire."""
     effects = clock.get("on_complete") or []
     if not effects:
         return
-    here = (S.get("position") or {}).get("path")
-    touched_here = False
     for fx in effects:
         if not isinstance(fx, dict):
             log.append(f"[счётчик] {clock.get('name','?')}: пропуск кривой операции")
@@ -583,8 +589,6 @@ def apply_clock_effects(S, clock, log):
                     continue
                 st["env"].update(patch)
                 log.append(f"[счётчик] {clock.get('name','?')}: {st.get('path')} env {patch}")
-                if st.get("path") == here:
-                    touched_here = True
         elif path_op and not env_op:
             ok = _clock_set_path(S, fx["path"], fx.get("set") if has_set else None,
                                  fx.get("add") if has_add else None)
@@ -595,20 +599,28 @@ def apply_clock_effects(S, clock, log):
                 log.append(f"[счётчик] {clock.get('name','?')}: путь {fx.get('path')} не найден")
         else:
             log.append(f"[счётчик] {clock.get('name','?')}: неизвестная операция")
-    if touched_here:
-        recompute_env(S)
 
 def tick_clocks(S, log):
     for c in S["clocks"]:
-        k = int((S["time"]["t_h"] - c["last_tick_h"]) // c["period_h"])
+        period = c.get("period_h") or 0
+        if period <= 0:
+            continue
+        k = int((S["time"]["t_h"] - c["last_tick_h"]) // period)
         if k > 0:
-            c["last_tick_h"] += k * c["period_h"]
+            c["last_tick_h"] += k * period
             before = c["filled"]
             c["filled"] = min(c["max"], c["filled"] + k)
-            if c["filled"] >= c["max"] and before < c["max"]:
-                log.append(f"[СЧЁТЧИК СРАБОТАЛ] {c['name']}: {c['payoff']}")
-                apply_clock_effects(S, c, log)
-            elif c["filled"] != before:
+            if c["filled"] >= c["max"]:
+                if c.get("fired"):
+                    continue
+                if before < c["max"]:
+                    c["fired"] = True
+                    log.append(f"[СЧЁТЧИК СРАБОТАЛ] {c['name']}: {c['payoff']}")
+                    apply_clock_effects(S, c, log)
+                else:
+                    # Уже был на max без флага (старое сохранение) — не переигрывать.
+                    c["fired"] = True
+            elif c["filled"] != before and not c.get("fired"):
                 log.append(f"[счётчик] {c['name']} {c['filled']}/{c['max']}" +
                            ("" if c.get("hidden") else " (игрок может заметить)"))
 
