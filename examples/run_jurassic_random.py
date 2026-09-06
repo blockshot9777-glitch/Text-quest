@@ -1,21 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Случайный прогон попаданца в поздней юре. Длина — аргумент (по умолчанию 100).
+"""Осмысленный прогон попаданца в поздней юре. Длина — аргумент (по умолчанию 100).
 
-Решения, которые нельзя держать только в памяти чата:
-
-- Бой не класть в один из четырёх равновероятных слотов. Первый черновик
-  (seed тот же, слот «схватиться» удалён из файла) умер на 41-м от ран у
-  гнезда — дыра сценария, не движка. У NPC — скрытность, не fight.
-  Следующий сеттинг с другим seed иначе снова умрёт насилием раньше,
-  чем проверит жажду, сон или счётчики.
-- Сон смоделирован: у пещеры shelter=true, --sleeping не требует очага.
-  Записанная смерть от fatigue 100 — не «отдохнуть было нельзя», а
-  приоритет слотов: пустая фляга и thirst>=40 ставят «к воде» выше
-  «к укрытию», и тело не возвращается ко второму сну.
-- Огонь 0 при взятом сухостое — контракт (нет igniter, нет site.hearth),
-  не сломанный матчинг тега. Класть ли розжиг в дикий замысел — баланс
-  генерации / SYS_BRIEF, не физика ядра.
+Не RNG из четырёх равных слотов: один ход — одно действие по нужде.
+Не выдумывает зажигалку, очаг, бой и материал, которого нет в данных.
+Бой в набор не входит (черновик на 41-м — дыра сценария).
+take не наполняет пустую тару: руки с пустыми порциями + полная сумка —
+честная смерть от жажды у воды, не поблажка.
 """
 import json, os, sys, io, copy, random
 
@@ -94,10 +85,10 @@ def site(S):
 
 def toward_shelter(st, paths, sites):
     """Прямой выход в пещеру или один шаг к площадке, с которой в неё есть выход."""
-    for e in st.get("exits") or []:
+    for e in engine.site_exits(st):
         if e.get("to") in paths and str(e["to"]).endswith("/peschera"):
             return e
-    for e in st.get("exits") or []:
+    for e in engine.site_exits(st):
         if e.get("to") not in paths:
             continue
         dest = next((x for x in sites if x["path"] == e["to"]), None)
@@ -114,13 +105,13 @@ def site_has_tag(st, tag):
 def toward_tag(st, paths, sites, tag):
     if site_has_tag(st, tag):
         return None
-    for e in st.get("exits") or []:
+    for e in engine.site_exits(st):
         if e.get("to") not in paths:
             continue
         dest = next((x for x in sites if x["path"] == e["to"]), None)
         if dest and site_has_tag(dest, tag):
             return e
-    for e in st.get("exits") or []:
+    for e in engine.site_exits(st):
         if e.get("to") not in paths:
             continue
         dest = next((x for x in sites if x["path"] == e["to"]), None)
@@ -139,156 +130,195 @@ def travel_argv(S, e):
             "--window", "60"]
 
 
-def options(S, rng):
+def object_with_parts(st):
+    for o in engine.site_objects(st):
+        if o.get("parts"):
+            return o
+    return None
+
+
+def shelter_argv(S, minutes, sleeping=False, activity=0):
+    argv = ["act", "--minutes", str(minutes), "--activity", str(activity), "--window", "60"]
+    if engine.is_sheltered(S):
+        argv.append("--sheltered")
+    if sleeping:
+        argv.append("--sleeping")
+    if engine.can_fire(S, 60):
+        argv.append("--fire")
+    return argv
+
+
+def hands_have_slot(S):
+    h = S["gear"]["hands"]
+    return len(h.get("held") or []) < int(h.get("slots") or 2)
+
+
+def bag_can_hold(S, it):
+    bag = next((c for c in S["gear"]["containers"] if c.get("id") != "cnt_00"), None)
+    if not bag or not it:
+        return False, None
+    inside = [x for x in S["items"] if x.get("in") == bag["id"]]
+    vol = sum((x.get("l") or 0) * x.get("qty", 1) for x in inside) + (it.get("l") or 0)
+    mas = sum((x.get("kg") or 0) * x.get("qty", 1) for x in inside) + (it.get("kg") or 0)
+    cap_l, cap_kg = bag.get("cap_l"), bag.get("cap_kg")
+    if cap_l and vol > cap_l * (1.3 if not bag.get("rigid") else 1.0):
+        return False, None
+    if cap_kg and mas > cap_kg:
+        return False, None
+    return True, bag
+
+
+def stow_empty_tagged(S, tags):
+    """Пустая тара в руках не наполняется take. Убрать — только если сумка примет."""
+    tags = set(tags or [])
+    if not tags:
+        return None
+    for iid in S["gear"]["hands"].get("held") or []:
+        it = next((x for x in S["items"] if x.get("id") == iid), None)
+        if not it:
+            continue
+        if not (tags & set(it.get("tags") or [])):
+            continue
+        fill = it.get("fill")
+        if fill is None or fill > 1e-9:
+            continue
+        ok, bag = bag_can_hold(S, it)
+        if not ok:
+            continue
+        return {"label": "Убрать пустую тару с рук", "kind": "укладка",
+                "argv": ["act", "--minutes", "2", "--activity", "0",
+                         "--stow", f"{iid}:{bag['id']}", "--window", "30"]}
+    return None
+
+
+def try_build_shelter(S, st):
+    """Собрать укрытие только из объекта с parts в данных. Состав не выдумывается."""
+    tags = engine.structure_role_tags(S, "shelter_tags")
+    if not tags or not engine.structure_use(S).get("hours_per_l"):
+        return None
+    if engine.is_sheltered(S) or engine.structure_has_any_tag(st, tags):
+        return None
+    obj = object_with_parts(st)
+    if not obj:
+        return None
+    tech = S.get("profile", {}).get("tech_ceiling", "industrial")
+    try:
+        it = engine._assemble_parts(S, "заслон", obj["parts"], tags, tech)
+    except (KeyError, ValueError):
+        return None
+    hours = engine.build_hours(S, it.get("l") or 0)
+    if hours is None:
+        return None
+    why = engine.build_refuse(S, "заслон", [], tags, obj["name"], hours * 60 + 1, None)
+    if why:
+        return None
+    return {"label": f"Сложить заслон из «{obj['name']}»", "kind": "сборка",
+            "argv": ["act", "--minutes", str(int(hours * 60) + 1), "--activity", "2",
+                     "--build", "заслон", "--from-object", obj["name"],
+                     "--build-tag", tags[0], "--window", "60"]}
+
+
+def decide(S):
+    """Одно действие: что сейчас закрывает нужду из того, что есть. Без боя и выдумок."""
     if S.get("status") == "unconscious":
-        wait = {"label": "Тело лежит. Время идёт.", "kind": "беспамятство",
+        return {"label": "Тело лежит. Время идёт.", "kind": "беспамятство",
                 "argv": ["act", "--minutes", "60", "--activity", "0", "--window", "60"]}
-        return [wait, wait, wait, wait]
     st = site(S)
     paths = {x["path"] for x in S["world"]["sites_canon"]}
     here = S["position"]["path"]
-    indoor = bool(st.get("shelter"))
-    fatigue = S["pc"]["needs"].get("fatigue", 0)
-    thirst = S["pc"]["needs"].get("thirst", 0)
+    indoor = engine.is_sheltered(S)
+    n = S["pc"]["needs"]
+    fatigue = n.get("fatigue", 0)
+    thirst = n.get("thirst", 0)
+    hunger = n.get("hunger", 0)
     drink_tag = tag_query(S, "water_tags")
+    food_tag = tag_query(S, "food_tags")
     water_here = bool(drink_tag and site_has_tag(st, drink_tag))
+    food_here = bool(food_tag and site_has_tag(st, food_tag))
     water_fill = engine.tagged_have_any(S, engine.use_tags(S, "water_tags"))
-    need_water = thirst >= 40 and water_fill <= 1e-9
-    opts = []
+    food_fill = engine.tagged_have_any(S, engine.use_tags(S, "food_tags"))
+    wounds = S["pc"].get("wounds") or []
+    hostiles = [x for x in S["world"]["npcs"]
+                if x.get("alive", True) and x.get("path") == here and x.get("disposition", 0) <= -40]
 
-    look = ["act", "--minutes", "15", "--activity", "1",
-            "--check", "perception:16:осмотр::восприятие", "--window", "60"]
-    if indoor:
-        look.append("--sheltered")
-    opts.append({"label": "Осмотреться, не привлекая того, что крупнее", "kind": "осмотр", "argv": look})
+    if wounds and not wounds[0].get("treated"):
+        return {"label": "Попытаться перевязать рану", "kind": "лечение",
+                "argv": ["treat", "--supplies", "0"]}
+    if hostiles:
+        leave = None
+        for e in engine.site_exits(st):
+            if e.get("to") in paths and not str(e["to"]).endswith("/gnezdo"):
+                leave = e
+                break
+        if leave:
+            dest = next(x for x in S["world"]["sites_canon"] if x["path"] == leave["to"])
+            return {"label": f"Уйти с глаз: {dest.get('name')}", "kind": "переход",
+                    "argv": travel_argv(S, leave)}
+        return {"label": "Не схватываться: замереть и отползти", "kind": "скрытность",
+                "argv": ["act", "--minutes", "20", "--activity", "1",
+                         "--check", "stealth:24:уйти с глаз::движение", "--window", "15"]}
 
-    rest = ["act", "--minutes", "40", "--activity", "0", "--window", "60"]
-    if indoor:
-        rest.append("--sheltered")
-    if engine.can_fire(S, 60):
-        rest.append("--fire")
-    # Сон только здесь и в fourth, когда уже в пещере. Ядро --sleeping
-    # очага не требует; у peschera shelter=true. Смерть от усталости на
-    # поляне — не отсутствие этой ветки, а elif need_water ниже: жажда
-    # перехватывает слот и не пускает к укрытию.
+    if thirst >= 22 and water_fill > 1e-9:
+        return {"label": "Пить то, что с собой", "kind": "питьё",
+                "argv": shelter_argv(S, 8) + ["--water", "0.4"]}
+    # Усталость при 70+ важнее набрать ещё воды: пустые фляги в руках
+    # не наполняются, take создаёт новый предмет и получает отказ.
     if fatigue >= 65 and indoor:
-        sleep = ["act", "--minutes", "180", "--activity", "0", "--sleeping",
-                 "--sheltered", "--window", "60"]
-        if engine.can_fire(S, 60):
-            sleep.append("--fire")
-        opts.append({"label": "Забиться вглубь и попытаться уснуть", "kind": "сон", "argv": sleep})
-    elif need_water and not water_here and drink_tag:
-        hop_w = toward_tag(st, paths, S["world"]["sites_canon"], drink_tag)
-        if hop_w:
-            dest = next(x for x in S["world"]["sites_canon"] if x["path"] == hop_w["to"])
-            opts.append({"label": f"К воде: {dest.get('name')}", "kind": "переход",
-                         "argv": travel_argv(S, hop_w)})
-        else:
-            opts.append({"label": "Переждать в этом месте", "kind": "ожидание", "argv": rest})
-    elif fatigue >= 80 and not indoor:
+        return {"label": "Спать в укрытии", "kind": "сон",
+                "argv": shelter_argv(S, 180, sleeping=True)}
+    if fatigue >= 70 and not indoor:
+        built = try_build_shelter(S, st)
+        if built:
+            return built
         hop = toward_shelter(st, paths, S["world"]["sites_canon"])
         if hop:
             dest = next(x for x in S["world"]["sites_canon"] if x["path"] == hop["to"])
-            opts.append({"label": f"К укрытию: {dest.get('name')}", "kind": "переход",
-                         "argv": travel_argv(S, hop)})
-        else:
-            opts.append({"label": "Переждать в этом месте", "kind": "ожидание", "argv": rest})
-    else:
-        opts.append({"label": "Переждать в этом месте", "kind": "ожидание", "argv": rest})
+            return {"label": f"К укрытию: {dest.get('name')}", "kind": "переход",
+                    "argv": travel_argv(S, hop)}
+    if thirst >= 22 and water_fill < 0.25 and take_spec(st, drink_tag, 0.5) and hands_have_slot(S):
+        return {"label": "Набрать воды из того, что есть на площадке", "kind": "добыча",
+                "argv": shelter_argv(S, 8, activity=1) + ["--take-resource", take_spec(st, drink_tag, 0.5)]}
+    if not hands_have_slot(S) and thirst >= 22:
+        stow = stow_empty_tagged(S, engine.use_tags(S, "water_tags"))
+        if stow:
+            return stow
 
-    exits = [e for e in st.get("exits", []) if e.get("to") in paths]
-    rng.shuffle(exits)
-    hop = None
-    if need_water and not water_here and drink_tag:
+    if hunger >= 22 and food_fill > 1e-9:
+        return {"label": "Есть то, что с собой", "kind": "еда",
+                "argv": shelter_argv(S, 15) + ["--food", "0.35"]}
+    if hunger >= 22 and take_spec(st, food_tag, 1) and not hostiles and hands_have_slot(S):
+        return {"label": "Срезать мясо с площадки", "kind": "добыча",
+                "argv": shelter_argv(S, 10, activity=1) + ["--take-resource", take_spec(st, food_tag, 1)]}
+
+    if thirst >= 40 and not water_here and drink_tag and water_fill <= 1e-9:
         hop = toward_tag(st, paths, S["world"]["sites_canon"], drink_tag)
-        hop_label = "К воде"
-    elif fatigue >= 80 and not indoor:
-        hop = toward_shelter(st, paths, S["world"]["sites_canon"])
-        hop_label = "К укрытию"
-    if hop:
-        dest = next(x for x in S["world"]["sites_canon"] if x["path"] == hop["to"])
-        opts.append({"label": f"{hop_label}: {dest.get('name')}", "kind": "переход",
-                     "argv": travel_argv(S, hop)})
-    elif exits:
-        e = exits[0]
-        dest = next(x for x in S["world"]["sites_canon"] if x["path"] == e["to"])
-        opts.append({"label": f"Идти: {dest.get('name')}", "kind": "переход",
-                     "argv": travel_argv(S, e)})
-    else:
-        wait = ["act", "--minutes", "20", "--activity", "1",
-                "--check", "perception:20:слух::восприятие", "--window", "60"]
-        if indoor:
-            wait.append("--sheltered")
-        opts.append({"label": "Слушать чащу", "kind": "ожидание", "argv": wait})
+        if hop:
+            dest = next(x for x in S["world"]["sites_canon"] if x["path"] == hop["to"])
+            return {"label": f"К воде: {dest.get('name')}", "kind": "переход",
+                    "argv": travel_argv(S, hop)}
 
-    npcs = [n for n in S["world"]["npcs"] if n.get("alive", True) and n.get("path") == here]
-    water_fill = engine.tagged_have_any(S, engine.use_tags(S, "water_tags"))
-    food_fill = engine.tagged_have_any(S, engine.use_tags(S, "food_tags"))
-    n = S["pc"]["needs"]
-    wounds = S["pc"].get("wounds") or []
-    hostiles = [x for x in npcs if x.get("disposition", 0) <= -40]
+    if hunger >= 40 and not food_here and food_tag and food_fill <= 1e-9:
+        hop = toward_tag(st, paths, S["world"]["sites_canon"], food_tag)
+        dest_st = None
+        if hop:
+            dest_st = next(x for x in S["world"]["sites_canon"] if x["path"] == hop["to"])
+        nest_here = any(n.get("alive", True) and n.get("path") == (hop or {}).get("to")
+                        and n.get("disposition", 0) <= -40 for n in S["world"]["npcs"])
+        if hop and dest_st and not nest_here:
+            return {"label": f"К еде: {dest_st.get('name')}", "kind": "переход",
+                    "argv": travel_argv(S, hop)}
 
-    fourth = None
-    if wounds and not wounds[0].get("treated"):
-        fourth = {"label": "Попытаться перевязать рану", "kind": "лечение",
-                  "argv": ["treat", "--supplies", "0"]}
-    elif engine.fuel_have(S) <= 1e-9 and take_spec(st, tag_query(S, "fuel_tags"), 1):
-        take = ["act", "--minutes", "10", "--activity", "1",
-                "--take-resource", take_spec(st, tag_query(S, "fuel_tags"), 1),
-                "--window", "30"]
-        if indoor:
-            take.append("--sheltered")
-        fourth = {"label": "Набрать сухостоя с площадки", "kind": "добыча", "argv": take}
-    elif n.get("cold_stress", 0) >= 25 and engine.can_fire(S, 60):
-        fire_rest = ["act", "--minutes", "40", "--activity", "0", "--window", "60", "--fire"]
-        if indoor:
-            fire_rest.append("--sheltered")
-        fourth = {"label": "Зажечь то, что горит, и греться", "kind": "огонь", "argv": fire_rest}
-    elif n.get("fatigue", 0) >= 65 and indoor:
-        sleep = ["act", "--minutes", "180", "--activity", "0", "--sleeping",
-                 "--sheltered", "--window", "60"]
-        if engine.can_fire(S, 60):
-            sleep.append("--fire")
-        fourth = {"label": "Забиться вглубь и попытаться уснуть", "kind": "сон", "argv": sleep}
-    elif n.get("thirst", 0) >= 20 and water_fill > 1e-9:
-        drink = ["act", "--minutes", "8", "--activity", "0", "--water", "0.4", "--window", "30"]
-        if indoor:
-            drink.append("--sheltered")
-        fourth = {"label": "Пить то, что с собой", "kind": "питьё", "argv": drink}
-    elif n.get("thirst", 0) >= 20 and take_spec(st, tag_query(S, "water_tags"), 0.5):
-        take = ["act", "--minutes", "8", "--activity", "1",
-                "--take-resource", take_spec(st, tag_query(S, "water_tags"), 0.5),
-                "--window", "30"]
-        if indoor:
-            take.append("--sheltered")
-        fourth = {"label": "Набрать воды из того, что есть на площадке", "kind": "добыча", "argv": take}
-    elif n.get("hunger", 0) >= 20 and food_fill > 1e-9:
-        eat = ["act", "--minutes", "15", "--activity", "0", "--food", "0.35", "--window", "30"]
-        if indoor:
-            eat.append("--sheltered")
-        fourth = {"label": "Есть то, что с собой", "kind": "еда", "argv": eat}
-    elif n.get("hunger", 0) >= 20 and take_spec(st, tag_query(S, "food_tags"), 1):
-        take = ["act", "--minutes", "10", "--activity", "1",
-                "--take-resource", take_spec(st, tag_query(S, "food_tags"), 1),
-                "--window", "30"]
-        if indoor:
-            take.append("--sheltered")
-        fourth = {"label": "Срезать мясо с площадки", "kind": "добыча", "argv": take}
-    elif hostiles:
-        # Не fight: равный слот боя смещает любой seed к быстрой смерти
-        # от ран. Правило постоянное, см. FEATURE_GUIDE §10.
-        hide = ["act", "--minutes", "20", "--activity", "1",
-                "--check", "stealth:24:уйти с глаз::движение", "--window", "15"]
-        fourth = {"label": "Не схватываться: замереть и отползти", "kind": "скрытность", "argv": hide}
-    if fourth is None:
-        hide = ["act", "--minutes", "25", "--activity", "1",
-                "--check", "stealth:22:укрытие::движение", "--window", "20"]
-        if indoor:
-            hide.append("--sheltered")
-        fourth = {"label": "Замереть в заросли, не шуметь", "kind": "скрытность", "argv": hide}
-    opts.append(fourth)
-    assert len(opts) == 4, len(opts)
-    return opts
+    if n.get("cold_stress", 0) >= 25 and engine.can_fire(S, 60):
+        return {"label": "Жечь то, что горит, и греться", "kind": "огонь",
+                "argv": shelter_argv(S, 40)}
+
+    if not indoor:
+        built = try_build_shelter(S, st)
+        if built and (fatigue >= 45 or S["time"].get("weather") in ("дождь", "морось", "мокрый снег")):
+            return built
+
+    return {"label": "Переждать в этом месте", "kind": "ожидание",
+            "argv": shelter_argv(S, 40)}
 
 
 def snapshot_pc(S):
@@ -333,6 +363,7 @@ def summarize(history):
     turns = history.get("turns") or []
     kinds, sites = {}, {}
     clocks_fired, takes, drinks, fires, fights, refuses = [], 0, 0, 0, 0, 0
+    builds, breaks = 0, 0
     for rec in turns:
         kinds[rec["kind"]] = kinds.get(rec["kind"], 0) + 1
         sites[rec["after"]["site"]] = sites.get(rec["after"]["site"], 0) + 1
@@ -344,6 +375,10 @@ def summarize(history):
             drinks += 1
         if rec["kind"] == "бой":
             fights += 1
+        if rec["kind"] == "сборка":
+            builds += 1
+        if rec["kind"] == "разбор":
+            breaks += 1
         if rec["kind"] == "огонь" or "--fire" in (rec.get("argv") or []):
             fires += 1
         for ev in rec.get("events") or []:
@@ -366,6 +401,8 @@ def summarize(history):
         "drink": drinks,
         "fire": fires,
         "fight": fights,
+        "build": builds,
+        "break": breaks,
         "refused": refuses,
         "clock_events": clocks_fired,
         "clocks": fin.get("clocks"),
@@ -405,9 +442,9 @@ def main():
         if S.get("status") == "dead":
             history["ended"] = {"at_planned_turn": i, "status": S.get("status"), "reason": "уже мёртв до хода"}
             break
-        opts = options(S, rng)
-        pick = rng.randrange(4)
-        chosen = opts[pick]
+        chosen = decide(S)
+        pick = 0
+        opts = [chosen]
         report = run_argv(chosen["argv"])
         S2 = engine.load()
         refused = "ОТКАЗ" in report[:400]

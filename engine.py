@@ -356,12 +356,86 @@ def has_tags_accessible(S, tags, window_s=60):
             return True
     return False
 
+def structure_use(S):
+    return (rules(S).get("structure_use") or {})
+
+
+def structure_role_tags(S, key):
+    return list(structure_use(S).get(key) or [])
+
+
+def site_objects(st):
+    """objects[]: строка (проза) или {name, parts?, tags?}."""
+    out = []
+    for o in (st.get("objects") or []):
+        if isinstance(o, str):
+            out.append({"name": o})
+        elif isinstance(o, dict) and o.get("name"):
+            out.append(o)
+    return out
+
+
+def find_site_object(st, name):
+    q = (name or "").strip().lower()
+    if not q:
+        return None, None, "пустой объект"
+    hits = []
+    for i, o in enumerate(st.get("objects") or []):
+        nm = o if isinstance(o, str) else o.get("name")
+        if (nm or "").strip().lower() == q:
+            hits.append(i)
+    if not hits:
+        return None, None, f"на площадке нет объекта «{name}»"
+    if len(hits) > 1:
+        return None, None, "несколько объектов с этим именем — уточни"
+    i = hits[0]
+    raw = st["objects"][i]
+    return i, (raw if isinstance(raw, dict) else {"name": raw}), None
+
+
+def structures_of(st):
+    return list(st.get("structures") or [])
+
+
+def structure_has_any_tag(st, tags):
+    want = set(tags or [])
+    if not want:
+        return False
+    for s in structures_of(st):
+        if want & set(s.get("tags") or []):
+            return True
+    return False
+
+
+def blocked_exit_paths(st):
+    blocked = set()
+    for s in structures_of(st):
+        for p in s.get("block_exits") or []:
+            if p:
+                blocked.add(p)
+    return blocked
+
+
+def site_exits(st):
+    blocked = blocked_exit_paths(st)
+    return [e for e in (st.get("exits") or []) if e.get("to") not in blocked]
+
+
+def site_has_hearth(S, st=None):
+    st = st if st is not None else site_of(S)
+    if st.get("hearth"):
+        return True
+    return structure_has_any_tag(st, structure_role_tags(S, "hearth_tags"))
+
+
 def is_sheltered(S, flag=False):
-    """Укрытие: флаг хода или свойство площадки (не зашитое имя трактира)."""
+    """Укрытие: флаг хода, поле площадки или конструкция с тегом из structure_use."""
     if flag:
         return True
     st = site_of(S)
     if st.get("shelter"):
+        return True
+    if structure_has_any_tag(st, structure_role_tags(S, "shelter_tags")):
         return True
     env = st.get("env") or {}
     return bool(env.get("shelter"))
@@ -378,7 +452,7 @@ def can_fire(S, window_s=60):
         return True
     if fuel_have(S) <= 1e-9:
         return False
-    if site_of(S).get("hearth"):
+    if site_has_hearth(S):
         return True
     return has_tags_accessible(S, iu.get("igniter_tags") or [], window_s)
 
@@ -407,10 +481,269 @@ def fire_refuse(S, window_s=60):
     if fuel_have(S) <= 1e-9:
         shown = " / ".join(ft) or "горючее"
         return f"ОТКАЗ: нечем кормить огонь — нет запаса с тегом «{shown}»."
-    if not site_of(S).get("hearth") and itags and not has_tags_accessible(S, itags, window_s):
+    if not site_has_hearth(S) and itags and not has_tags_accessible(S, itags, window_s):
         shown = " / ".join(itags) or "зажигатель"
         return f"ОТКАЗ: нечем зажечь — нет предмета с тегом «{shown}» в доступе."
     return None
+
+
+def parse_part_spec(spec):
+    bits = (spec or "").split(":")
+    if len(bits) < 5:
+        raise ValueError("часть: материал:форма:Д:Ш:В[:стенка_мм]")
+    mat, form = bits[0].strip(), bits[1].strip()
+    L, W, H = float(bits[2]), float(bits[3]), float(bits[4])
+    if len(bits) >= 6:
+        return [mat, form, L, W, H, float(bits[5])]
+    return [mat, form, L, W, H]
+
+
+def next_struct_id(S):
+    n = 1
+    ids = {s.get("id") for st in (S.get("world") or {}).get("sites_canon") or []
+           for s in st.get("structures") or []}
+    while f"str_{n:02d}" in ids:
+        n += 1
+    return f"str_{n:02d}"
+
+
+def material_need_kg(parts, tech_ceiling="industrial"):
+    """Сколько кг каждого материала нужно по тем же частям, что make_item."""
+    make_item = _matter_fn("make_item")
+    unpack_part = _matter_fn("unpack_part")
+    part_solid_l = _matter_fn("part_solid_l")
+    MATERIALS = _matter_fn("MATERIALS")
+    need = {}
+    for part in parts:
+        mat, form, L, W, H, wall_mm = unpack_part(part)
+        dens = MATERIALS[mat][0]
+        solid, _ = part_solid_l(form, L, W, H, wall_mm)
+        need[mat] = need.get(mat, 0.0) + solid * dens
+    _ = make_item  # те же ворота эпохи проверит caller через make_item
+    return need
+
+
+def material_have(S, mat):
+    tot = 0.0
+    for it in S.get("items") or []:
+        if mat not in (it.get("materials") or []):
+            continue
+        fill = 1.0 if it.get("fill") is None else float(it["fill"])
+        tot += (it.get("kg") or 0) * fill * it.get("qty", 1)
+    return tot
+
+
+def consume_material(S, mat, amount, log):
+    if not amount or amount <= 0:
+        return 0.0
+    got = 0.0
+    for it in list(S.get("items") or []):
+        if mat not in (it.get("materials") or []):
+            continue
+        fill = 1.0 if it.get("fill") is None else float(it["fill"])
+        have = (it.get("kg") or 0) * fill * it.get("qty", 1)
+        if have <= 1e-9:
+            continue
+        take = min(amount - got, have)
+        remain = have - take
+        it["kg"] = round(remain, 3)
+        if remain <= 1e-6:
+            iid = it.get("id")
+            S["items"] = [x for x in S["items"] if x is not it]
+            held = S["gear"]["hands"].get("held") or []
+            if iid in held:
+                held.remove(iid)
+        got += take
+        log.append(f"[материал] {it.get('name')}: −{take:g} кг {mat}")
+        if got >= amount - 1e-9:
+            break
+    return got
+
+
+def build_hours(S, volume_l):
+    """Часы = объём × hours_per_l / (навык/ref × инструмент). Коэффициенты в ruleset."""
+    su = structure_use(S)
+    rate = su.get("hours_per_l")
+    if not rate:
+        return None
+    skill_name = su.get("skill") or "craft"
+    skills = (S.get("pc") or {}).get("skills") or {}
+    skill = float(skills.get(skill_name, 1) or 1)
+    ref = float(su.get("skill_ref") or 40) or 40.0
+    tool = 1.0
+    tt = su.get("tool_tags") or []
+    if tt and has_tags_accessible(S, tt, 60):
+        tool = float(su.get("tool_factor") or 1.0) or 1.0
+    hours = float(volume_l) * float(rate) / (max(skill, 1.0) / ref * tool)
+    lo = float(su.get("min_hours") or 0.1)
+    hi = float(su.get("max_hours") or 48)
+    return max(lo, min(hi, hours))
+
+
+def _assemble_parts(S, name, parts, tags, tech):
+    make_item = _matter_fn("make_item")
+    h = hashlib.sha256(f"{S['meta']['seed']}|{S['meta']['turn']}|{name}".encode()).digest()
+    rng = random.Random(int.from_bytes(h[:8], "big"))
+    return make_item(name, parts, tags=tags, tech_ceiling=tech, rng=rng, condition=1.0)
+
+
+def build_refuse(S, name, parts, tags, from_object, minutes, block_exits=None):
+    """Почему сборка сейчас невозможна, или None. Ничего не меняет."""
+    if not structure_use(S):
+        return "ОТКАЗ: --build не к чему привязать — в наборе нет structure_use."
+    if not (name or "").strip():
+        return "ОТКАЗ: у конструкции нет имени."
+    st = site_of(S)
+    used_parts = list(parts or [])
+    obj = None
+    if from_object:
+        _, obj, err = find_site_object(st, from_object)
+        if err:
+            return f"ОТКАЗ: {err}"
+        if not used_parts:
+            used_parts = list(obj.get("parts") or [])
+        if not used_parts:
+            return "ОТКАЗ: объект без частей — задай состав, проза не ломается и не строится."
+    if not used_parts:
+        return "ОТКАЗ: нет частей — конструкция без состава не собирается."
+    tech = S.get("profile", {}).get("tech_ceiling", "industrial")
+    try:
+        it = _assemble_parts(S, name.strip(), used_parts, tags or [], tech)
+    except (KeyError, ValueError) as e:
+        return f"ОТКАЗ: {e}"
+    hours = build_hours(S, it.get("l") or 0)
+    if hours is None:
+        return "ОТКАЗ: --build не к чему привязать — в structure_use нет hours_per_l."
+    if minutes is None or minutes + 1e-9 < hours * 60:
+        return (f"ОТКАЗ: на сборку нужно {hours * 60:.0f} мин, дано "
+                f"{0 if minutes is None else minutes:g}. Частично не строится.")
+    if not from_object:
+        need = material_need_kg(used_parts, tech)
+        for mat, kg in need.items():
+            if material_have(S, mat) + 1e-9 < kg:
+                return (f"ОТКАЗ: не хватает материала «{mat}»: нужно {kg:.3f} кг, "
+                        f"есть {material_have(S, mat):.3f}. Ничего не списано.")
+    if block_exits:
+        known = {e.get("to") for e in (st.get("exits") or [])}
+        for p in block_exits:
+            if p not in known:
+                return f"ОТКАЗ: выхода на «{p}» нет — перекрыть нечего."
+    return None
+
+
+def apply_build(S, name, parts, tags, from_object, block_exits, log, player_made=True):
+    """Списать материалы или объект и повесить конструкцию. Только после build_refuse is None."""
+    st = site_of(S)
+    used_parts = list(parts or [])
+    if from_object:
+        idx, obj, _ = find_site_object(st, from_object)
+        if not used_parts:
+            used_parts = list(obj.get("parts") or [])
+        st["objects"].pop(idx)
+        log.append(f"[сборка] объект «{from_object}» стал частями")
+    tech = S.get("profile", {}).get("tech_ceiling", "industrial")
+    it = _assemble_parts(S, name.strip(), used_parts, tags or [], tech)
+    if not from_object:
+        for mat, kg in material_need_kg(used_parts, tech).items():
+            consume_material(S, mat, kg, log)
+    struct = {
+        "id": next_struct_id(S),
+        "name": name.strip(),
+        "parts": [list(p) for p in used_parts],
+        "tags": list(tags or []),
+        "kg": it["kg"],
+        "l": it["l"],
+        "materials": list(it.get("materials") or []),
+        "player_made": bool(player_made),
+        "block_exits": list(block_exits or []),
+        "on_break": [],
+    }
+    st.setdefault("structures", []).append(struct)
+    st["touched"] = True
+    log.append(f"[сборка] {struct['name']} ({struct['kg']} кг, {struct['l']} л)")
+    return struct
+
+
+def reveal_refuse(S, name, parts, minutes):
+    if not structure_use(S):
+        return "ОТКАЗ: --reveal не к чему привязать — в наборе нет structure_use."
+    st = site_of(S)
+    _, obj, err = find_site_object(st, name)
+    if err:
+        return f"ОТКАЗ: {err}"
+    used = list(parts or []) or list(obj.get("parts") or [])
+    if not used:
+        return "ОТКАЗ: проза без частей остаётся неразрушимой — задай состав."
+    return build_refuse(S, name, used, obj.get("tags") or [], name, minutes, None)
+
+
+def apply_reveal(S, name, parts, log):
+    st = site_of(S)
+    _, obj, _ = find_site_object(st, name)
+    used = list(parts or []) or list(obj.get("parts") or [])
+    return apply_build(S, name, used, obj.get("tags") or [], name, None, log, player_made=False)
+
+
+def find_structure(st, name):
+    q = (name or "").strip().lower()
+    if not q:
+        return None, "пустое имя"
+    hits = [s for s in structures_of(st) if (s.get("id") or "").lower() == q
+            or (s.get("name") or "").lower() == q]
+    if not hits:
+        return None, f"конструкции «{name}» нет"
+    if len(hits) > 1:
+        return None, "несколько конструкций подходят — уточни id"
+    return hits[0], None
+
+
+def break_refuse(S, name, minutes):
+    if not structure_use(S):
+        return "ОТКАЗ: --break не к чему привязать — в наборе нет structure_use."
+    st = site_of(S)
+    struct, err = find_structure(st, name)
+    if err:
+        _, obj, oerr = find_site_object(st, name)
+        if obj is not None and not oerr:
+            if not (obj.get("parts") or []):
+                return "ОТКАЗ: объект без частей — сначала состав (--reveal), проза не ломается."
+            return "ОТКАЗ: это ещё проза/объект — сначала --reveal, потом --break."
+        return f"ОТКАЗ: {err}"
+    if not (struct.get("parts") or []):
+        return "ОТКАЗ: у конструкции нет частей — ломать нечего."
+    hours = build_hours(S, struct.get("l") or 0)
+    if hours is None:
+        return "ОТКАЗ: --break не к чему привязать — в structure_use нет hours_per_l."
+    wreck = max(float(structure_use(S).get("min_hours") or 0.1), hours * 0.35)
+    if minutes is None or minutes + 1e-9 < wreck * 60:
+        return (f"ОТКАЗ: на разбор нужно {wreck * 60:.0f} мин, дано "
+                f"{0 if minutes is None else minutes:g}. Частично не ломается.")
+    return None
+
+
+def apply_break(S, name, log):
+    """Снять конструкцию и слить on_break в состояние. Укрытие/очаг пересчитаются в том же тике."""
+    st = site_of(S)
+    struct, _ = find_structure(st, name)
+    st["structures"] = [s for s in structures_of(st) if s is not struct]
+    st["touched"] = True
+    if struct.get("on_break"):
+        apply_clock_effects(S, {"name": struct.get("name"), "on_complete": struct["on_break"]},
+                            log, tag="разбор")
+    if struct.get("hazard"):
+        hz = st.setdefault("hazards", [])
+        if struct["hazard"] not in hz:
+            hz.append(struct["hazard"])
+        log.append(f"[разбор] опасность: {struct['hazard']}")
+    log.append(f"[разбор] {struct.get('name')} снят")
+    return struct
+
+
+def site_kept_after_compact(st, here, neigh):
+    if st.get("touched") or st.get("path") == here or st.get("path") in neigh:
+        return True
+    return any(s.get("player_made") for s in structures_of(st))
+
 
 def spend_held_charge(S, hours, log):
     rate = (rules(S).get("item_use") or {}).get("charge_per_h")
@@ -886,8 +1219,8 @@ def _clock_set_path(S, path, set_v=None, add_v=None):
     cur[k] = set_v
     return True
 
-def apply_clock_effects(S, clock, log):
-    """Мутации из on_complete.
+def apply_clock_effects(S, clock, log, tag="счётчик"):
+    """Мутации из on_complete (и тот же словарь у разбора конструкции).
     add не идемпотентен и не обязан быть: два счётчика на одно поле
     складываются — выбор автора данных, не пробел движка. set безопасен
     повтором. Повтор одного счётчика режет флаг fired в tick_clocks.
@@ -897,7 +1230,7 @@ def apply_clock_effects(S, clock, log):
         return
     for fx in effects:
         if not isinstance(fx, dict):
-            log.append(f"[счётчик] {clock.get('name','?')}: пропуск кривой операции")
+            log.append(f"[{tag}] {clock.get('name','?')}: пропуск кривой операции")
             continue
         env_op = "env" in fx and ("site" in fx or "sites" in fx)
         has_set, has_add = "set" in fx, "add" in fx
@@ -905,27 +1238,27 @@ def apply_clock_effects(S, clock, log):
         if env_op and not path_op:
             patch = fx.get("env")
             if not isinstance(patch, dict):
-                log.append(f"[счётчик] {clock.get('name','?')}: env должен быть объектом")
+                log.append(f"[{tag}] {clock.get('name','?')}: env должен быть объектом")
                 continue
             targets = _clock_target_sites(S, fx)
             if not targets:
-                log.append(f"[счётчик] {clock.get('name','?')}: площадка не найдена")
+                log.append(f"[{tag}] {clock.get('name','?')}: площадка не найдена")
                 continue
             for st in targets:
                 if not isinstance(st.get("env"), dict):
                     continue
                 st["env"].update(patch)
-                log.append(f"[счётчик] {clock.get('name','?')}: {st.get('path')} env {patch}")
+                log.append(f"[{tag}] {clock.get('name','?')}: {st.get('path')} env {patch}")
         elif path_op and not env_op:
             ok = _clock_set_path(S, fx["path"], fx.get("set") if has_set else None,
                                  fx.get("add") if has_add else None)
             if ok:
                 how = f"+={fx['add']}" if has_add else f"={fx['set']}"
-                log.append(f"[счётчик] {clock.get('name','?')}: {fx['path']} {how}")
+                log.append(f"[{tag}] {clock.get('name','?')}: {fx['path']} {how}")
             else:
-                log.append(f"[счётчик] {clock.get('name','?')}: путь {fx.get('path')} не найден")
+                log.append(f"[{tag}] {clock.get('name','?')}: путь {fx.get('path')} не найден")
         else:
-            log.append(f"[счётчик] {clock.get('name','?')}: неизвестная операция")
+            log.append(f"[{tag}] {clock.get('name','?')}: неизвестная операция")
 
 def tick_clocks(S, log):
     for c in S["clocks"]:
@@ -1067,6 +1400,20 @@ def main():
                    help="списать fill по item_use.food_tags (синоним CLI; без объявления — отказ)")
     p.add_argument("--take-resource", dest="take_resource", action="append", default=[],
                    help="имя:количество — списать resources площадки, создать предмет")
+    p.add_argument("--build", default=None,
+                   help="собрать конструкцию из частей (теги и материал, не тип постройки)")
+    p.add_argument("--build-part", dest="build_part", action="append", default=[],
+                   help="материал:форма:Д:Ш:В[:стенка_мм] — та же схема, что make_item")
+    p.add_argument("--build-tag", dest="build_tag", action="append", default=[],
+                   help="тег роли из structure_use (укрытие/очаг и любые чужие)")
+    p.add_argument("--from-object", dest="from_object", default=None,
+                   help="взять состав из objects[] площадки (проза без parts — отказ)")
+    p.add_argument("--build-block", dest="build_block", action="append", default=[],
+                   help="путь выхода, который конструкция перекрывает")
+    p.add_argument("--break", dest="break_name", default=None,
+                   help="снять конструкцию по имени или id; on_break меняет состояние")
+    p.add_argument("--reveal", default=None,
+                   help="перевести objects[] в конструкцию с частями, без роли")
     p.add_argument("--window", type=int, default=None)
     p.add_argument("--check", action="append", default=[],
                    help="навык:сложность:метка[:преимущество][:домен][:lethal]")
@@ -1134,7 +1481,7 @@ def main():
         here = S["position"]["path"]
         neigh = {e["to"] for st in S["world"]["sites_canon"] if st["path"] == here for e in st["exits"]}
         S["world"]["sites_canon"] = [st for st in S["world"]["sites_canon"]
-                                     if st.get("touched") or st["path"] == here or st["path"] in neigh]
+                                     if site_kept_after_compact(st, here, neigh)]
         # 3. записи о попытках старше 50 ходов не нужны — условия давно изменились
         S["pc"]["attempts"] = {}
         after_n = {"log": len(S["log"]), "sites": len(S["world"]["sites_canon"]), "attempts": 0}
@@ -1215,7 +1562,8 @@ def main():
     if S.get("status") == "dead":
         print("ОТКАЗ: мёртв."); return
     if S.get("status") == "unconscious":
-        acting = bool(a.check or a.to or a.take or a.water or a.food or a.take_resource or a.fire)
+        acting = bool(a.check or a.to or a.take or a.water or a.food or a.take_resource or a.fire
+                      or a.build or a.break_name or a.reveal)
         if acting:
             print("ОТКАЗ: без сознания нельзя действовать. Тело всё ещё в этой среде."); return
     R0 = rules(S)
@@ -1238,17 +1586,46 @@ def main():
         why = fire_refuse(S, a.window)
         if why:
             print(why); return
-    S["meta"]["turn"] += 1
+    if sum(bool(x) for x in (a.build, a.break_name, a.reveal)) > 1:
+        print("ОТКАЗ: сборка, разбор и reveal — по одному за ход, не пачкой."); return
+    parts = []
+    for spec in (a.build_part or []):
+        try:
+            parts.append(parse_part_spec(spec))
+        except ValueError as e:
+            print(f"ОТКАЗ: {e}"); return
+    if a.build:
+        why = build_refuse(S, a.build, parts, a.build_tag, a.from_object, a.minutes, a.build_block)
+        if why:
+            print(why); return
+    if a.reveal:
+        why = reveal_refuse(S, a.reveal, parts, a.minutes)
+        if why:
+            print(why); return
+    if a.break_name:
+        why = break_refuse(S, a.break_name, a.minutes)
+        if why:
+            print(why); return
     if a.to:
         paths = {x["path"] for x in S["world"]["sites_canon"]}
         if a.to not in paths:
             print(f"ОТКАЗ: площадки '{a.to}' нет в sites_canon. "
                   f"Сначала сгенерируй её (см. Часть 6/7 ядра), потом переходи."); return
+        if a.to in blocked_exit_paths(site_of(S)):
+            print(f"ОТКАЗ: выход на «{a.to}» перекрыт конструкцией."); return
+    S["meta"]["turn"] += 1
+    if a.to:
         S["position"]["path"] = a.to
         S["position"]["local"] = a.to.split("/")[-1]
     if a.local: S["position"]["local"] = a.local
     if a.z is not None: S["position"]["z_m"] = a.z
     log = []
+    if a.build:
+        apply_build(S, a.build, parts, a.build_tag, a.from_object, a.build_block, log)
+    if a.reveal:
+        apply_reveal(S, a.reveal, parts, log)
+    if a.break_name:
+        apply_break(S, a.break_name, log)
     for spec in (a.take_resource or []):
         take_site_resource(S, spec, log)
     water = consume_tags(S, wt, a.water, log) if a.water else 0.0

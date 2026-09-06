@@ -93,7 +93,11 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
  skills (необязательно), conditions (список),
  chain — список узлов [{path,scale,canon,...}] от корня до региона,
  sites — 1-3 площадки [{path,name,z_m,desc_true,exits[{to,mode,travel_min,dz_m,difficulty,gate}],
-   resources:[{name,amount,tags?}], hazards, objects, shelter?, hearth?, touched:true}].
+   resources:[{name,amount,tags?}], hazards, objects, structures?, shelter?, hearth?, touched:true}].
+   objects — строки (проза, не ломается) или {name, parts?, tags?}.
+   parts — как make_item: [материал, форма, Д, Ш, В]. Без parts объект неразрушим.
+   structures — уже стоящие конструкции с тем же составом; теги роли из structure_use,
+   не имена «дом»/«сарай». player_made:true защищает площадку от compact.
    tags ресурса обязательны, если его можно взять и использовать.
    Имя само по себе ничего не значит: «кипяток» без тега — просто ресурс.
    Пример (подсказка автору, не словарь ядра; теги должны совпасть с item_use
@@ -139,13 +143,20 @@ SYS_MECH = """Ты — разборщик намерений для симуля
  local    — краткое новое описание позиции, если сместился в пределах площадки
  take_resource — строка "имя:количество", взять из resources текущей площадки
             (только то, что есть в ресурсы_площадки; количество — литры/порции)
+ build    — имя конструкции. Нужны parts (или from_object с parts в данных).
+            Не выдумывай материал, которого нет в руках и не объект площадки.
+            tags — из теги_укрытия / теги_очага обстановки, не слово «дом».
+ parts    — список "материал:форма:Д:Ш:В". Движок считает массу; абсурд — отказ.
+ from_object — имя из объекты_площадки. Проза без parts — отказ, не сочиняй состав.
+ break    — имя или id конструкции из конструкции_площадки. Меняет укрытие/выход сразу.
+ reveal   — перевести объект с parts в конструкцию. Без parts — отказ.
  water, food  — сколько списать с предметов, чьи теги в теги_питья / теги_еды обстановки
             (синонимы CLI, не зашитые слова «вода»/«еда»). Нет тегов в правилах — не ставь.
             без запаса (fill=0 или нет предмета) движок откажет, нужду не тронет
  sheltered, fire, sleeping — true/false
             fire=true только если в обстановке топливо_с_собой и чем_зажечь (или очаг).
             Теги горючего и зажигателя — поля обстановки, не угадывай дрова и зажигалку.
-            без сознания — только ждать (minutes), без to/check/take/water/food/fire
+            без сознания — только ждать (minutes), без to/check/take/water/food/fire/build
  window   — секунды доступного времени: схватка 2, падение 2, обвал 5, обычно 60
 
 Если действие физически невозможно — верни {"impossible": "почему"}."""
@@ -178,7 +189,12 @@ def scene_context(S):
     site = sim.site_of(S)
     exits = [{"to": e["to"], "mode": e.get("mode"), "travel_min": e.get("travel_min"),
               "difficulty": e.get("difficulty"), "gate": e.get("gate")}
-             for e in site.get("exits", [])]
+             for e in sim.site_exits(site)]
+    su = sim.rules(S).get("structure_use") or {}
+    objs = [{"name": o.get("name"), "есть_части": bool(o.get("parts"))}
+            for o in sim.site_objects(site)]
+    structs = [{"id": s.get("id"), "name": s.get("name"), "tags": s.get("tags") or []}
+               for s in sim.structures_of(site)]
     avail = sim.available(S, 60)
     res = [{"name": r.get("name"), "есть": (r.get("amount") or 0) > 0}
            for r in (site.get("resources") or [])]
@@ -199,9 +215,14 @@ def scene_context(S):
         "теги_горючего": fuel_tags,
         "теги_питья": drink_tags,
         "теги_еды": eat_tags,
-        "чем_зажечь": sim.has_tags_accessible(S, ign, 60) or bool(site.get("hearth")),
+        "теги_укрытия": su.get("shelter_tags") or [],
+        "теги_очага": su.get("hearth_tags") or [],
+        "объекты_площадки": objs,
+        "конструкции_площадки": structs,
+        "чем_зажечь": sim.has_tags_accessible(S, ign, 60) or sim.site_has_hearth(S, site),
         "топливо_с_собой": sim.fuel_have(S) > 0,
-        "очаг": bool(site.get("hearth")),
+        "очаг": sim.site_has_hearth(S, site),
+        "есть_укрытие": sim.is_sheltered(S),
         "погода": S["time"].get("weather"),
         "свет": S["time"].get("light"),
         "известные_факты": S["known"].get("facts", [])[-6:],
@@ -230,6 +251,22 @@ def play_turn(cfg, intent):
     if m.get("local"): args += ["--local", m["local"]]
     if m.get("take_resource"):
         args += ["--take-resource", str(m["take_resource"])]
+    if m.get("build"):
+        args += ["--build", str(m["build"])]
+        for p in (m.get("parts") or []):
+            args += ["--build-part", str(p)]
+        for t in (m.get("tags") or []):
+            args += ["--build-tag", str(t)]
+        if m.get("from_object"):
+            args += ["--from-object", str(m["from_object"])]
+        for b in (m.get("block_exits") or []):
+            args += ["--build-block", str(b)]
+    if m.get("break"):
+        args += ["--break", str(m["break"])]
+    if m.get("reveal"):
+        args += ["--reveal", str(m["reveal"])]
+        for p in (m.get("parts") or []):
+            args += ["--build-part", str(p)]
     if m.get("water"): args += ["--water", str(m["water"])]
     if m.get("food"):  args += ["--food", str(m["food"])]
     for f in ("sheltered", "fire", "sleeping"):

@@ -101,6 +101,74 @@ def volume_l(l_cm, w_cm, h_cm):
     """Габаритный объём в литрах."""
     return l_cm * w_cm * h_cm / 1000.0
 
+# Габарит одной части: не молекула и не материк. Ловит опечатку модели, не вкус.
+DIM_MIN_CM = 0.01
+DIM_MAX_CM = 50000.0
+
+
+def unpack_part(part):
+    """Часть — кортеж или список из 5 или 6 полей (стенка_мм у полой формы)."""
+    part = list(part)
+    if len(part) == 6:
+        mat, form, L, W, H, wall_mm = part
+    elif len(part) == 5:
+        mat, form, L, W, H = part
+        wall_mm = None
+    else:
+        raise ValueError(f"часть: нужно 5 или 6 полей, не {len(part)}")
+    return mat, form, float(L), float(W), float(H), wall_mm
+
+
+def part_solid_l(form, L, W, H, wall_mm=None):
+    v = volume_l(L, W, H)
+    fill = FORMS[form]
+    if fill is None:
+        t_cm = (wall_mm or 1.5) / 10.0
+        area = 2 * (L * W + L * H + W * H)
+        return area * t_cm / 1000.0, v
+    return v * fill, v
+
+
+def check_plausible(name, parts, kg, gross_l):
+    """Грубая проверка абсурда: плотность и габарит vs вещество, не каталог вещей.
+
+    Ловит «2 кг из сорока тонн камня» и нож на 100 кг в спичечном объёме.
+    Не знает имён построек — только вещество, форма и размер.
+    """
+    if not parts:
+        raise ValueError(f"{name}: нет частей")
+    dens_list, solid_l = [], 0.0
+    for part in parts:
+        mat, form, L, W, H, wall_mm = unpack_part(part)
+        if mat not in MATERIALS:
+            raise KeyError(f"нет материала: {mat}")
+        if form not in FORMS:
+            raise KeyError(f"нет формы: {form}")
+        if min(L, W, H) < DIM_MIN_CM:
+            raise ValueError(f"{name}: размер {min(L, W, H):g} см меньше {DIM_MIN_CM:g}")
+        if max(L, W, H) > DIM_MAX_CM:
+            raise ValueError(f"{name}: габарит {max(L, W, H):g} см вне разумного")
+        dens_list.append(MATERIALS[mat][0])
+        solid, _ = part_solid_l(form, L, W, H, wall_mm)
+        solid_l += solid
+    if kg <= 0:
+        raise ValueError(f"{name}: масса {kg} кг — абсурд")
+    if solid_l > 1e-12:
+        dens_m = kg / solid_l
+        lo, hi = min(dens_list) * 0.2, max(dens_list) * 5.0
+        if dens_m < lo or dens_m > hi:
+            raise ValueError(
+                f"{name}: плотность вещества {dens_m:.4g} кг/л вне {lo:.4g}–{hi:.4g}")
+    if gross_l > 1e-9:
+        bulk = kg / gross_l
+        if bulk > max(dens_list) * 5.0:
+            raise ValueError(
+                f"{name}: масса {kg:g} кг в {gross_l:g} л плотнее вещества")
+        if bulk < 1e-4:
+            raise ValueError(
+                f"{name}: масса {kg:g} кг в {gross_l:g} л — пустота, не конструкция")
+
+
 def make_item(name, parts, tags=None, tech_ceiling="industrial", rng=None,
               condition=None, packing=0.75):
     """parts: [(материал, форма, длина_см, ширина_см, высота_см), ...]
@@ -111,26 +179,21 @@ def make_item(name, parts, tags=None, tech_ceiling="industrial", rng=None,
     rng = rng or random.Random(name)
     lim = ERA_RANK[tech_ceiling]
     kg, gross, props, mats = 0.0, 0.0, [], []
+    if not parts:
+        raise ValueError(f"{name}: нет частей")
     for part in parts:
-        wall_mm = None
-        if len(part) == 6: mat, form, L, W, H, wall_mm = part
-        else:              mat, form, L, W, H = part
+        mat, form, L, W, H, wall_mm = unpack_part(part)
         if mat not in MATERIALS: raise KeyError(f"нет материала: {mat}")
         if form not in FORMS:    raise KeyError(f"нет формы: {form}")
         dens, hard, burn, cond_t, soak, era = MATERIALS[mat]
         if ERA_RANK[era] > lim:
             raise ValueError(f"{name}: материал '{mat}' невозможен при tech_ceiling={tech_ceiling}")
-        v = volume_l(L, W, H)
-        if FORMS[form] is None:                      # полая оболочка
-            t_cm = (wall_mm or 1.5) / 10.0
-            area = 2*(L*W + L*H + W*H)               # см²
-            solid = area * t_cm / 1000.0             # литры вещества
-        else:
-            solid = v * FORMS[form]
+        solid, v = part_solid_l(form, L, W, H, wall_mm)
         kg += solid * dens
         gross += v
         mats.append(mat); props.append((hard, burn, cond_t, soak))
 
+    check_plausible(name, parts, kg, gross)
     l = round(gross * packing, 3)
     hard = max(p[0] for p in props)
     burn = round(sum(p[1] for p in props) / len(props), 2)
@@ -138,7 +201,8 @@ def make_item(name, parts, tags=None, tech_ceiling="industrial", rng=None,
     it = {"name": name, "kg": round(kg, 3), "l": l,
           "materials": sorted(set(mats)), "tags": tags or [],
           "hardness": hard, "flammability": burn, "soaks": soak,
-          "condition": condition if condition is not None else round(rng.uniform(0.5, 1.0), 2)}
+          "condition": condition if condition is not None else round(rng.uniform(0.5, 1.0), 2),
+          "parts": [list(p) for p in parts]}
     return it
 
 # ─────────── АРХЕТИПЫ: не каталог, а примеры сборки ───────────

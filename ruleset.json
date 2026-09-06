@@ -531,5 +531,17 @@
   "igniter_tags": ["огонь"],
   "fuel_tags": ["топливо"],
   "fuel_per_h": 0.25
+ },
+ "structure_use": {
+  "note": "роли конструкции — теги, не имена построек. Часы = объём_л × hours_per_l / (навык/skill_ref × tool_factor если есть tool_tags). Нет блока — --build/--break отказ. Проза в objects[] без parts не ломается.",
+  "shelter_tags": ["укрытие"],
+  "hearth_tags": ["очаг"],
+  "hours_per_l": 0.04,
+  "skill": "craft",
+  "skill_ref": 40,
+  "tool_tags": ["инструмент"],
+  "tool_factor": 1.6,
+  "min_hours": 0.25,
+  "max_hours": 36
  }
 }

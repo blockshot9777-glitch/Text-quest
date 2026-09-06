@@ -1024,5 +1024,199 @@ good = "ОТКАЗ" not in (_r.stdout or "")[:80] and _after_w["meta"]["turn"] =
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'без сознания время всё ещё идёт':<40}ход {_after_w['meta']['turn']}")
 
+print("\n── строительство: части, теги, атомарность, compact ──")
+_src_e = open(os.path.join(HERE, "engine.py"), encoding="utf-8").read()
+_src_m = open(os.path.join(HERE, "matter.py"), encoding="utf-8").read()
+import re as _re
+_core = _src_e + "\n" + _src_m
+good = "сарай" not in _core and not _re.search(r"(?<![а-яА-Я])дом(?![а-яА-Я])", _core)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'ядро не знает дом/сарай':<40}{'да' if good else 'нет'}")
+good = "def check_plausible(" in _src_m and "def apply_build(" in _src_e
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'check_plausible и apply_build на месте':<40}{'да' if good else 'нет'}")
+
+try:
+    matter.make_item("абсурд", [("камень", "пластина", 1e6, 10, 10)], [], "primitive", None, 1.0)
+    good = False
+except ValueError:
+    good = True
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'make_item режет габарит-абсурд':<40}{'да' if good else 'нет'}")
+
+_Rsu = _json.load(open(os.path.join(HERE, "ruleset.json"), encoding="utf-8"))
+good = isinstance(_Rsu.get("structure_use", {}).get("hours_per_l"), (int, float))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'structure_use.hours_per_l в ruleset':<40}{_Rsu.get('structure_use', {}).get('hours_per_l')}")
+
+def _build_state():
+    st = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+    st["ruleset"] = _json.load(open(os.path.join(HERE, "ruleset.json"), encoding="utf-8"))
+    st["profile"]["tech_ceiling"] = "primitive"
+    st["pc"]["needs"] = {k: 0.0 for k in st["pc"]["needs"]}
+    st["pc"]["skills"]["craft"] = 40
+    st["calendar"]["natural_light"] = False
+    st["envelope"]["ambient_c"] = -3.0
+    st["envelope"]["wind_ms"] = 9
+    here = next(s for s in st["world"]["sites_canon"] if s["path"] == st["position"]["path"])
+    here["shelter"] = False
+    here["hearth"] = False
+    here.pop("env", None)
+    here["objects"] = [
+        {"name": "жерди", "parts": [["дерево", "стержень", 180, 8, 8],
+                                    ["дерево", "пластина", 140, 70, 3]]},
+        "след без состава",
+    ]
+    here["structures"] = []
+    here["exits"] = list(here.get("exits") or [])
+    return st, here
+
+_st, _here = _build_state()
+_o = next(o for o in _eng.site_objects(_here) if o.get("name") == "жерди")
+_it0 = matter.make_item("заслон", _o["parts"], ["укрытие"], "primitive", None, 1.0)
+_mins = int(_eng.build_hours(_st, _it0["l"]) * 60) + 1
+_bp = os.path.join(TMP, "build_ok.json")
+_json.dump(_st, open(_bp, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", str(_mins), "--activity", "2",
+           "--build", "заслон", "--from-object", "жерди", "--build-tag", "укрытие"],
+          SIM_STATE=_bp)
+_after = _json.load(open(_bp, encoding="utf-8"))
+_ah = next(s for s in _after["world"]["sites_canon"] if s["path"] == _after["position"]["path"])
+good = ("ОТКАЗ" not in (_r.stdout or "")[:80] and _eng.is_sheltered(_after)
+        and any(x.get("name") == "заслон" for x in _ah.get("structures") or [])
+        and not any((o.get("name") if isinstance(o, dict) else o) == "жерди"
+                    for o in _ah.get("objects") or []))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'сборка из объекта даёт укрытие':<40}"
+      f"{'да' if good else (_r.stdout or '')[:80]}")
+
+_st2, _ = _build_state()
+_st2["items"] = [i for i in _st2["items"] if "дерево" not in (i.get("materials") or [])]
+_miss = os.path.join(TMP, "build_miss.json")
+_n0 = len(_st2["items"])
+_json.dump(_st2, open(_miss, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "200", "--activity", "2",
+           "--build", "заслон", "--build-part", "дерево:стержень:180:8:8",
+           "--build-tag", "укрытие"], SIM_STATE=_miss)
+_am = _json.load(open(_miss, encoding="utf-8"))
+_amh = next(s for s in _am["world"]["sites_canon"] if s["path"] == _am["position"]["path"])
+good = "ОТКАЗ" in (_r.stdout or "") and not (_amh.get("structures") or []) and len(_am["items"]) == _n0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'нет материала — отказ, ничего не списано':<40}{'да' if good else 'нет'}")
+
+_st3, _ = _build_state()
+_short = os.path.join(TMP, "build_short.json")
+_json.dump(_st3, open(_short, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "1", "--activity", "2",
+           "--build", "заслон", "--from-object", "жерди", "--build-tag", "укрытие"],
+          SIM_STATE=_short)
+_as = _json.load(open(_short, encoding="utf-8"))
+_ash = next(s for s in _as["world"]["sites_canon"] if s["path"] == _as["position"]["path"])
+good = "ОТКАЗ" in (_r.stdout or "") and not (_ash.get("structures") or [])
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'мало минут — отказ, объект цел':<40}{'да' if good else 'нет'}")
+
+_r = _run(["engine.py", "act", "--minutes", "30", "--break", "след без состава"], SIM_STATE=_bp)
+good = "ОТКАЗ" in (_r.stdout or "") and "част" in (_r.stdout or "")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'проза без частей не ломается':<40}{'да' if good else 'нет'}")
+
+_brk = os.path.join(TMP, "break_ok.json")
+_built = _json.load(open(_bp, encoding="utf-8"))
+_json.dump(_built, open(_brk, "w", encoding="utf-8"), ensure_ascii=False)
+_sid = next(s["name"] for s in next(x for x in _built["world"]["sites_canon"]
+                                    if x["path"] == _built["position"]["path"])["structures"])
+_hours_b = _eng.break_refuse(_built, _sid, 10**9)
+_r = _run(["engine.py", "act", "--minutes", "200", "--activity", "2", "--break", _sid],
+          SIM_STATE=_brk)
+_ab = _json.load(open(_brk, encoding="utf-8"))
+good = "ОТКАЗ" not in (_r.stdout or "")[:80] and not _eng.is_sheltered(_ab)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'разбор снимает укрытие в тот же ход':<40}"
+      f"{'да' if good else (_r.stdout or '')[:80]}")
+
+_alien = _build_state()[0]
+_alien["ruleset"] = _json.loads(_json.dumps(_alien["ruleset"]))
+_alien["ruleset"]["structure_use"]["shelter_tags"] = ["нора"]
+_alien["ruleset"]["structure_use"]["hearth_tags"] = ["жаровня"]
+_ap = os.path.join(TMP, "build_alien.json")
+_json.dump(_alien, open(_ap, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", str(_mins), "--activity", "2",
+           "--build", "нора", "--from-object", "жерди", "--build-tag", "нора"],
+          SIM_STATE=_ap)
+_aa = _json.load(open(_ap, encoding="utf-8"))
+good = _eng.is_sheltered(_aa)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'чужой тег нора даёт укрытие':<40}{'да' if good else 'нет'}")
+
+_ahum = _build_state()[0]
+_ahum["ruleset"] = _json.loads(_json.dumps(_ahum["ruleset"]))
+_ahum["ruleset"]["structure_use"]["shelter_tags"] = ["нора"]
+_hp = os.path.join(TMP, "build_human_tag.json")
+_json.dump(_ahum, open(_hp, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", str(_mins), "--activity", "2",
+           "--build", "заслон", "--from-object", "жерди", "--build-tag", "укрытие"],
+          SIM_STATE=_hp)
+_ahh = _json.load(open(_hp, encoding="utf-8"))
+good = (not _eng.is_sheltered(_ahh)
+        and any(s.get("tags") == ["укрытие"] for s in
+                next(x for x in _ahh["world"]["sites_canon"]
+                     if x["path"] == _ahh["position"]["path"]).get("structures") or []))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'укрытие без объявления — не роль':<40}{'да' if good else 'нет'}")
+
+_nosu = _build_state()[0]
+_nosu["ruleset"] = _json.loads(_json.dumps(_nosu["ruleset"]))
+_nosu["ruleset"].pop("structure_use", None)
+_np = os.path.join(TMP, "build_nosu.json")
+_json.dump(_nosu, open(_np, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "200", "--build", "x",
+           "--from-object", "жерди", "--build-tag", "укрытие"], SIM_STATE=_np)
+good = "ОТКАЗ" in (_r.stdout or "") and "structure_use" in (_r.stdout or "")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'нет structure_use — отказ':<40}{'да' if good else 'нет'}")
+
+_blk = _build_state()[0]
+_hereb = next(s for s in _blk["world"]["sites_canon"] if s["path"] == _blk["position"]["path"])
+_dest = "x/dummy_block"
+_hereb["exits"] = list(_hereb.get("exits") or []) + [
+    {"to": _dest, "mode": "пешком", "travel_min": 10, "difficulty": 10}]
+_blk["world"]["sites_canon"].append({"path": _dest, "name": "d", "z_m": 0,
+                                     "desc_true": "", "exits": [], "resources": [],
+                                     "hazards": [], "objects": [], "touched": False})
+_bp2 = os.path.join(TMP, "build_block.json")
+_json.dump(_blk, open(_bp2, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", str(_mins), "--activity", "2",
+           "--build", "завал", "--from-object", "жерди", "--build-tag", "укрытие",
+           "--build-block", _dest], SIM_STATE=_bp2)
+_r2 = _run(["engine.py", "act", "--minutes", "10", "--to", _dest], SIM_STATE=_bp2)
+good = "перекрыт" in (_r2.stdout or "")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'перекрытый выход — отказ':<40}{'да' if good else 'нет'}")
+
+_comp2 = os.path.join(TMP, "comp_build.json")
+_s0 = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_s0["log"] = [{"turn": i, "fact": f"событие {i}"} for i in range(20)]
+_far = {"path": "x/built_far", "name": "t", "z_m": 0, "desc_true": "",
+        "exits": [], "resources": [], "hazards": [], "objects": [], "touched": False,
+        "structures": [{"id": "str_99", "name": "заслон", "parts": [["дерево", "стержень", 100, 8, 8]],
+                        "tags": ["укрытие"], "player_made": True, "kg": 3.6, "l": 4.8}]}
+_s0["world"]["sites_canon"] += [_far]
+_json.dump(_s0, open(_comp2, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "compact", "--keep", "40"], SIM_STATE=_comp2)
+_c2 = _json.load(open(_comp2, encoding="utf-8"))
+good = any(s["path"] == "x/built_far" for s in _c2["world"]["sites_canon"])
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'compact хранит player_made':<40}{'да' if good else 'нет'}")
+
+_badc = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_site = next(s for s in _badc["world"]["sites_canon"] if s["path"] == _badc["position"]["path"])
+_site["structures"] = [{"name": "стена", "parts": [["камень", "пластина", 200, 200, 40]],
+                        "kg": 2.0, "tags": ["укрытие"]}]
+_e_mass, _ = _wg_validate(_badc)
+good = any("масс" in e for e in _e_mass)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'validate ловит массу не от частей':<40}{'да' if good else 'нет'}")
+
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)

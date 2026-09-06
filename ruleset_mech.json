@@ -293,5 +293,17 @@
   "igniter_tags": ["огонь"],
   "fuel_tags": ["топливо"],
   "fuel_per_h": 0.25
+ },
+ "structure_use": {
+  "note": "теги ролей этого вида, не человеческие «укрытие»/«очаг».",
+  "shelter_tags": ["кокон"],
+  "hearth_tags": ["горн"],
+  "hours_per_l": 0.03,
+  "skill": "манипуляторы",
+  "skill_ref": 40,
+  "tool_tags": ["инструмент"],
+  "tool_factor": 1.4,
+  "min_hours": 0.2,
+  "max_hours": 24
  }
 }

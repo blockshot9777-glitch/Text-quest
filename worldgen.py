@@ -6,6 +6,10 @@ try:
     import edc
 except ImportError:
     edc = None
+try:
+    import matter
+except ImportError:
+    matter = None
 
 # ─────────── БИБЛИОТЕКА ПРЕДМЕТОВ: кг, литры, теги ───────────
 ERA_RANK = {"primitive":0,"preindustrial":1,"industrial":2,"spacefaring":3,
@@ -313,12 +317,53 @@ def validate(S):
             warn.append(f"'{sub}' выключена, но поле {k} в envelope присутствует")
 
     paths = {s["path"] for s in S["world"]["sites_canon"]}
+    tech = (S.get("profile") or {}).get("tech_ceiling", "industrial")
     for s in S["world"]["sites_canon"]:
         for e in s["exits"]:
             if e["to"].split("/")[-1] == s["path"].split("/")[-1]:
                 err.append(f"{s['name']}: выход ведёт сам в себя")
             for f in ("travel_min","difficulty"):
                 if f not in e: err.append(f"{s['name']}: у выхода нет поля {f}")
+        for i, o in enumerate(s.get("objects") or []):
+            if isinstance(o, str):
+                continue
+            if not isinstance(o, dict) or not o.get("name"):
+                err.append(f"{s['name']}: objects[{i}] — строка или объект с name")
+                continue
+            parts = o.get("parts")
+            if parts and matter is not None:
+                try:
+                    matter.make_item(o["name"], parts, o.get("tags") or [], tech,
+                                     None, 1.0)
+                except (KeyError, ValueError) as e:
+                    err.append(f"{s['name']}: объект «{o['name']}»: {e}")
+        for i, stc in enumerate(s.get("structures") or []):
+            if not isinstance(stc, dict) or not stc.get("name"):
+                err.append(f"{s['name']}: structures[{i}] без name"); continue
+            parts = stc.get("parts")
+            if not parts:
+                warn.append(f"{s['name']}: «{stc.get('name')}» без частей — "
+                            f"не ломается и не достраивается")
+                continue
+            if matter is None:
+                continue
+            try:
+                it = matter.make_item(stc["name"], parts, stc.get("tags") or [],
+                                      tech, None, 1.0)
+            except (KeyError, ValueError) as e:
+                err.append(f"{s['name']}: конструкция «{stc.get('name')}»: {e}")
+                continue
+            if "kg" in stc and abs(float(stc["kg"]) - it["kg"]) > max(0.05, 0.05 * it["kg"]):
+                err.append(f"{s['name']}: «{stc['name']}»: заявленная масса "
+                           f"{stc['kg']} кг не сходится с частями ({it['kg']} кг)")
+            oc = stc.get("on_break")
+            if oc:
+                if not isinstance(oc, list):
+                    err.append(f"{s['name']}: «{stc['name']}»: on_break должен быть списком")
+                else:
+                    for j, fx in enumerate(oc):
+                        if not isinstance(fx, dict):
+                            err.append(f"{s['name']}: on_break[{j}] не объект")
 
     CLOCK_PATH_ROOTS = {"pc","world","time","envelope","meta","position","profile","calendar"}
     add_hits = {}
@@ -434,6 +479,19 @@ def validate_ruleset(R):
     if cm and cm.get("gain_divisor", 1) == 0: err.append("cold_model.gain_divisor не может быть нулём")
     if cm and "fire_bonus_c" in cm and not isinstance(cm["fire_bonus_c"], (int, float)):
         err.append("cold_model.fire_bonus_c должен быть числом °C")
+
+    su = R.get("structure_use")
+    if su:
+        if not isinstance(su, dict):
+            err.append("structure_use должен быть объектом")
+        else:
+            if "hours_per_l" in su and not isinstance(su["hours_per_l"], (int, float)):
+                err.append("structure_use.hours_per_l должен быть числом")
+            if su.get("hours_per_l") is not None and su["hours_per_l"] <= 0:
+                err.append("structure_use.hours_per_l должен быть > 0")
+            for k in ("shelter_tags", "hearth_tags", "tool_tags"):
+                if k in su and not isinstance(su[k], list):
+                    err.append(f"structure_use.{k} должен быть списком тегов")
 
     if not R.get("needs"):   warn.append("нет ни одной потребности — существо ничего не будет чувствовать")
     if not R.get("skills"):  warn.append("нет списка навыков")
