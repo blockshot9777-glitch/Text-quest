@@ -1,7 +1,7 @@
 {
  "meta": {
   "seed": 150145000,
-  "turn": 87,
+  "turn": 690,
   "setting": "Поздняя юра, пойма у тёплого внутреннего моря. Попаданец из XXI века: одежда и карман наших дней, вокруг — папоротники в рост человека и твари, которым нет имён в его языке.",
   "tech_ceiling": "primitive",
   "tone": "безжалостный реализм"
@@ -50,10 +50,10 @@
   "natural_light": true
  },
  "time": {
-  "t_h": 71.41666666666663,
-  "weather": "морось",
-  "light": "темнота",
-  "_weather_period": 11
+  "t_h": 347.983333333335,
+  "weather": "ясно",
+  "light": "день",
+  "_weather_period": 57
  },
  "position": {
   "path": "zemlya/jura/poima/reka",
@@ -64,19 +64,19 @@
   "name": "чужак",
   "posture": "стоит",
   "needs": {
-   "hunger": 40.64000000000006,
-   "thirst": 100.0,
-   "fatigue": 49.41666666666658,
-   "cold_stress": 5.806666666666667,
-   "stress": 14.783333333333363
+   "hunger": 100.0,
+   "thirst": 46.80684438040389,
+   "fatigue": 44.83333333333307,
+   "cold_stress": 30.923333333333332,
+   "stress": 0.0
   },
   "vitals": {
    "blood_loss_pct": 0,
    "infection": 0,
-   "core_temp_c": 37.0
+   "core_temp_c": 36.37
   },
   "skills": {
-   "athletics": 36,
+   "athletics": 39,
    "stealth": 26,
    "perception": 40,
    "craft": 22,
@@ -97,17 +97,88 @@
     "roll": 23,
     "outcome": "УСПЕХ ЦЕНОЙ",
     "consequence": "отбросило от опоры, время вдвое"
+   },
+   "переход|24": {
+    "roll": 9,
+    "outcome": "УСПЕХ",
+    "consequence": null
+   },
+   "переход|8": {
+    "roll": 46,
+    "outcome": "ПРОВАЛ",
+    "consequence": "отбросило от опоры, время вдвое"
+   },
+   "переход|10": {
+    "roll": 98,
+    "outcome": "КАТАСТРОФА (не смертельная: действие не смертельно)",
+    "consequence": "СИЛЬНО: потерял из рук то, что держал"
+   },
+   "переход|21": {
+    "roll": 61,
+    "outcome": "ПРОВАЛ",
+    "consequence": "ударился, ушиб"
+   },
+   "переход|13": {
+    "roll": 51,
+    "outcome": "ПРОВАЛ",
+    "consequence": "потерял из рук то, что держал"
+   },
+   "переход|14": {
+    "roll": 64,
+    "outcome": "ПРОВАЛ",
+    "consequence": "ударился, ушиб"
+   },
+   "переход|20": {
+    "roll": 84,
+    "outcome": "ПРОВАЛ",
+    "consequence": "ударился, ушиб"
+   },
+   "переход|18": {
+    "roll": 87,
+    "outcome": "ПРОВАЛ",
+    "consequence": "ударился, ушиб"
+   },
+   "переход|23": {
+    "roll": 76,
+    "outcome": "ПРОВАЛ",
+    "consequence": "отбросило от опоры, время вдвое"
+   },
+   "переход|25": {
+    "roll": 19,
+    "outcome": "УСПЕХ",
+    "consequence": null
+   },
+   "переход|16": {
+    "roll": 15,
+    "outcome": "УСПЕХ",
+    "consequence": null
+   },
+   "переход|17": {
+    "roll": 27,
+    "outcome": "УСПЕХ ЦЕНОЙ",
+    "consequence": "ударился, ушиб"
+   },
+   "переход|11": {
+    "roll": 13,
+    "outcome": "УСПЕХ ЦЕНОЙ",
+    "consequence": "шум на весь отсек"
    }
   },
   "body_mass_kg": 75,
-  "carry_base_kg": 25.0
+  "carry_base_kg": 25.0,
+  "skill_growth_day": {
+   "athletics": {
+    "day": 8,
+    "gained": 1
+   }
+  }
  },
  "gear": {
   "hands": {
    "slots": 2,
    "held": [
-    "itm_08",
-    "itm_09"
+    "itm_06",
+    "itm_07"
    ]
   },
   "worn": [
@@ -262,101 +333,43 @@
    "fill": 0.0,
    "id": "itm_06",
    "qty": 1,
-   "depth": 5,
-   "in": "cnt_01"
-  },
-  {
-   "name": "светлая вода выше падали (0.5)",
-   "kg": 0.0,
-   "l": 0.5,
-   "materials": [
-    "вода"
-   ],
-   "tags": [
-    "вода"
-   ],
-   "hardness": 0,
-   "flammability": 0.0,
-   "soaks": 1.0,
-   "condition": 1.0,
-   "parts": [
-    [
-     "вода",
-     "жидкость",
-     7.937005259840997,
-     7.937005259840997,
-     7.937005259840997
-    ]
-   ],
-   "fill": 0.0,
-   "id": "itm_07",
-   "qty": 1,
-   "depth": 6,
-   "in": "cnt_01"
-  },
-  {
-   "name": "светлая вода выше падали (0.5)",
-   "kg": 0.0,
-   "l": 0.5,
-   "materials": [
-    "вода"
-   ],
-   "tags": [
-    "вода"
-   ],
-   "hardness": 0,
-   "flammability": 0.0,
-   "soaks": 1.0,
-   "condition": 1.0,
-   "parts": [
-    [
-     "вода",
-     "жидкость",
-     7.937005259840997,
-     7.937005259840997,
-     7.937005259840997
-    ]
-   ],
-   "fill": 0.0,
-   "id": "itm_08",
-   "qty": 1,
    "depth": 0,
    "in": "cnt_00"
   },
   {
-   "name": "светлая вода выше падали (0.5)",
-   "kg": 0.0,
-   "l": 0.5,
+   "name": "мясо с рёбер (1)",
+   "kg": 0.197,
+   "l": 1.0,
    "materials": [
-    "вода"
+    "мясо/еда"
    ],
    "tags": [
-    "вода"
+    "еда"
    ],
    "hardness": 0,
-   "flammability": 0.0,
-   "soaks": 1.0,
+   "flammability": 0.3,
+   "soaks": 0.7,
    "condition": 1.0,
    "parts": [
     [
-     "вода",
-     "жидкость",
-     7.937005259840997,
-     7.937005259840997,
-     7.937005259840997
+     "мясо/еда",
+     "сыпучее",
+     9.999999999999998,
+     9.999999999999998,
+     9.999999999999998
     ]
    ],
    "fill": 0.0,
-   "id": "itm_09",
+   "id": "itm_07",
    "qty": 1,
    "depth": 0,
    "in": "cnt_00"
   }
  ],
  "envelope": {
-  "ambient_c": 10.9,
+  "ambient_c": 29.7,
   "wind_ms": 12,
-  "windchill_c": 10.9,
+  "windchill_c": 29.7,
   "gravity_g": 1.0,
   "breathable": true,
   "ttl_min": null,
@@ -436,7 +449,7 @@
     "resources": [
      {
       "name": "сухостой у тропы",
-      "amount": 7.46,
+      "amount": 4.5,
       "renew_per_day": 0,
       "tags": [
        "топливо"
@@ -519,7 +532,7 @@
     "resources": [
      {
       "name": "светлая вода выше падали",
-      "amount": 38.65,
+      "amount": 49.03,
       "renew_per_day": 4,
       "tags": [
        "вода"
@@ -594,7 +607,7 @@
     "resources": [
      {
       "name": "сухая щепа у входа",
-      "amount": 1.95,
+      "amount": 1.05,
       "renew_per_day": 0,
       "tags": [
        "топливо"
@@ -646,7 +659,7 @@
     "resources": [
      {
       "name": "мясо с рёбер",
-      "amount": 11.76,
+      "amount": 0.0,
       "renew_per_day": 0,
       "tags": [
        "еда"
@@ -712,7 +725,7 @@
    {
     "id": "npc_01",
     "name": "молодой теропод",
-    "path": "zemlya/jura/poima/padal",
+    "path": "zemlya/jura/poima/reka",
     "goal": "не отдать гнездо и падаль",
     "long_goal": "дождаться, пока мясо кончится, и уйти со стаей",
     "resources": [
@@ -725,12 +738,17 @@
       "turn": 10,
       "source": "услышал шум рядом",
       "fact": "что-то происходит поблизости"
+     },
+     {
+      "turn": 186,
+      "source": "видел лично",
+      "fact": "чужак на площадке"
      }
     ],
     "alive": true,
     "schedule": "коса и круг у падали",
     "faction": "fac_ohota",
-    "_last_acted_period": 11,
+    "_last_acted_period": 57,
     "_knew_at_h": 19.099999999999998
    }
   ],
@@ -756,7 +774,7 @@
     }
    }
   ],
-  "_society_period": 2
+  "_society_period": 14
  },
  "clocks": [
   {
@@ -766,7 +784,7 @@
    "max": 5,
    "scale": "региональный",
    "period_h": 8,
-   "last_tick_h": 70.2,
+   "last_tick_h": 342.2,
    "hidden": false,
    "payoff": "Ветер с воды ломает кроны. На отмели и косе без укрытия холод режет сквозь мокрую ткань.",
    "fired": true,
@@ -784,7 +802,7 @@
    "max": 6,
    "scale": "региональный",
    "period_h": 10,
-   "last_tick_h": 66.2,
+   "last_tick_h": 346.2,
    "hidden": true,
    "payoff": "Ночной низ климата падает. Пещера держит штиль. Отмель и коса без огня убивают к утру.",
    "fired": true,
@@ -802,7 +820,7 @@
    "max": 4,
    "scale": "региональный",
    "period_h": 7,
-   "last_tick_h": 69.2,
+   "last_tick_h": 342.2,
    "hidden": false,
    "payoff": "Дождь пропитывает одежду на открытом месте. В пещере ткань сохнет медленно, без очага.",
    "fired": true,
@@ -820,7 +838,7 @@
    "max": 7,
    "scale": "региональный",
    "period_h": 9,
-   "last_tick_h": 69.2,
+   "last_tick_h": 339.2,
    "hidden": true,
    "payoff": "Круг хищника сузился. Даже в стороне от гнезда тело не отпускает.",
    "fired": true,

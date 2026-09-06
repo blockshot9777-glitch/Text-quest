@@ -5,8 +5,7 @@
 Не RNG из четырёх равных слотов: один ход — одно действие по нужде.
 Не выдумывает зажигалку, очаг, бой и материал, которого нет в данных.
 Бой в набор не входит (черновик на 41-м — дыра сценария).
-take не наполняет пустую тару: руки с пустыми порциями + полная сумка —
-честная смерть от жажды у воды, не поблажка.
+take сначала наполняет предмет с тем же тегом и fill<1.
 """
 import json, os, sys, io, copy, random
 
@@ -168,8 +167,12 @@ def bag_can_hold(S, it):
     return True, bag
 
 
+def can_refill(S, tag):
+    return bool(tag and engine.fillable_items(S, [tag]))
+
+
 def stow_empty_tagged(S, tags):
-    """Пустая тара в руках не наполняется take. Убрать — только если сумка примет."""
+    """Убрать пустую тару с рук, если сумка примет — чтобы взять другой ресурс."""
     tags = set(tags or [])
     if not tags:
         return None
@@ -261,8 +264,6 @@ def decide(S):
     if thirst >= 22 and water_fill > 1e-9:
         return {"label": "Пить то, что с собой", "kind": "питьё",
                 "argv": shelter_argv(S, 8) + ["--water", "0.4"]}
-    # Усталость при 70+ важнее набрать ещё воды: пустые фляги в руках
-    # не наполняются, take создаёт новый предмет и получает отказ.
     if fatigue >= 65 and indoor:
         return {"label": "Спать в укрытии", "kind": "сон",
                 "argv": shelter_argv(S, 180, sleeping=True)}
@@ -275,10 +276,11 @@ def decide(S):
             dest = next(x for x in S["world"]["sites_canon"] if x["path"] == hop["to"])
             return {"label": f"К укрытию: {dest.get('name')}", "kind": "переход",
                     "argv": travel_argv(S, hop)}
-    if thirst >= 22 and water_fill < 0.25 and take_spec(st, drink_tag, 0.5) and hands_have_slot(S):
+    water_spec = take_spec(st, drink_tag, 0.5)
+    if thirst >= 22 and water_fill < 0.25 and water_spec and (can_refill(S, drink_tag) or hands_have_slot(S)):
         return {"label": "Набрать воды из того, что есть на площадке", "kind": "добыча",
-                "argv": shelter_argv(S, 8, activity=1) + ["--take-resource", take_spec(st, drink_tag, 0.5)]}
-    if not hands_have_slot(S) and thirst >= 22:
+                "argv": shelter_argv(S, 8, activity=1) + ["--take-resource", water_spec]}
+    if not hands_have_slot(S) and not can_refill(S, drink_tag) and thirst >= 22:
         stow = stow_empty_tagged(S, engine.use_tags(S, "water_tags"))
         if stow:
             return stow
@@ -286,9 +288,10 @@ def decide(S):
     if hunger >= 22 and food_fill > 1e-9:
         return {"label": "Есть то, что с собой", "kind": "еда",
                 "argv": shelter_argv(S, 15) + ["--food", "0.35"]}
-    if hunger >= 22 and take_spec(st, food_tag, 1) and not hostiles and hands_have_slot(S):
+    food_spec = take_spec(st, food_tag, 1)
+    if hunger >= 22 and food_spec and not hostiles and (can_refill(S, food_tag) or hands_have_slot(S)):
         return {"label": "Срезать мясо с площадки", "kind": "добыча",
-                "argv": shelter_argv(S, 10, activity=1) + ["--take-resource", take_spec(st, food_tag, 1)]}
+                "argv": shelter_argv(S, 10, activity=1) + ["--take-resource", food_spec]}
 
     if thirst >= 40 and not water_here and drink_tag and water_fill <= 1e-9:
         hop = toward_tag(st, paths, S["world"]["sites_canon"], drink_tag)

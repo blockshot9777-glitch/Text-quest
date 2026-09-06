@@ -254,28 +254,119 @@ def place_new_item(S, it, log):
     log.append(f"[ОТКАЗ] некуда положить {it['name']}")
     return False
 
-def take_site_resource(S, spec, log):
-    """Списать resources[].amount на текущей площадке и создать предмет."""
+def item_fill(it):
+    f = it.get("fill")
+    return 1.0 if f is None else float(f)
+
+
+def item_in_inventory(S, it):
+    """Предмет в руках или таре персонажа, не бесхозный."""
+    return access_time(S, it) < 999
+
+
+def resource_fill_cap(S, it, res_tags):
+    """Ёмкость порции в единицах resources[].amount. Вода — литры; иначе исходный кг."""
+    liquid = bool(set(res_tags or []) & set(use_tags(S, "water_tags")))
+    if liquid:
+        return float(it.get("l") or 0)
+    fill = item_fill(it)
+    kg = float(it.get("kg") or 0)
+    if fill > 1e-9:
+        return kg / fill
+    return max(kg, float(it.get("l") or 0))
+
+
+def fillable_items(S, res_tags):
+    """Предметы в доступе с пересечением тегов ресурса и fill < 1. Не имена."""
+    want = {t.lower() for t in (res_tags or []) if t}
+    out = []
+    if not want:
+        return out
+    for it in S.get("items") or []:
+        if not item_in_inventory(S, it):
+            continue
+        have = {t.lower() for t in (it.get("tags") or [])}
+        if not (have & want):
+            continue
+        fill = item_fill(it)
+        if fill >= 1.0 - 1e-9:
+            continue
+        cap = resource_fill_cap(S, it, res_tags)
+        if cap <= 1e-9:
+            continue
+        space = cap * (1.0 - fill)
+        if space <= 1e-9:
+            continue
+        out.append((it, space, cap))
+    out.sort(key=lambda row: access_time(S, row[0]))
+    return out
+
+
+def parse_take_spec(spec):
     name, amt_s = spec, "1"
     if ":" in spec:
         name, amt_s = spec.rsplit(":", 1)
     try:
         amount = float(amt_s)
     except ValueError:
-        log.append("[ОТКАЗ] количество ресурса должно быть числом")
-        return False
+        return None, 0.0, "количество ресурса должно быть числом"
     if amount <= 0:
-        log.append("[ОТКАЗ] взять можно только положительное количество")
-        return False
-    site = site_of(S)
-    res, err = find_site_resource(site, name.strip())
+        return None, 0.0, "взять можно только положительное количество"
+    return name.strip(), amount, None
+
+
+def take_plan(S, spec):
+    """План без применения. vessels — (item, space, cap) или None (новый предмет)."""
+    name, amount, err = parse_take_spec(spec)
+    if err:
+        return None, 0.0, None, err
+    res, err = find_site_resource(site_of(S), name)
+    if err:
+        return None, 0.0, None, err
+    have = res.get("amount") or 0
+    tags = resource_tags(res)
+    vessels = fillable_items(S, tags)
+    if vessels:
+        room = sum(space for _, space, _ in vessels)
+        actual = min(amount, have, room)
+        if actual <= 1e-9:
+            return None, 0.0, None, f"«{res.get('name')}»: в таре с тегом нет места"
+        return res, actual, vessels, None
+    if amount > have + 1e-9:
+        return None, 0.0, None, f"«{res.get('name')}»: нужно {amount:g}, есть {have:g}"
+    return res, amount, None, None
+
+
+def apply_fill_vessels(S, vessels, amount, res_tags, log):
+    left = amount
+    liquid = bool(set(res_tags or []) & set(use_tags(S, "water_tags")))
+    for it, space, cap in vessels:
+        if left <= 1e-9:
+            break
+        take = min(left, space)
+        fill = item_fill(it)
+        it["fill"] = round(fill + take / cap, 4)
+        if liquid:
+            it["kg"] = round(max(0.0, (it.get("kg") or 0) + take), 3)
+        else:
+            it["kg"] = round(cap * it["fill"], 3)
+        left -= take
+        log.append(f"[ресурс] наполнил «{it.get('name')}»")
+    return left <= 1e-9
+
+
+def take_site_resource(S, spec, log):
+    """Списать resources[].amount: сначала тара с тем же тегом и fill<1, иначе новый предмет."""
+    res, amount, vessels, err = take_plan(S, spec)
     if err:
         log.append(f"[ОТКАЗ] {err}")
         return False
     have = res.get("amount") or 0
-    if amount > have + 1e-9:
-        log.append(f"[ОТКАЗ] «{res.get('name')}»: нужно {amount:g}, есть {have:g}")
-        return False
+    if vessels is not None:
+        apply_fill_vessels(S, vessels, amount, resource_tags(res), log)
+        res["amount"] = round(have - amount, 4)
+        log.append(f"[ресурс] взял из «{res.get('name')}»")
+        return True
     it = item_from_resource(S, res, amount)
     if not place_new_item(S, it, log):
         return False
@@ -1399,7 +1490,7 @@ def main():
     p.add_argument("--food", type=float, default=0,
                    help="списать fill по item_use.food_tags (синоним CLI; без объявления — отказ)")
     p.add_argument("--take-resource", dest="take_resource", action="append", default=[],
-                   help="имя:количество — списать resources площадки, создать предмет")
+                   help="имя:количество — наполнить предмет с тем же тегом (fill<1), иначе создать новый")
     p.add_argument("--build", default=None,
                    help="собрать конструкцию из частей (теги и материал, не тип постройки)")
     p.add_argument("--build-part", dest="build_part", action="append", default=[],

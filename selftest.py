@@ -700,12 +700,17 @@ _hab = next(s for s in _td["world"]["sites_canon"] if s["path"].endswith("/hab")
 _td["position"]["path"] = _hab["path"]
 _td["pc"]["needs"] = {k: 0.0 for k in _td["pc"]["needs"]}
 _td["profile"]["physics_on"] = []
+for _it in _td["items"]:
+    if "вода" in (_it.get("tags") or []):
+        _it["fill"] = 1.0
+_n_water0 = len([i for i in _td["items"] if "вода" in i.get("tags", [])])
 _amt0 = next(r["amount"] for r in _hab["resources"] if "вода" in (r.get("tags") or []))
 _tlog = []
 good_take = _eng.take_site_resource(_td, "вода:0.5", _tlog)
 _water_it = [i for i in _td["items"] if "вода" in i.get("tags", [])]
 _amt1 = next(r["amount"] for r in _hab["resources"] if "вода" in (r.get("tags") or []))
-good = good_take and abs(_amt0 - _amt1 - 0.5) < 0.001 and _water_it and _water_it[-1]["in"] == "cnt_00"
+good = (good_take and abs(_amt0 - _amt1 - 0.5) < 0.001 and _water_it
+        and _water_it[-1]["in"] == "cnt_00" and len(_water_it) == _n_water0 + 1)
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'взял воду с палубы в руки':<40}{_amt0}->{_amt1} n={len(_water_it)}")
 
@@ -1217,6 +1222,109 @@ _e_mass, _ = _wg_validate(_badc)
 good = any("масс" in e for e in _e_mass)
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'validate ловит массу не от частей':<40}{'да' if good else 'нет'}")
+
+print("\n── take наполняет тару по тегу, не создаёт вторую порцию ──")
+good = ("def fillable_items(" in _src4 and "def take_plan(" in _src4
+        and "наполнил" in _src4)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'fillable_items/take_plan в engine':<40}{'да' if good else 'нет'}")
+
+_rf = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_rf["ruleset"] = _json.load(open(os.path.join(HERE, "ruleset.json"), encoding="utf-8"))
+_rsite = next(s for s in _rf["world"]["sites_canon"] if s["path"] == _rf["position"]["path"])
+_rsite["resources"] = [{"name": "лужа", "amount": 10, "tags": ["вода"]}]
+_rf["items"] = [
+    {"id": "itm_a", "name": "тара", "kg": 0.0, "l": 0.5, "qty": 1,
+     "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["вода"], "fill": 0.0},
+    {"id": "itm_b", "name": "ключ", "kg": 0.02, "l": 0.01, "qty": 1,
+     "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["металл"]},
+]
+_rf["gear"]["hands"]["held"] = ["itm_a", "itm_b"]
+_rf["gear"]["hands"]["slots"] = 2
+_n0 = len(_rf["items"])
+_rlog = []
+good_fill = _eng.take_site_resource(_rf, "лужа:0.5", _rlog)
+_amt_l = next(r["amount"] for r in _rsite["resources"])
+good = (good_fill and abs(_rf["items"][0]["fill"] - 1.0) < 0.02
+        and abs(_amt_l - 9.5) < 0.001 and len(_rf["items"]) == _n0
+        and any("наполнил" in x for x in _rlog))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'пустая тара с тегом наполняется':<40}fill={_rf['items'][0]['fill']} n={len(_rf['items'])}")
+
+_rf["items"][0]["fill"] = 0.6
+_amt_before = next(r["amount"] for r in _rsite["resources"])
+_rlog = []
+_eng.take_site_resource(_rf, "лужа:0.5", _rlog)
+_amt_after = next(r["amount"] for r in _rsite["resources"])
+good = (abs(_rf["items"][0]["fill"] - 1.0) < 0.02
+        and abs(_amt_before - _amt_after - 0.2) < 0.02
+        and len(_rf["items"]) == _n0)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'take больше места — льёт сколько влезает':<40}{_amt_before:g}->{_amt_after:g}")
+
+_rf2 = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_rf2["ruleset"] = _json.load(open(os.path.join(HERE, "ruleset.json"), encoding="utf-8"))
+_rs2 = next(s for s in _rf2["world"]["sites_canon"] if s["path"] == _rf2["position"]["path"])
+_rs2["resources"] = [{"name": "лужа", "amount": 10, "tags": ["вода"]}]
+_rf2["items"] = [
+    {"id": "itm_a", "name": "фляга", "kg": 0.0, "l": 0.5, "qty": 1,
+     "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": [], "fill": 0.0},
+    {"id": "itm_b", "name": "ключ", "kg": 0.02, "l": 0.01, "qty": 1,
+     "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["металл"]},
+]
+_rf2["gear"]["hands"]["held"] = ["itm_a", "itm_b"]
+_rf2["gear"]["hands"]["slots"] = 2
+for _c in _rf2["gear"]["containers"]:
+    if _c.get("id") != "cnt_00":
+        _c["cap_l"] = 0.001
+        _c["cap_kg"] = 0.001
+_n2 = len(_rf2["items"])
+_amt2 = _rs2["resources"][0]["amount"]
+_rlog = []
+good = (not _eng.take_site_resource(_rf2, "лужа:0.5", _rlog)
+        and _rf2["items"][0]["fill"] == 0.0
+        and abs(_rs2["resources"][0]["amount"] - _amt2) < 1e-9
+        and len(_rf2["items"]) == _n2
+        and any("ОТКАЗ" in x for x in _rlog))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'имя фляга без тега — не тара':<40}{'отклонено' if good else 'ПРОПУЩЕНО'}")
+
+_alr = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_alr["ruleset"] = _json.load(open(os.path.join(HERE, "ruleset.json"), encoding="utf-8"))
+_alr["ruleset"]["item_use"]["water_tags"] = ["слизь"]
+_als = next(s for s in _alr["world"]["sites_canon"] if s["path"] == _alr["position"]["path"])
+_als["resources"] = [{"name": "лужа", "amount": 8, "tags": ["слизь"]}]
+_alr["items"] = [
+    {"id": "itm_x", "name": "пузырь", "kg": 0.0, "l": 0.5, "qty": 1,
+     "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["слизь"], "fill": 0.0},
+    {"id": "itm_y", "name": "камень", "kg": 0.4, "l": 0.1, "qty": 1,
+     "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["камень"]},
+]
+_alr["gear"]["hands"]["held"] = ["itm_x", "itm_y"]
+_n_al = len(_alr["items"])
+_rlog = []
+good = (_eng.take_site_resource(_alr, "лужа:0.5", _rlog)
+        and abs(_alr["items"][0]["fill"] - 1.0) < 0.02
+        and len(_alr["items"]) == _n_al
+        and abs(_als["resources"][0]["amount"] - 7.5) < 0.001)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'чужой тег слизь наполняет пузырь':<40}fill={_alr['items'][0]['fill']}")
+
+_alr["items"][0]["tags"] = ["вода"]
+_alr["items"][0]["fill"] = 0.0
+_alr["items"][0]["kg"] = 0.0
+_amt_al = _als["resources"][0]["amount"]
+for _c in _alr["gear"]["containers"]:
+    if _c.get("id") != "cnt_00":
+        _c["cap_l"] = 0.001
+        _c["cap_kg"] = 0.001
+_rlog = []
+good = (not _eng.take_site_resource(_alr, "лужа:0.5", _rlog)
+        and _alr["items"][0]["fill"] == 0.0
+        and abs(_als["resources"][0]["amount"] - _amt_al) < 1e-9
+        and any("ОТКАЗ" in x for x in _rlog))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'вода при ресурсе слизь — не тара':<40}{'отклонено' if good else 'ПРОПУЩЕНО'}")
 
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)
