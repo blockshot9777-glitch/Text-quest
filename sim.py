@@ -469,7 +469,8 @@ EMBEDDED_RULES = {
   "gain_divisor": 2,
   "recovery_per_h": -5,
   "wet_penalty": 0.67,
-  "note": "T_comf = base - clo_coeff*clo - activity_coeff*активность; прирост = (T_comf - ветрохолод)/divisor"
+  "fire_bonus_c": 22,
+  "note": "T_comf = base - clo_coeff*clo - activity_coeff*активность; прирост = (T_comf - ветрохолод)/divisor. --sheltered: ветер 0 в windchill. --fire: ambient += fire_bonus_c, без расхода топлива."
  },
  "mounts": {
   "рука": 0,
@@ -1577,6 +1578,8 @@ def validate_ruleset(R):
 
     cm = R.get("cold_model", {})
     if cm and cm.get("gain_divisor", 1) == 0: err.append("cold_model.gain_divisor не может быть нулём")
+    if cm and "fire_bonus_c" in cm and not isinstance(cm["fire_bonus_c"], (int, float)):
+        err.append("cold_model.fire_bonus_c должен быть числом °C")
 
     if not R.get("needs"):   warn.append("нет ни одной потребности — существо ничего не будет чувствовать")
     if not R.get("skills"):  warn.append("нет списка навыков")
@@ -1849,7 +1852,7 @@ def site_of(S, path=None):
         if st["path"] == path: return st
     return {}
 
-def recompute_env(S):
+def recompute_env(S, sheltered=False, fire=False):
     w = S["world"]; z = S["position"]["z_m"]; e = S["envelope"]
     site = site_of(S)
     ov = site.get("env", {})
@@ -1863,7 +1866,13 @@ def recompute_env(S):
         S["time"]["light"] = ov.get("light", "аварийное освещение")
         e["ambient_c"] = round(ov.get("ambient_c", e["ambient_c"]), 1)
 
-    e["windchill_c"] = round(windchill(e["ambient_c"], e["wind_ms"]), 1)
+    # укрытие и огонь — флаги хода, не погода. Не затирать envelope.wind_ms:
+    # это уличный ветер; иначе следующий look без флагов остался бы «в штиле».
+    if fire:
+        bonus = rules(S).get("cold_model", {}).get("fire_bonus_c", 0)
+        e["ambient_c"] = round(e["ambient_c"] + bonus, 1)
+    wind_ms = 0.0 if sheltered else e.get("wind_ms", 0)
+    e["windchill_c"] = round(windchill(e["ambient_c"], wind_ms), 1)
 
     # герметичная среда: параметры отсека, а не высоты
     if ov:
@@ -1889,7 +1898,7 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
     while rem > 1e-6:
         h = min(1.0, rem); rem -= h
         S["time"]["t_h"] += h
-        recompute_env(S)
+        recompute_env(S, sheltered, fire)
         wet_step(S, h, sheltered, fire)
         if "холод" in S["profile"].get("physics_on", []) and "cold_stress" in n:
             clo = clo_total(S)

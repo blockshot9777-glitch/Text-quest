@@ -377,6 +377,8 @@ def validate_ruleset(R):
 
     cm = R.get("cold_model", {})
     if cm and cm.get("gain_divisor", 1) == 0: err.append("cold_model.gain_divisor не может быть нулём")
+    if cm and "fire_bonus_c" in cm and not isinstance(cm["fire_bonus_c"], (int, float)):
+        err.append("cold_model.fire_bonus_c должен быть числом °C")
 
     if not R.get("needs"):   warn.append("нет ни одной потребности — существо ничего не будет чувствовать")
     if not R.get("skills"):  warn.append("нет списка навыков")

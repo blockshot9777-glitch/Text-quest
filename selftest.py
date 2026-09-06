@@ -312,6 +312,81 @@ good = abs(_a - 2 * _b) < 0.05
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'cold_rate слушает cold_model':<40}{ _a:.3f} vs { _b:.3f}")
 
+print("\n── огонь и укрытие входят в recompute_env ──")
+good = "def recompute_env(S, sheltered=False, fire=False)" in _src
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'recompute_env принимает sheltered/fire':<40}{'да' if good else 'нет'}")
+good = "recompute_env(S, sheltered, fire)" in _src
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'tick передаёт флаги в recompute_env':<40}{'да' if good else 'нет'}")
+_Rfire = _json.load(open(os.path.join(HERE, "ruleset.json"), encoding="utf-8"))
+good = isinstance(_Rfire.get("cold_model", {}).get("fire_bonus_c"), (int, float)) and _Rfire["cold_model"]["fire_bonus_c"] > 0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'fire_bonus_c в ruleset.cold_model':<40}{_Rfire.get('cold_model', {}).get('fire_bonus_c')}")
+
+def _env_fixture():
+    st = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+    st["calendar"]["natural_light"] = False
+    st["envelope"]["ambient_c"] = -3.0
+    st["envelope"]["wind_ms"] = 9
+    for site in st["world"]["sites_canon"]:
+        site.pop("env", None)
+    return st
+
+_out = _env_fixture()
+_eng.recompute_env(_out)
+good = _out["envelope"]["windchill_c"] < _out["envelope"]["ambient_c"] - 1
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'без флагов ветер бьёт в windchill':<40}{_out['envelope']['windchill_c']}")
+
+_sh = _env_fixture()
+_eng.recompute_env(_sh, sheltered=True)
+good = (_sh["envelope"]["windchill_c"] == _sh["envelope"]["ambient_c"]
+        and _sh["envelope"]["wind_ms"] == 9
+        and _sh["envelope"]["ambient_c"] == -3.0)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'укрытие: штиль, wind_ms не затирается':<40}wc={_sh['envelope']['windchill_c']} wind={_sh['envelope']['wind_ms']}")
+
+_fr = _env_fixture()
+_fr["ruleset"] = _cp.deepcopy(_Rfire)
+_bonus = _fr["ruleset"]["cold_model"]["fire_bonus_c"]
+_eng.recompute_env(_fr, fire=True)
+good = abs(_fr["envelope"]["ambient_c"] - (-3.0 + _bonus)) < 0.15
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'огонь поднимает ambient на fire_bonus_c':<40}{_fr['envelope']['ambient_c']}")
+
+_both = _env_fixture()
+_both["ruleset"] = _cp.deepcopy(_Rfire)
+_both["ruleset"]["cold_model"]["fire_bonus_c"] = 10
+_eng.recompute_env(_both, sheltered=True, fire=True)
+good = _both["envelope"]["ambient_c"] == 7.0 and _both["envelope"]["windchill_c"] == 7.0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'огонь+укрытие: тепло без ветра из JSON':<40}{_both['envelope']['ambient_c']}/{_both['envelope']['windchill_c']}")
+
+_tavern = _env_fixture()
+_tavern["profile"]["physics_on"] = list(set(_tavern["profile"].get("physics_on", []) + ["холод"]))
+_tavern["pc"]["needs"]["cold_stress"] = 37.0
+_tavern["pc"]["vitals"]["core_temp_c"] = 36.6
+_tavern["gear"]["worn"] = [
+    {"id": "t", "name": "тест", "kg": 1, "clo": 1.48, "wet": 0.0}
+]
+_before = _tavern["pc"]["needs"]["cold_stress"]
+_eng.tick(_tavern, 40/60, activity=0, sheltered=True, fire=True, log=[])
+_after = _tavern["pc"]["needs"]["cold_stress"]
+good = _after < _before
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'печь за 40 мин снижает cold_stress':<40}{_before:.1f} -> {_after:.1f}")
+
+_street = _env_fixture()
+_street["profile"]["physics_on"] = list(set(_street["profile"].get("physics_on", []) + ["холод"]))
+_street["pc"]["needs"]["cold_stress"] = 37.0
+_street["pc"]["vitals"]["core_temp_c"] = 36.6
+_street["gear"]["worn"] = [{"id": "t", "name": "тест", "kg": 1, "clo": 1.48, "wet": 0.0}]
+_eng.tick(_street, 40/60, activity=0, sheltered=False, fire=False, log=[])
+good = _street["pc"]["needs"]["cold_stress"] > 37.0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'улица за 40 мин поднимает холод':<40}{_street['pc']['needs']['cold_stress']:.1f}")
+
 _heal = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
 _heal["profile"]["physics_on"] = [x for x in _heal["profile"]["physics_on"] if x != "холод"]
 _heal["pc"]["needs"] = {k: 0 for k in _heal["pc"]["needs"]}

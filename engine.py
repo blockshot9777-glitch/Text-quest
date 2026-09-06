@@ -228,7 +228,7 @@ def site_of(S, path=None):
         if st["path"] == path: return st
     return {}
 
-def recompute_env(S):
+def recompute_env(S, sheltered=False, fire=False):
     w = S["world"]; z = S["position"]["z_m"]; e = S["envelope"]
     site = site_of(S)
     ov = site.get("env", {})
@@ -242,7 +242,13 @@ def recompute_env(S):
         S["time"]["light"] = ov.get("light", "аварийное освещение")
         e["ambient_c"] = round(ov.get("ambient_c", e["ambient_c"]), 1)
 
-    e["windchill_c"] = round(windchill(e["ambient_c"], e["wind_ms"]), 1)
+    # укрытие и огонь — флаги хода, не погода. Не затирать envelope.wind_ms:
+    # это уличный ветер; иначе следующий look без флагов остался бы «в штиле».
+    if fire:
+        bonus = rules(S).get("cold_model", {}).get("fire_bonus_c", 0)
+        e["ambient_c"] = round(e["ambient_c"] + bonus, 1)
+    wind_ms = 0.0 if sheltered else e.get("wind_ms", 0)
+    e["windchill_c"] = round(windchill(e["ambient_c"], wind_ms), 1)
 
     # герметичная среда: параметры отсека, а не высоты
     if ov:
@@ -268,7 +274,7 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
     while rem > 1e-6:
         h = min(1.0, rem); rem -= h
         S["time"]["t_h"] += h
-        recompute_env(S)
+        recompute_env(S, sheltered, fire)
         wet_step(S, h, sheltered, fire)
         if "холод" in S["profile"].get("physics_on", []) and "cold_stress" in n:
             clo = clo_total(S)

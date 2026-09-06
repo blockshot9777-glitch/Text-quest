@@ -1,7 +1,7 @@
 {
  "meta": {
   "seed": 19170308,
-  "turn": 18,
+  "turn": 26,
   "setting": "Петроград, 23 февраля 1917 (8 марта по новому стилю). Российская империя на грани. Попаданец из XXI века.",
   "tech_ceiling": "industrial",
   "tone": "безжалостный реализм"
@@ -50,30 +50,30 @@
   "natural_light": true
  },
  "time": {
-  "t_h": 15.86666666666666,
-  "weather": "переменная облачность",
-  "light": "день",
-  "_weather_period": 2
+  "t_h": 19.449999999999996,
+  "weather": "ясно",
+  "light": "темнота",
+  "_weather_period": 3
  },
  "position": {
-  "path": "rossiya/petrograd/vyborg/neva",
-  "z_m": 2.0,
-  "local": "neva"
+  "path": "rossiya/petrograd/vyborg/traktir",
+  "z_m": 7.0,
+  "local": "traktir"
  },
  "pc": {
   "name": "чужак",
   "posture": "стоит",
   "needs": {
-   "hunger": 20.539999999999996,
-   "thirst": 34.7,
-   "fatigue": 49.16666666666664,
+   "hunger": 21.614999999999995,
+   "thirst": 40.075,
+   "fatigue": 58.12499999999997,
    "cold_stress": 100.0,
-   "stress": 46.53333333333336
+   "stress": 42.95000000000003
   },
   "vitals": {
    "blood_loss_pct": 0,
    "infection": 0,
-   "core_temp_c": 32.9
+   "core_temp_c": 32.27
   },
   "skills": {
    "athletics": 38,
@@ -107,29 +107,54 @@
     "outcome": "ПРОВАЛ (без броска: невозможно в таком состоянии)",
     "consequence": "сказал лишнее"
    },
-   "переход|24": {
+   "переход|30": {
     "roll": 30,
-    "outcome": "УСПЕХ ЦЕНОЙ",
-    "consequence": "потерял из рук то, что держал"
+    "outcome": "УСПЕХ",
+    "consequence": null
    },
-   "укрытие|5": {
-    "roll": null,
-    "outcome": "ПРОВАЛ (без броска: невозможно в таком состоянии)",
+   "переход|20": {
+    "roll": 6,
+    "outcome": "УСПЕХ",
+    "consequence": null
+   },
+   "укрытие|8": {
+    "roll": 55,
+    "outcome": "ПРОВАЛ",
     "consequence": "шум на весь отсек"
    },
-   "осмотр|11": {
+   "осмотр|26": {
     "roll": 33,
-    "outcome": "ПРОВАЛ",
+    "outcome": "УСПЕХ ЦЕНОЙ",
     "consequence": "ничего не разобрал"
    },
-   "переход|8": {
+   "переход|18": {
     "roll": 84,
     "outcome": "ПРОВАЛ",
     "consequence": "ударился, ушиб"
    },
-   "переход|9": {
-    "roll": 26,
-    "outcome": "УСПЕХ ЦЕНОЙ",
+   "осмотр|21": {
+    "roll": 59,
+    "outcome": "ПРОВАЛ",
+    "consequence": "устал глазами, время вдвое"
+   },
+   "укрытие|5": {
+    "roll": null,
+    "outcome": "ПРОВАЛ (без броска: невозможно в таком состоянии)",
+    "consequence": "потерял из рук то, что держал"
+   },
+   "осмотр|9": {
+    "roll": 34,
+    "outcome": "ПРОВАЛ",
+    "consequence": "принял одно за другое — ложный вывод"
+   },
+   "осмотр|6": {
+    "roll": 3,
+    "outcome": "УСПЕХ (пол)",
+    "consequence": null
+   },
+   "переход|5": {
+    "roll": 27,
+    "outcome": "ПРОВАЛ",
     "consequence": "отбросило от опоры, время вдвое"
    }
   },
@@ -319,9 +344,9 @@
   }
  ],
  "envelope": {
-  "ambient_c": -3.2,
+  "ambient_c": -7.6,
   "wind_ms": 7,
-  "windchill_c": -10.0,
+  "windchill_c": -7.6,
   "gravity_g": 1.0,
   "breathable": true,
   "ttl_min": null,
@@ -396,7 +421,7 @@
     "resources": [
      {
       "name": "дрова во дворе",
-      "amount": 3.82,
+      "amount": 3.71,
       "renew_per_day": 0
      }
     ],
@@ -443,7 +468,7 @@
     "resources": [
      {
       "name": "чёрный хлеб",
-      "amount": 6.34,
+      "amount": 6.57,
       "renew_per_day": 2
      }
     ],
@@ -490,7 +515,7 @@
     "resources": [
      {
       "name": "кипяток",
-      "amount": 8.18,
+      "amount": 8.23,
       "renew_per_day": 3
      }
     ],
@@ -577,7 +602,7 @@
    {
     "id": "npc_01",
     "name": "Фёдор, дворник",
-    "path": "rossiya/petrograd/vyborg/traktir",
+    "path": "rossiya/petrograd/vyborg/dvor",
     "goal": "не впустить беду во двор",
     "long_goal": "дотянуть до весны на табаке и молчании",
     "resources": [
@@ -601,13 +626,13 @@
     "alive": true,
     "schedule": "двор с рассвета",
     "faction": "fac_dvor",
-    "_last_acted_period": 2,
+    "_last_acted_period": 3,
     "_knew_at_h": 7.816666666666667
    },
    {
     "id": "npc_02",
     "name": "Анна, ткачиха",
-    "path": "rossiya/petrograd/vyborg/ochered",
+    "path": "rossiya/petrograd/vyborg/uchastok",
     "goal": "унести хоть корку детям",
     "long_goal": "чтобы муж не сгинул на фронте зря",
     "resources": [
@@ -625,7 +650,7 @@
     "alive": true,
     "schedule": "очередь до обеда",
     "faction": "fac_rabochie",
-    "_last_acted_period": 2,
+    "_last_acted_period": 3,
     "_knew_at_h": 8.15
    },
    {
@@ -655,7 +680,7 @@
     "alive": true,
     "schedule": "за стойкой",
     "faction": "fac_dvor",
-    "_last_acted_period": 2,
+    "_last_acted_period": 3,
     "_knew_at_h": 7.816666666666667
    },
    {
@@ -684,13 +709,13 @@
     "alive": true,
     "schedule": "задняя комната",
     "faction": "fac_garnizon",
-    "_last_acted_period": 2,
+    "_last_acted_period": 3,
     "_knew_at_h": 7.816666666666667
    },
    {
     "id": "npc_05",
     "name": "околоточный Крылов",
-    "path": "rossiya/petrograd/vyborg/uchastok",
+    "path": "rossiya/petrograd/vyborg/dvor",
     "goal": "взять хоть кого к отчёту",
     "long_goal": "выжить в чине, когда улица пойдёт",
     "resources": [
@@ -699,11 +724,18 @@
      "ориентировка"
     ],
     "disposition": -55,
-    "knows_about_pc": [],
+    "knows_about_pc": [
+     {
+      "turn": 24,
+      "source": "услышал шум рядом",
+      "fact": "что-то происходит поблизости"
+     }
+    ],
     "alive": true,
     "schedule": "дежурство",
     "faction": "fac_okhrana",
-    "_last_acted_period": 2
+    "_last_acted_period": 3,
+    "_knew_at_h": 18.78333333333333
    }
   ],
   "factions": [
@@ -762,11 +794,11 @@
   {
    "id": "clk_01",
    "name": "Хлебная очередь срывается",
-   "filled": 4,
+   "filled": 5,
    "max": 6,
    "scale": "региональный",
    "period_h": 4,
-   "last_tick_h": 11.4,
+   "last_tick_h": 15.4,
    "hidden": false,
    "payoff": "Давка у пекарни. Витрину бьют. Околоточные требуют документы у всех чужих."
   },
@@ -784,11 +816,11 @@
   {
    "id": "clk_03",
    "name": "Дезертир не выдерживает",
-   "filled": 2,
+   "filled": 3,
    "max": 7,
    "scale": "региональный",
    "period_h": 8,
-   "last_tick_h": 7.4,
+   "last_tick_h": 15.4,
    "hidden": true,
    "payoff": "Семён выходит на улицу с пустой винтовкой. Патруль уже близко."
   },

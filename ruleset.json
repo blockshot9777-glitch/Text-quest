@@ -447,7 +447,8 @@
   "gain_divisor": 2,
   "recovery_per_h": -5,
   "wet_penalty": 0.67,
-  "note": "T_comf = base - clo_coeff*clo - activity_coeff*активность; прирост = (T_comf - ветрохолод)/divisor"
+  "fire_bonus_c": 22,
+  "note": "T_comf = base - clo_coeff*clo - activity_coeff*активность; прирост = (T_comf - ветрохолод)/divisor. --sheltered: ветер 0 в windchill. --fire: ambient += fire_bonus_c, без расхода топлива."
  },
  "mounts": {
   "рука": 0,
