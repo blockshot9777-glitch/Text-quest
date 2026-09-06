@@ -1,0 +1,19 @@
+---
+description: После любых правок коммитить всё и пушить в origin. Пользователь это разрешил заранее.
+alwaysApply: true
+---
+
+# Всегда коммитить все изменения
+
+Это постоянное разрешение коммитить без отдельной просьбы в каждом чате.
+
+После завершения работы (и после промежуточных законченных шагов, если правок уже много):
+
+1. `git status` + `git diff` + `git log -10 --oneline`.
+2. Добавить **все** изменения проекта (`git add -A`), кроме секретов (`.env`, ключи, credentials) и того, что уже в `.gitignore`.
+3. Если нечего коммитить — не создавать пустой коммит.
+4. Сообщение коммита: 1–2 предложения, зачем изменение, на русском или в стиле репозитория.
+5. На Windows не использовать bash HEREDOC; `git commit -m` с here-string PowerShell.
+6. Не вызывать `git config`. Если identity неизвестен — только env `GIT_AUTHOR_*` / `GIT_COMMITTER_*` на этот коммит (`blockshot9777-glitch` / `blockshot9777-glitch@users.noreply.github.com`).
+7. Сразу `git push origin HEAD` на отслеживаемую ветку. Не `--force` на `main`/`master`. Не `--no-verify`. Не `commit --amend`, если коммит уже в remote.
+8. После пуша проверить `git status`: working tree clean, ветка не расходится с `origin`.
