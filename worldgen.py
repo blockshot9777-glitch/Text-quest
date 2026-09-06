@@ -203,7 +203,9 @@ def expand(brief):
         S["envelope"]["po2_kpa"] = round(b.get("atmosphere",{}).get("o2_frac",0.209)*101.3*
                                          pressure_at(b.get("start_z",0)), 1)
     if "углекислота" in on: S["envelope"]["pco2_kpa"] = b.get("pco2_kpa", 0.04)
-    if "радиация"   in on: S["envelope"]["dose_rate_msv_h"] = b.get("dose_rate", 0.0003)
+    if "радиация"   in on:
+        S["envelope"]["dose_rate_msv_h"] = b.get("dose_rate", 0.0003)
+        S["envelope"]["dose_sv"] = b.get("dose_sv", 0.0)
 
     _rand_notes = []
     if b.get("carryover"):          # попаданец: вещи наших дней, момент переноса случаен

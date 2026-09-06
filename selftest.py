@@ -420,5 +420,99 @@ good = _rf.returncode == 0 and "рама не держит" in (_rf.stdout or ""
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'механоид выходит из боя по раме':<40}{'да' if good else 'нет'}")
 
+print("\n── skill_growth и dose_sv больше не спят ──")
+good = "def skill_grow(" in _src and "skill_grow(S, skill, out)" in open(os.path.join(HERE, "engine.py"), encoding="utf-8").read()
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'check вызывает skill_grow':<40}{'да' if good else 'нет'}")
+_src2 = open(os.path.join(HERE, "engine.py"), encoding="utf-8").read()
+good = 'dose_sv' in _src2 and 'dose_rate_msv_h' in _src2 and '"радиация" in on' in _src2
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'tick копит dose_sv при радиации':<40}{'да' if good else 'нет'}")
+good = "core_drop_c" in _src2 and "core_temp(n.get(need_key, 0), S)" in _src2
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'ядро читает cold_model, не литерал 37-9':<40}{'да' if good else 'нет'}")
+
+_sg = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_sg["pc"]["skills"]["athletics"] = 40
+_sg["pc"]["attempts"] = {}
+_sg["pc"]["skill_growth_day"] = {}
+_eng.skill_grow(_sg, "athletics", "ПРОВАЛ")
+good = _sg["pc"]["skills"]["athletics"] == 41
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'провал поднимает навык на amount':<40}{_sg['pc']['skills']['athletics']}")
+_eng.skill_grow(_sg, "athletics", "ПРОВАЛ")
+good = _sg["pc"]["skills"]["athletics"] == 41
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'потолок per_day_per_skill за сутки':<40}{_sg['pc']['skills']['athletics']}")
+_sg["time"]["t_h"] = _sg["time"]["t_h"] + 24
+_eng.skill_grow(_sg, "athletics", "КРИТИЧЕСКИЙ УСПЕХ")
+good = _sg["pc"]["skills"]["athletics"] == 42
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'на следующий день рост снова':<40}{_sg['pc']['skills']['athletics']}")
+_ok_skill = _sg["pc"]["skills"]["athletics"]
+_eng.skill_grow(_sg, "athletics", "УСПЕХ")
+_eng.skill_grow(_sg, "athletics", "УСПЕХ ЦЕНОЙ")
+good = _sg["pc"]["skills"]["athletics"] == _ok_skill
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'обычный успех навык не качает':<40}{_sg['pc']['skills']['athletics']}")
+_sg["pc"]["skills"]["athletics"] = 90
+_sg["pc"]["skill_growth_day"] = {}
+_sg["time"]["t_h"] = _sg["time"]["t_h"] + 24
+_eng.skill_grow(_sg, "athletics", "ПРОВАЛ")
+good = _sg["pc"]["skills"]["athletics"] == 90
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'cap 90 не превышается':<40}{_sg['pc']['skills']['athletics']}")
+
+_grew = False
+_chk = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_chk["pc"]["skills"]["athletics"] = 40
+_before = 40
+for _turn in range(40):
+    _chk["meta"]["turn"] = _turn
+    _chk["pc"]["attempts"] = {}
+    _c = _eng.check(_chk, "athletics", 25, f"рост{_turn}", 1)
+    if _c.get("roll") is not None and "ПРОВАЛ" in _c["outcome"]:
+        _grew = _chk["pc"]["skills"]["athletics"] == _before + 1
+        break
+good = _grew
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'check() с броском качает навык':<40}{'да' if good else 'нет'}")
+
+_rad = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_rad["profile"]["physics_on"] = ["радиация"]
+_rad["envelope"]["dose_rate_msv_h"] = 2000.0
+_rad["envelope"]["dose_sv"] = 0.0
+_eng.tick(_rad, 2.0, activity=0, log=[])
+good = abs(_rad["envelope"]["dose_sv"] - 4.0) < 0.01
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'2 ч при 2000 мЗв/ч = 4 Зв':<40}{_rad['envelope'].get('dose_sv')}")
+
+_quiet = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_quiet["profile"]["physics_on"] = [x for x in _quiet["profile"].get("physics_on", []) if x != "радиация"]
+_quiet["envelope"]["dose_rate_msv_h"] = 2000.0
+_quiet["envelope"]["dose_sv"] = 0.0
+_eng.tick(_quiet, 2.0, activity=0, log=[])
+good = (_quiet["envelope"].get("dose_sv") or 0) == 0.0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'без физики радиации доза не растёт':<40}{_quiet['envelope'].get('dose_sv')}")
+
+_kill = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_kill["profile"]["physics_on"] = ["радиация"]
+_kill["envelope"]["dose_rate_msv_h"] = 10000.0
+_kill["envelope"]["dose_sv"] = 0.0
+_kill["pc"]["needs"] = {k: 0 for k in _kill["pc"]["needs"]}
+_eng.tick(_kill, 1.0, activity=0, log=[])
+good = _kill["status"] == "dead"
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'lethal_above dose_sv убивает':<40}{_kill['status']} dose={_kill['envelope'].get('dose_sv')}")
+
+_Sc2 = {"ruleset": _cp.deepcopy(_Rfire)}
+_a0 = _eng.core_temp(100, _Sc2)
+_Sc2["ruleset"]["cold_model"]["core_drop_c"] = 18
+_a1 = _eng.core_temp(100, _Sc2)
+good = abs(_a0 - 28.0) < 0.05 and abs(_a1 - 19.0) < 0.05
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'core_temp слушает cold_model':<40}{_a0:.1f} vs {_a1:.1f}")
+
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)

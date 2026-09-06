@@ -207,7 +207,7 @@ EMBEDDED_RULES = {
    "lethal_low": 28.0,
    "lethal_high": 42.0,
    "max_change_per_h": 0.5,
-   "formula": "37 - 9*max(0, cold_stress-30)/70",
+   "formula": "cold_model: core_base_c - core_drop_c*max(0, need-core_drop_start)/core_drop_span",
    "unconscious_below": 30.0
   }
  },
@@ -463,6 +463,8 @@ EMBEDDED_RULES = {
   "no_roll_below_raw": 5
  },
  "cold_model": {
+  "need": "cold_stress",
+  "core_vital": "core_temp_c",
   "comfort_base_c": 21,
   "clo_coeff": 8,
   "activity_coeff": 10,
@@ -470,7 +472,11 @@ EMBEDDED_RULES = {
   "recovery_per_h": -5,
   "wet_penalty": 0.67,
   "fire_bonus_c": 22,
-  "note": "T_comf = base - clo_coeff*clo - activity_coeff*активность; прирост = (T_comf - ветрохолод)/divisor. --sheltered: ветер 0 в windchill. --fire: ambient += fire_bonus_c, без расхода топлива."
+  "core_base_c": 37,
+  "core_drop_start": 30,
+  "core_drop_span": 70,
+  "core_drop_c": 9,
+  "note": "T_comf = base - clo_coeff*clo - activity_coeff*активность; прирост = (T_comf - ветрохолод)/divisor. Ядро: base - drop*max(0, need-start)/span. --sheltered: ветер 0. --fire: ambient += fire_bonus_c."
  },
  "mounts": {
   "рука": 0,
@@ -1404,7 +1410,9 @@ def expand(brief):
         S["envelope"]["po2_kpa"] = round(b.get("atmosphere",{}).get("o2_frac",0.209)*101.3*
                                          pressure_at(b.get("start_z",0)), 1)
     if "углекислота" in on: S["envelope"]["pco2_kpa"] = b.get("pco2_kpa", 0.04)
-    if "радиация"   in on: S["envelope"]["dose_rate_msv_h"] = b.get("dose_rate", 0.0003)
+    if "радиация"   in on:
+        S["envelope"]["dose_rate_msv_h"] = b.get("dose_rate", 0.0003)
+        S["envelope"]["dose_sv"] = b.get("dose_sv", 0.0)
 
     _rand_notes = []
     if b.get("carryover"):          # попаданец: вещи наших дней, момент переноса случаен
@@ -1701,8 +1709,13 @@ def cold_rate(T_wc, clo, activity, S=None):
     dT = (comfort - cm.get("clo_coeff", 8) * clo - cm.get("activity_coeff", 10) * activity) - T_wc
     return dT / cm.get("gain_divisor", 2) if dT > 0 else cm.get("recovery_per_h", -5.0)
 
-def core_temp(cs):
-    return 37 - 9 * max(0.0, cs - 30) / 70
+def core_temp(cs, S=None):
+    cm = rules(S).get("cold_model", {})
+    base = cm.get("core_base_c", 37)
+    start = cm.get("core_drop_start", 30)
+    span = cm.get("core_drop_span", 70) or 70
+    drop = cm.get("core_drop_c", 9)
+    return base - drop * max(0.0, cs - start) / span
 
 def surface_temp(S, t_h):
     c = S["world"]["climate"]
@@ -1823,9 +1836,42 @@ def check(S, skill, difficulty, label, idx, adv=0, domain="движение", le
             out = "КАТАСТРОФА (не смертельная: действие не смертельно)"
     cons = consequence(S, domain, idx, out) if ("ПРОВАЛ" in out or "ЦЕНОЙ" in out or "КАТАСТРОФА" in out) else None
     prev[key] = {"roll": r, "outcome": out, "consequence": cons}
+    if r is not None:
+        skill_grow(S, skill, out)
     return {"label": label, "skill": skill, "base": base, "factor": round(f, 3), "notes": notes,
             "difficulty": difficulty, "adv": adv, "raw": round(raw, 1), "target": target,
             "roll": r, "outcome": out, "consequence": cons, "repeat": None}
+
+
+def skill_grow(S, skill, outcome):
+    """Рост из ruleset.skill_growth: поле без вызова — ложь. Молча, без цифр игроку."""
+    g = rules(S).get("skill_growth") or {}
+    on = g.get("on") or []
+    if not any(tag and tag in outcome for tag in on):
+        return
+    skills = S["pc"].setdefault("skills", {})
+    default = rules(S).get("skill_default", 30)
+    cur = skills.get(skill, default)
+    cap = g.get("cap", 90)
+    amount = int(g.get("amount", 1) or 0)
+    per = g.get("per_day_per_skill", 1)
+    if amount <= 0 or cur >= cap:
+        return
+    day_h = S["calendar"].get("day_hours", 24) or 24
+    day = int(S["time"]["t_h"] // day_h)
+    recs = S["pc"].setdefault("skill_growth_day", {})
+    rec = recs.get(skill) or {"day": day, "gained": 0}
+    if rec.get("day") != day:
+        rec = {"day": day, "gained": 0}
+    remain = max(0, per - rec.get("gained", 0))
+    add = min(amount, remain, cap - cur)
+    if add <= 0:
+        recs[skill] = rec
+        return
+    skills[skill] = cur + add
+    rec["gained"] = rec.get("gained", 0) + add
+    rec["day"] = day
+    recs[skill] = rec
 
 def opposed(S, a_skill, b_name, b_target, label, idx):
     a = check(S, a_skill, 0, label, idx, domain="борьба")
@@ -1900,13 +1946,21 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
         S["time"]["t_h"] += h
         recompute_env(S, sheltered, fire)
         wet_step(S, h, sheltered, fire)
-        if "холод" in S["profile"].get("physics_on", []) and "cold_stress" in n:
+        R = rules(S)
+        cm = R.get("cold_model", {})
+        need_key = cm.get("need")
+        on = S["profile"].get("physics_on", [])
+        if "холод" in on and need_key and need_key in n:
             clo = clo_total(S)
-            cr = cold_rate(S["envelope"]["windchill_c"], clo, activity, S)
-            n["cold_stress"] = max(0.0, min(100.0, n["cold_stress"] + cr * h))
-        R = rules(S); ND = R.get("needs", {}); hi = R.get("scales", {}).get("max", 100)
+            cr = cold_rate(S["envelope"].get("windchill_c", 0), clo, activity, S)
+            n[need_key] = max(0.0, min(100.0, n[need_key] + cr * h))
+        if "радиация" in on:
+            e = S["envelope"]
+            rate = e.get("dose_rate_msv_h") or 0
+            e["dose_sv"] = round((e.get("dose_sv") or 0) + (rate / 1000.0) * h, 6)
+        ND = R.get("needs", {}); hi = R.get("scales", {}).get("max", 100)
         for key, spec in ND.items():
-            if key == "cold_stress" or key not in n: continue
+            if key == need_key or key not in n: continue
             if key == "fatigue" and sleeping:
                 n[key] = max(0.0, n[key] - spec.get("recover_per_h", 12) * h); continue
             base = spec.get("rate_per_h", 0.0)
@@ -1948,14 +2002,16 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
         S["pc"]["wounds"] = kept
         if any_treated and it_ and it_ in v and inf_heal:
             v[it_] = max(0.0, v[it_] - inf_heal * h)
-        if "core_temp_c" not in v or "cold_stress" not in n:
+        vital_key = cm.get("core_vital")
+        if not vital_key or vital_key not in v or not need_key or need_key not in n:
             d = death_check(S)
             if d: log.append(f"[{fmt_time(S)}] ПРЕРВАНО: {d}"); return log
             continue
-        tgt = core_temp(n["cold_stress"])
-        cur = v["core_temp_c"]
-        step = 0.5 * h                       # тело не меняет температуру мгновенно
-        v["core_temp_c"] = round(cur + max(-step, min(step, tgt - cur)), 2)
+        tgt = core_temp(n.get(need_key, 0), S)
+        cur = v.get(vital_key)
+        step_h = (R.get("vitals", {}).get(vital_key) or {}).get("max_change_per_h", 0.5)
+        step = step_h * h
+        v[vital_key] = round(cur + max(-step, min(step, tgt - cur)), 2)
         d = death_check(S)
         if d:
             log.append(f"[{fmt_time(S)}] ПРЕРВАНО: {d}")
