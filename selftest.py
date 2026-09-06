@@ -1328,7 +1328,8 @@ print(f"  {'ok ' if good else 'MISS'} {'вода при ресурсе слиз�
 
 _jura_h = open(os.path.join(HERE, "examples", "run_jurassic_random.py"), encoding="utf-8").read()
 _handoff = open(os.path.join(HERE, "HANDOFF.md"), encoding="utf-8").read()
-good = ("RISK_APPROACH_HOSTILE = 0" in _jura_h
+good = ("RISK_APPROACH_HOSTILE = False" in _jura_h
+        and "не шкала" in _jura_h
         and "не дыра выдачи ресурса" in _jura_h
         and "RISK_APPROACH_HOSTILE" in _handoff)
 ok, fail = ok+good, fail+(not good)
