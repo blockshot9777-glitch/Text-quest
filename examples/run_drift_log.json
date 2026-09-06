@@ -1,0 +1,3547 @@
+{
+ "setting": "Малый курьер «Релей» дрейфует без тяги. Попаданец из XXI века с амнезией: не знает, кто он здесь, чей это корабль и сколько на нём воздуха, воды и тепла.",
+ "seed": 55020714,
+ "gen_notes": [
+  "момент переноса: курил на балконе"
+ ],
+ "gen_warn": [],
+ "start": {
+  "turn": 0,
+  "t_h": 0.4,
+  "light": "день",
+  "path": "sol/drift/relay/cryo",
+  "local": "выбрался из капсулы, держится за скобу, имени нет",
+  "site": "Криоотсек",
+  "status": "alive",
+  "needs": {
+   "hunger": 22.0,
+   "thirst": 28.0,
+   "fatigue": 45.0,
+   "cold_stress": 18.0,
+   "stress": 70.0
+  },
+  "vitals": {
+   "blood_loss_pct": 0.0,
+   "infection": 0.0,
+   "core_temp_c": 36.6
+  },
+  "envelope": {
+   "ambient_c": 8.0,
+   "windchill_c": 8.0,
+   "pressure_atm": 1.0,
+   "po2_kpa": 19.2,
+   "pco2_kpa": 1.1,
+   "dose_rate_msv_h": 0.05,
+   "dose_sv": 0.0,
+   "breathable": 1.0
+  },
+  "skills": {
+   "athletics": 32,
+   "stealth": 22,
+   "perception": 40,
+   "craft": 28,
+   "medicine": 18,
+   "social": 20,
+   "survival": 24,
+   "combat": 16
+  },
+  "symptoms": [
+   "сосёт под ложечкой",
+   "сухо во рту",
+   "мысль ходит по кругу, спотыкается на ровном",
+   "дёргается на каждый звук",
+   "дышится тяжелее, чем должно"
+  ],
+  "wounds": [],
+  "clocks": [
+   {
+    "name": "Углекислота в криоотсеке",
+    "filled": 2,
+    "max": 6,
+    "hidden": false
+   },
+   {
+    "name": "Тепловой контур садится",
+    "filled": 1,
+    "max": 7,
+    "hidden": true
+   },
+   {
+    "name": "Вода, которой ты не видишь",
+    "filled": 0,
+    "max": 8,
+    "hidden": true
+   },
+   {
+    "name": "Автопилот жжёт ориентацию",
+    "filled": 2,
+    "max": 9,
+    "hidden": true
+   }
+  ],
+  "gear": [
+   "смартфон (cnt_01)",
+   "зажигалка (cnt_01)",
+   "сигареты (cnt_01)"
+  ],
+  "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+ },
+ "turns": [
+  {
+   "n": 1,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Машинный",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 2,
+   "chosen": "Лезть: Машинный",
+   "kind": "переход",
+   "argv": [
+    "act",
+    "--minutes",
+    "6",
+    "--activity",
+    "1",
+    "--to",
+    "sol/drift/relay/engineering",
+    "--z",
+    "-1",
+    "--check",
+    "athletics:22:переход::движение",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[переход] (32−22)×0.525 = сырая 5.2 -> цель 5, бросок 67 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 1,
+    "t_h": 0.5,
+    "light": "синий дежурный",
+    "path": "sol/drift/relay/engineering",
+    "local": "engineering",
+    "site": "Машинный",
+    "status": "alive",
+    "needs": {
+     "hunger": 22.03,
+     "thirst": 28.15,
+     "fatigue": 45.25,
+     "cold_stress": 18.15,
+     "stress": 69.9
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 36.65
+    },
+    "envelope": {
+     "ambient_c": 4.0,
+     "windchill_c": 4.0,
+     "pressure_atm": 0.74,
+     "po2_kpa": 13.9,
+     "pco2_kpa": 0.91,
+     "dose_rate_msv_h": 0.35,
+     "dose_sv": 0.0,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "сухо во рту",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 2,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 1,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 2,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Криоотсек",
+    "Ковыряться в неподписанной панели"
+   ],
+   "picked": 2,
+   "chosen": "Лезть: Криоотсек",
+   "kind": "переход",
+   "argv": [
+    "act",
+    "--minutes",
+    "6",
+    "--activity",
+    "1",
+    "--to",
+    "sol/drift/relay/cryo",
+    "--z",
+    "0",
+    "--check",
+    "athletics:22:переход::движение",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[переход] (33−22)×0.42 = сырая 4.6 -> цель 5, бросок 67 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 2,
+    "t_h": 0.6,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 22.06,
+     "thirst": 28.3,
+     "fatigue": 45.5,
+     "cold_stress": 17.65,
+     "stress": 69.8
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 36.7
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 1.118,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "сухо во рту",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "дышится тяжелее, чем должно"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 2,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 1,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 3,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Машинный",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 1,
+   "chosen": "Переждать в этом отсеке",
+   "kind": "ожидание",
+   "argv": [
+    "act",
+    "--minutes",
+    "40",
+    "--activity",
+    "0",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [],
+   "events": [],
+   "after": {
+    "turn": 3,
+    "t_h": 1.27,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 22.26,
+     "thirst": 29.3,
+     "fatigue": 47.17,
+     "cold_stress": 20.68,
+     "stress": 69.13
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 1.238,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0001,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "сухо во рту",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "дышится тяжелее, чем должно"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 2,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 1,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 4,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Машинный",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 1,
+   "chosen": "Переждать в этом отсеке",
+   "kind": "ожидание",
+   "argv": [
+    "act",
+    "--minutes",
+    "40",
+    "--activity",
+    "0",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [],
+   "events": [],
+   "after": {
+    "turn": 4,
+    "t_h": 1.93,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 22.46,
+     "thirst": 30.3,
+     "fatigue": 48.83,
+     "cold_stress": 23.71,
+     "stress": 68.47
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 1.358,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0001,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "дышится тяжелее, чем должно"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 2,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 1,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 5,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Машинный",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 1,
+   "chosen": "Переждать в этом отсеке",
+   "kind": "ожидание",
+   "argv": [
+    "act",
+    "--minutes",
+    "40",
+    "--activity",
+    "0",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [],
+   "events": [],
+   "after": {
+    "turn": 5,
+    "t_h": 2.6,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 22.66,
+     "thirst": 31.3,
+     "fatigue": 50.5,
+     "cold_stress": 26.73,
+     "stress": 67.8
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 1.478,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0001,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "дышится тяжелее, чем должно"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 2,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 1,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 6,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Осевой коридор",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 3,
+   "chosen": "Закрепиться у поручня, переждать кувырок",
+   "kind": "удержание",
+   "argv": [
+    "act",
+    "--minutes",
+    "20",
+    "--activity",
+    "1",
+    "--check",
+    "athletics:16:поручень::движение",
+    "--window",
+    "20",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[поручень] (33−16)×0.42 = сырая 7.1 -> цель 7, бросок 22 -> УСПЕХ ЦЕНОЙ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 6,
+    "t_h": 2.93,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 22.76,
+     "thirst": 31.8,
+     "fatigue": 51.33,
+     "cold_stress": 25.07,
+     "stress": 67.47
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 1.538,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0001,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "дышится тяжелее, чем должно"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 2,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 1,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 7,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Осевой коридор",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 1,
+   "chosen": "Переждать в этом отсеке",
+   "kind": "ожидание",
+   "argv": [
+    "act",
+    "--minutes",
+    "40",
+    "--activity",
+    "0",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [],
+   "events": [
+    "[счётчик] Углекислота в криоотсеке 3/6 (игрок может заметить)"
+   ],
+   "after": {
+    "turn": 7,
+    "t_h": 3.6,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 22.96,
+     "thirst": 32.8,
+     "fatigue": 53.0,
+     "cold_stress": 28.09,
+     "stress": 66.8
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 1.658,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0002,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "дышится тяжелее, чем должно"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 1,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 8,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Осевой коридор",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 3,
+   "chosen": "Закрепиться у поручня, переждать кувырок",
+   "kind": "удержание",
+   "argv": [
+    "act",
+    "--minutes",
+    "20",
+    "--activity",
+    "1",
+    "--check",
+    "athletics:16:поручень::движение",
+    "--window",
+    "20",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[поручень] (33−16)×0.42 = сырая 7.1 -> цель 7, бросок 22 -> УСПЕХ ЦЕНОЙ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 8,
+    "t_h": 3.93,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.06,
+     "thirst": 33.3,
+     "fatigue": 53.83,
+     "cold_stress": 26.43,
+     "stress": 66.47
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 1.718,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0002,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "дышится тяжелее, чем должно"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 1,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 9,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Осевой коридор",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 3,
+   "chosen": "Закрепиться у поручня, переждать кувырок",
+   "kind": "удержание",
+   "argv": [
+    "act",
+    "--minutes",
+    "20",
+    "--activity",
+    "1",
+    "--check",
+    "athletics:16:поручень::движение",
+    "--window",
+    "20",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[поручень] (33−16)×0.42 = сырая 7.1 -> цель 7, бросок 22 -> УСПЕХ ЦЕНОЙ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 9,
+    "t_h": 4.27,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.16,
+     "thirst": 33.8,
+     "fatigue": 54.67,
+     "cold_stress": 24.76,
+     "stress": 66.13
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 1.778,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0002,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "дышится тяжелее, чем должно"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 1,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 10,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Машинный",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 1,
+   "chosen": "Переждать в этом отсеке",
+   "kind": "ожидание",
+   "argv": [
+    "act",
+    "--minutes",
+    "40",
+    "--activity",
+    "0",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [],
+   "events": [],
+   "after": {
+    "turn": 10,
+    "t_h": 4.93,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.36,
+     "thirst": 34.8,
+     "fatigue": 56.33,
+     "cold_stress": 27.79,
+     "stress": 65.47
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 1.898,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0002,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "дышится тяжелее, чем должно"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 1,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 11,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Осевой коридор",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 3,
+   "chosen": "Закрепиться у поручня, переждать кувырок",
+   "kind": "удержание",
+   "argv": [
+    "act",
+    "--minutes",
+    "20",
+    "--activity",
+    "1",
+    "--check",
+    "athletics:16:поручень::движение",
+    "--window",
+    "20",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[поручень] (33−16)×0.42 = сырая 7.1 -> цель 7, бросок 22 -> УСПЕХ ЦЕНОЙ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 11,
+    "t_h": 5.27,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.46,
+     "thirst": 35.3,
+     "fatigue": 57.17,
+     "cold_stress": 26.12,
+     "stress": 65.13
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 1.958,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0002,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "дышится тяжелее, чем должно"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 1,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 12,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Машинный",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 2,
+   "chosen": "Лезть: Машинный",
+   "kind": "переход",
+   "argv": [
+    "act",
+    "--minutes",
+    "6",
+    "--activity",
+    "1",
+    "--to",
+    "sol/drift/relay/engineering",
+    "--z",
+    "-1",
+    "--check",
+    "athletics:22:переход::движение",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[переход] (33−22)×0.525 = сырая 5.8 -> цель 6, бросок 19 -> УСПЕХ ЦЕНОЙ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 12,
+    "t_h": 5.37,
+    "light": "синий дежурный",
+    "path": "sol/drift/relay/engineering",
+    "local": "engineering",
+    "site": "Машинный",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.49,
+     "thirst": 35.45,
+     "fatigue": 57.42,
+     "cold_stress": 26.27,
+     "stress": 65.03
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 4.0,
+     "windchill_c": 4.0,
+     "pressure_atm": 0.74,
+     "po2_kpa": 13.9,
+     "pco2_kpa": 0.92,
+     "dose_rate_msv_h": 0.35,
+     "dose_sv": 0.0003,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 1,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 13,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Криоотсек",
+    "Ковыряться в неподписанной панели"
+   ],
+   "picked": 0,
+   "chosen": "Осмотреться, держась за скобу",
+   "kind": "осмотр",
+   "argv": [
+    "act",
+    "--minutes",
+    "15",
+    "--activity",
+    "1",
+    "--check",
+    "perception:16:осмотр::восприятие",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[осмотр] (40−16)×0.525 = сырая 12.6 -> цель 13, бросок 30 -> УСПЕХ ЦЕНОЙ"
+   ],
+   "events": [
+    "[счётчик] Тепловой контур садится 2/7"
+   ],
+   "after": {
+    "turn": 13,
+    "t_h": 5.62,
+    "light": "синий дежурный",
+    "path": "sol/drift/relay/engineering",
+    "local": "engineering",
+    "site": "Машинный",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.57,
+     "thirst": 35.82,
+     "fatigue": 58.04,
+     "cold_stress": 26.66,
+     "stress": 64.78
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 4.0,
+     "windchill_c": 4.0,
+     "pressure_atm": 0.74,
+     "po2_kpa": 13.9,
+     "pco2_kpa": 0.945,
+     "dose_rate_msv_h": 0.35,
+     "dose_sv": 0.0003,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 14,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Осевой коридор",
+    "Ковыряться в неподписанной панели"
+   ],
+   "picked": 2,
+   "chosen": "Лезть: Осевой коридор",
+   "kind": "переход",
+   "argv": [
+    "act",
+    "--minutes",
+    "5",
+    "--activity",
+    "1",
+    "--to",
+    "sol/drift/relay/spine",
+    "--z",
+    "0",
+    "--check",
+    "athletics:18:переход::движение",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[переход] (33−18)×0.525 = сырая 7.9 -> цель 8, бросок 90 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 14,
+    "t_h": 5.7,
+    "light": "редкие аварийные точки",
+    "path": "sol/drift/relay/spine",
+    "local": "spine",
+    "site": "Осевой коридор",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.59,
+     "thirst": 35.95,
+     "fatigue": 58.25,
+     "cold_stress": 26.24,
+     "stress": 64.7
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 11.0,
+     "windchill_c": 11.0,
+     "pressure_atm": 0.8,
+     "po2_kpa": 15.6,
+     "pco2_kpa": 0.707,
+     "dose_rate_msv_h": 0.05,
+     "dose_sv": 0.0004,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 15,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Криоотсек",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 3,
+   "chosen": "Закрепиться у поручня, переждать кувырок",
+   "kind": "удержание",
+   "argv": [
+    "act",
+    "--minutes",
+    "20",
+    "--activity",
+    "1",
+    "--check",
+    "athletics:16:поручень::движение",
+    "--window",
+    "20",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[поручень] (33−16)×0.525 = сырая 8.9 -> цель 9, бросок 76 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 15,
+    "t_h": 6.03,
+    "light": "редкие аварийные точки",
+    "path": "sol/drift/relay/spine",
+    "local": "spine",
+    "site": "Осевой коридор",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.69,
+     "thirst": 36.45,
+     "fatigue": 59.08,
+     "cold_stress": 24.58,
+     "stress": 64.37
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 11.0,
+     "windchill_c": 11.0,
+     "pressure_atm": 0.8,
+     "po2_kpa": 15.6,
+     "pco2_kpa": 0.734,
+     "dose_rate_msv_h": 0.05,
+     "dose_sv": 0.0004,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 16,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Жилой отсек",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 2,
+   "chosen": "Лезть: Жилой отсек",
+   "kind": "переход",
+   "argv": [
+    "act",
+    "--minutes",
+    "2",
+    "--activity",
+    "1",
+    "--to",
+    "sol/drift/relay/hab",
+    "--z",
+    "0",
+    "--check",
+    "athletics:10:переход::движение",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[переход] (33−10)×0.7 = сырая 16.1 -> цель 16, бросок 92 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 16,
+    "t_h": 6.07,
+    "light": "тёплый дежурный свет",
+    "path": "sol/drift/relay/hab",
+    "local": "hab",
+    "site": "Жилой отсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.7,
+     "thirst": 36.5,
+     "fatigue": 59.17,
+     "cold_stress": 24.41,
+     "stress": 64.33
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 16.0,
+     "windchill_c": 16.0,
+     "pressure_atm": 0.82,
+     "po2_kpa": 16.4,
+     "pco2_kpa": 0.502,
+     "dose_rate_msv_h": 0.03,
+     "dose_sv": 0.0004,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 40,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 17,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Осевой коридор",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 0,
+   "chosen": "Осмотреться, держась за скобу",
+   "kind": "осмотр",
+   "argv": [
+    "act",
+    "--minutes",
+    "15",
+    "--activity",
+    "1",
+    "--check",
+    "perception:16:осмотр::восприятие",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[осмотр] (40−16)×0.7 = сырая 16.8 -> цель 17, бросок 40 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 17,
+    "t_h": 6.32,
+    "light": "тёплый дежурный свет",
+    "path": "sol/drift/relay/hab",
+    "local": "hab",
+    "site": "Жилой отсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.78,
+     "thirst": 36.87,
+     "fatigue": 59.79,
+     "cold_stress": 23.16,
+     "stress": 64.08
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 16.0,
+     "windchill_c": 16.0,
+     "pressure_atm": 0.82,
+     "po2_kpa": 16.4,
+     "pco2_kpa": 0.517,
+     "dose_rate_msv_h": 0.03,
+     "dose_sv": 0.0004,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 18,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Осевой коридор",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 2,
+   "chosen": "Лезть: Осевой коридор",
+   "kind": "переход",
+   "argv": [
+    "act",
+    "--minutes",
+    "2",
+    "--activity",
+    "1",
+    "--to",
+    "sol/drift/relay/spine",
+    "--z",
+    "0",
+    "--check",
+    "athletics:10:переход::движение",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[переход] (33−10)×0.525 = сырая 12.1 -> цель 12, бросок 70 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 18,
+    "t_h": 6.35,
+    "light": "редкие аварийные точки",
+    "path": "sol/drift/relay/spine",
+    "local": "spine",
+    "site": "Осевой коридор",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.79,
+     "thirst": 36.92,
+     "fatigue": 59.88,
+     "cold_stress": 22.99,
+     "stress": 64.05
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 11.0,
+     "windchill_c": 11.0,
+     "pressure_atm": 0.8,
+     "po2_kpa": 15.6,
+     "pco2_kpa": 0.737,
+     "dose_rate_msv_h": 0.05,
+     "dose_sv": 0.0004,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 19,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Криоотсек",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 2,
+   "chosen": "Лезть: Криоотсек",
+   "kind": "переход",
+   "argv": [
+    "act",
+    "--minutes",
+    "3",
+    "--activity",
+    "1",
+    "--to",
+    "sol/drift/relay/cryo",
+    "--z",
+    "0",
+    "--check",
+    "athletics:12:переход::движение",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[переход] (33−12)×0.42 = сырая 8.8 -> цель 9, бросок 52 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 19,
+    "t_h": 6.4,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.8,
+     "thirst": 37.0,
+     "fatigue": 60.0,
+     "cold_stress": 22.74,
+     "stress": 64.0
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 1.967,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0004,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "дышится тяжелее, чем должно"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 3,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 2,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 20,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Машинный",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 0,
+   "chosen": "Осмотреться, держась за скобу",
+   "kind": "осмотр",
+   "argv": [
+    "act",
+    "--minutes",
+    "15",
+    "--activity",
+    "1",
+    "--check",
+    "perception:16:осмотр::восприятие",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[осмотр] (41−16)×0.42 = сырая 10.5 -> цель 10, бросок 23 -> УСПЕХ ЦЕНОЙ"
+   ],
+   "events": [
+    "[счётчик] Углекислота в криоотсеке 4/6 (игрок может заметить)",
+    "[счётчик] Автопилот жжёт ориентацию 3/9"
+   ],
+   "after": {
+    "turn": 20,
+    "t_h": 6.65,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.88,
+     "thirst": 37.37,
+     "fatigue": 60.63,
+     "cold_stress": 21.49,
+     "stress": 63.75
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 2.012,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0004,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "испарина, тупая головная боль, дышится часто без причины"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 4,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 3,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 21,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Машинный",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 2,
+   "chosen": "Лезть: Машинный",
+   "kind": "переход",
+   "argv": [
+    "act",
+    "--minutes",
+    "6",
+    "--activity",
+    "1",
+    "--to",
+    "sol/drift/relay/engineering",
+    "--z",
+    "-1",
+    "--check",
+    "athletics:22:переход::движение",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[переход] (33−22)×0.525 = сырая 5.8 -> цель 6, бросок 19 -> УСПЕХ ЦЕНОЙ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 21,
+    "t_h": 6.75,
+    "light": "синий дежурный",
+    "path": "sol/drift/relay/engineering",
+    "local": "engineering",
+    "site": "Машинный",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.91,
+     "thirst": 37.52,
+     "fatigue": 60.88,
+     "cold_stress": 21.65,
+     "stress": 63.65
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 4.0,
+     "windchill_c": 4.0,
+     "pressure_atm": 0.74,
+     "po2_kpa": 13.9,
+     "pco2_kpa": 0.955,
+     "dose_rate_msv_h": 0.35,
+     "dose_sv": 0.0004,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 4,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 3,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 22,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Осевой коридор",
+    "Ковыряться в неподписанной панели"
+   ],
+   "picked": 2,
+   "chosen": "Лезть: Осевой коридор",
+   "kind": "переход",
+   "argv": [
+    "act",
+    "--minutes",
+    "5",
+    "--activity",
+    "1",
+    "--to",
+    "sol/drift/relay/spine",
+    "--z",
+    "0",
+    "--check",
+    "athletics:18:переход::движение",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[переход] (33−18)×0.525 = сырая 7.9 -> цель 8, бросок 90 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 22,
+    "t_h": 6.83,
+    "light": "редкие аварийные точки",
+    "path": "sol/drift/relay/spine",
+    "local": "spine",
+    "site": "Осевой коридор",
+    "status": "alive",
+    "needs": {
+     "hunger": 23.93,
+     "thirst": 37.65,
+     "fatigue": 61.08,
+     "cold_stress": 21.23,
+     "stress": 63.57
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 11.0,
+     "windchill_c": 11.0,
+     "pressure_atm": 0.8,
+     "po2_kpa": 15.6,
+     "pco2_kpa": 0.744,
+     "dose_rate_msv_h": 0.05,
+     "dose_sv": 0.0004,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "мёрзнут пальцы и лицо",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 4,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 3,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 23,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Жилой отсек",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 0,
+   "chosen": "Осмотреться, держась за скобу",
+   "kind": "осмотр",
+   "argv": [
+    "act",
+    "--minutes",
+    "15",
+    "--activity",
+    "1",
+    "--check",
+    "perception:16:осмотр::восприятие",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[осмотр] (41−16)×0.525 = сырая 13.1 -> цель 13, бросок 30 -> УСПЕХ ЦЕНОЙ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 23,
+    "t_h": 7.08,
+    "light": "редкие аварийные точки",
+    "path": "sol/drift/relay/spine",
+    "local": "spine",
+    "site": "Осевой коридор",
+    "status": "alive",
+    "needs": {
+     "hunger": 24.01,
+     "thirst": 38.02,
+     "fatigue": 61.71,
+     "cold_stress": 19.98,
+     "stress": 63.32
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 11.0,
+     "windchill_c": 11.0,
+     "pressure_atm": 0.8,
+     "po2_kpa": 15.6,
+     "pco2_kpa": 0.764,
+     "dose_rate_msv_h": 0.05,
+     "dose_sv": 0.0004,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 4,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 3,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 24,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Криоотсек",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 3,
+   "chosen": "Закрепиться у поручня, переждать кувырок",
+   "kind": "удержание",
+   "argv": [
+    "act",
+    "--minutes",
+    "20",
+    "--activity",
+    "1",
+    "--check",
+    "athletics:16:поручень::движение",
+    "--window",
+    "20",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[поручень] (33−16)×0.525 = сырая 8.9 -> цель 9, бросок 76 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 24,
+    "t_h": 7.42,
+    "light": "редкие аварийные точки",
+    "path": "sol/drift/relay/spine",
+    "local": "spine",
+    "site": "Осевой коридор",
+    "status": "alive",
+    "needs": {
+     "hunger": 24.11,
+     "thirst": 38.52,
+     "fatigue": 62.54,
+     "cold_stress": 18.31,
+     "stress": 62.98
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 11.0,
+     "windchill_c": 11.0,
+     "pressure_atm": 0.8,
+     "po2_kpa": 15.6,
+     "pco2_kpa": 0.791,
+     "dose_rate_msv_h": 0.05,
+     "dose_sv": 0.0005,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 4,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 3,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 25,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Машинный",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 3,
+   "chosen": "Закрепиться у поручня, переждать кувырок",
+   "kind": "удержание",
+   "argv": [
+    "act",
+    "--minutes",
+    "20",
+    "--activity",
+    "1",
+    "--check",
+    "athletics:16:поручень::движение",
+    "--window",
+    "20",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[поручень] (33−16)×0.525 = сырая 8.9 -> цель 9, бросок 76 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 25,
+    "t_h": 7.75,
+    "light": "редкие аварийные точки",
+    "path": "sol/drift/relay/spine",
+    "local": "spine",
+    "site": "Осевой коридор",
+    "status": "alive",
+    "needs": {
+     "hunger": 24.21,
+     "thirst": 39.02,
+     "fatigue": 63.38,
+     "cold_stress": 16.65,
+     "stress": 62.65
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 11.0,
+     "windchill_c": 11.0,
+     "pressure_atm": 0.8,
+     "po2_kpa": 15.6,
+     "pco2_kpa": 0.818,
+     "dose_rate_msv_h": 0.05,
+     "dose_sv": 0.0005,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 4,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 3,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 26,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Машинный",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 0,
+   "chosen": "Осмотреться, держась за скобу",
+   "kind": "осмотр",
+   "argv": [
+    "act",
+    "--minutes",
+    "15",
+    "--activity",
+    "1",
+    "--check",
+    "perception:16:осмотр::восприятие",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[осмотр] (41−16)×0.525 = сырая 13.1 -> цель 13, бросок 30 -> УСПЕХ ЦЕНОЙ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 26,
+    "t_h": 8.0,
+    "light": "редкие аварийные точки",
+    "path": "sol/drift/relay/spine",
+    "local": "spine",
+    "site": "Осевой коридор",
+    "status": "alive",
+    "needs": {
+     "hunger": 24.28,
+     "thirst": 39.4,
+     "fatigue": 64.0,
+     "cold_stress": 15.4,
+     "stress": 62.4
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 11.0,
+     "windchill_c": 11.0,
+     "pressure_atm": 0.8,
+     "po2_kpa": 15.6,
+     "pco2_kpa": 0.838,
+     "dose_rate_msv_h": 0.05,
+     "dose_sv": 0.0005,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 4,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 3,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 27,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Машинный",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 2,
+   "chosen": "Лезть: Машинный",
+   "kind": "переход",
+   "argv": [
+    "act",
+    "--minutes",
+    "5",
+    "--activity",
+    "1",
+    "--to",
+    "sol/drift/relay/engineering",
+    "--z",
+    "-1",
+    "--check",
+    "athletics:18:переход::движение",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[переход] (33−18)×0.525 = сырая 7.9 -> цель 8, бросок 90 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 27,
+    "t_h": 8.08,
+    "light": "синий дежурный",
+    "path": "sol/drift/relay/engineering",
+    "local": "engineering",
+    "site": "Машинный",
+    "status": "alive",
+    "needs": {
+     "hunger": 24.31,
+     "thirst": 39.52,
+     "fatigue": 64.21,
+     "cold_stress": 15.53,
+     "stress": 62.32
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 4.0,
+     "windchill_c": 4.0,
+     "pressure_atm": 0.74,
+     "po2_kpa": 13.9,
+     "pco2_kpa": 0.963,
+     "dose_rate_msv_h": 0.35,
+     "dose_sv": 0.0005,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 4,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 3,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 28,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Осевой коридор",
+    "Ковыряться в неподписанной панели"
+   ],
+   "picked": 2,
+   "chosen": "Лезть: Осевой коридор",
+   "kind": "переход",
+   "argv": [
+    "act",
+    "--minutes",
+    "5",
+    "--activity",
+    "1",
+    "--to",
+    "sol/drift/relay/spine",
+    "--z",
+    "0",
+    "--check",
+    "athletics:18:переход::движение",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[переход] (33−18)×0.525 = сырая 7.9 -> цель 8, бросок 90 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 28,
+    "t_h": 8.17,
+    "light": "редкие аварийные точки",
+    "path": "sol/drift/relay/spine",
+    "local": "spine",
+    "site": "Осевой коридор",
+    "status": "alive",
+    "needs": {
+     "hunger": 24.33,
+     "thirst": 39.65,
+     "fatigue": 64.42,
+     "cold_stress": 15.11,
+     "stress": 62.23
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 11.0,
+     "windchill_c": 11.0,
+     "pressure_atm": 0.8,
+     "po2_kpa": 15.6,
+     "pco2_kpa": 0.845,
+     "dose_rate_msv_h": 0.05,
+     "dose_sv": 0.0005,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 4,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 3,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 29,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Криоотсек",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 2,
+   "chosen": "Лезть: Криоотсек",
+   "kind": "переход",
+   "argv": [
+    "act",
+    "--minutes",
+    "3",
+    "--activity",
+    "1",
+    "--to",
+    "sol/drift/relay/cryo",
+    "--z",
+    "0",
+    "--check",
+    "athletics:12:переход::движение",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[переход] (33−12)×0.42 = сырая 8.8 -> цель 9, бросок 52 -> ПРОВАЛ"
+   ],
+   "events": [],
+   "after": {
+    "turn": 29,
+    "t_h": 8.22,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 24.35,
+     "thirst": 39.72,
+     "fatigue": 64.54,
+     "cold_stress": 14.86,
+     "stress": 62.18
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 2.021,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0005,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "мысль ходит по кругу, спотыкается на ровном",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "испарина, тупая головная боль, дышится часто без причины"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 4,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 0,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 3,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  },
+  {
+   "n": 30,
+   "options": [
+    "Осмотреться, держась за скобу",
+    "Переждать в этом отсеке",
+    "Лезть: Машинный",
+    "Закрепиться у поручня, переждать кувырок"
+   ],
+   "picked": 0,
+   "chosen": "Осмотреться, держась за скобу",
+   "kind": "осмотр",
+   "argv": [
+    "act",
+    "--minutes",
+    "15",
+    "--activity",
+    "1",
+    "--check",
+    "perception:16:осмотр::восприятие",
+    "--window",
+    "60",
+    "--sheltered"
+   ],
+   "refused": false,
+   "rolls": [
+    "[осмотр] (41−16)×0.42 = сырая 10.5 -> цель 10, бросок 23 -> УСПЕХ ЦЕНОЙ"
+   ],
+   "events": [
+    "[счётчик] Вода, которой ты не видишь 1/8"
+   ],
+   "after": {
+    "turn": 30,
+    "t_h": 8.47,
+    "light": "аварийное освещение",
+    "path": "sol/drift/relay/cryo",
+    "local": "cryo",
+    "site": "Криоотсек",
+    "status": "alive",
+    "needs": {
+     "hunger": 24.42,
+     "thirst": 40.1,
+     "fatigue": 65.17,
+     "cold_stress": 13.61,
+     "stress": 61.93
+    },
+    "vitals": {
+     "blood_loss_pct": 0.0,
+     "infection": 0.0,
+     "core_temp_c": 37.0
+    },
+    "envelope": {
+     "ambient_c": 8.0,
+     "windchill_c": 8.0,
+     "pressure_atm": 0.78,
+     "po2_kpa": 14.8,
+     "pco2_kpa": 2.066,
+     "dose_rate_msv_h": 0.04,
+     "dose_sv": 0.0005,
+     "breathable": 1.0
+    },
+    "skills": {
+     "athletics": 33,
+     "stealth": 22,
+     "perception": 41,
+     "craft": 28,
+     "medicine": 18,
+     "social": 20,
+     "survival": 24,
+     "combat": 16
+    },
+    "symptoms": [
+     "сосёт под ложечкой",
+     "густая слюна, тупая боль в висках, моча тёмная",
+     "провалы: не помнит последних минут пути",
+     "дёргается на каждый звук",
+     "одышка на подъёме, обруч на голове",
+     "испарина, тупая головная боль, дышится часто без причины"
+    ],
+    "wounds": [],
+    "clocks": [
+     {
+      "name": "Углекислота в криоотсеке",
+      "filled": 4,
+      "max": 6,
+      "hidden": false
+     },
+     {
+      "name": "Тепловой контур садится",
+      "filled": 2,
+      "max": 7,
+      "hidden": true
+     },
+     {
+      "name": "Вода, которой ты не видишь",
+      "filled": 1,
+      "max": 8,
+      "hidden": true
+     },
+     {
+      "name": "Автопилот жжёт ориентацию",
+      "filled": 3,
+      "max": 9,
+      "hidden": true
+     }
+    ],
+    "gear": [
+     "смартфон (cnt_01)",
+     "зажигалка (cnt_01)",
+     "сигареты (cnt_01)"
+    ],
+    "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+   }
+  }
+ ],
+ "ended": {
+  "at_planned_turn": 30,
+  "status": "alive",
+  "reason": "лимит 30 ходов"
+ },
+ "final": {
+  "turn": 30,
+  "t_h": 8.47,
+  "light": "аварийное освещение",
+  "path": "sol/drift/relay/cryo",
+  "local": "cryo",
+  "site": "Криоотсек",
+  "status": "alive",
+  "needs": {
+   "hunger": 24.42,
+   "thirst": 40.1,
+   "fatigue": 65.17,
+   "cold_stress": 13.61,
+   "stress": 61.93
+  },
+  "vitals": {
+   "blood_loss_pct": 0.0,
+   "infection": 0.0,
+   "core_temp_c": 37.0
+  },
+  "envelope": {
+   "ambient_c": 8.0,
+   "windchill_c": 8.0,
+   "pressure_atm": 0.78,
+   "po2_kpa": 14.8,
+   "pco2_kpa": 2.066,
+   "dose_rate_msv_h": 0.04,
+   "dose_sv": 0.0005,
+   "breathable": 1.0
+  },
+  "skills": {
+   "athletics": 33,
+   "stealth": 22,
+   "perception": 41,
+   "craft": 28,
+   "medicine": 18,
+   "social": 20,
+   "survival": 24,
+   "combat": 16
+  },
+  "symptoms": [
+   "сосёт под ложечкой",
+   "густая слюна, тупая боль в висках, моча тёмная",
+   "провалы: не помнит последних минут пути",
+   "дёргается на каждый звук",
+   "одышка на подъёме, обруч на голове",
+   "испарина, тупая головная боль, дышится часто без причины"
+  ],
+  "wounds": [],
+  "clocks": [
+   {
+    "name": "Углекислота в криоотсеке",
+    "filled": 4,
+    "max": 6,
+    "hidden": false
+   },
+   {
+    "name": "Тепловой контур садится",
+    "filled": 2,
+    "max": 7,
+    "hidden": true
+   },
+   {
+    "name": "Вода, которой ты не видишь",
+    "filled": 1,
+    "max": 8,
+    "hidden": true
+   },
+   {
+    "name": "Автопилот жжёт ориентацию",
+    "filled": 3,
+    "max": 9,
+    "hidden": true
+   }
+  ],
+  "gear": [
+   "смартфон (cnt_01)",
+   "зажигалка (cnt_01)",
+   "сигареты (cnt_01)"
+  ],
+  "carryover_ctx": "амнезия: не помнит имени, языка панелей и зачем он здесь"
+ }
+}
