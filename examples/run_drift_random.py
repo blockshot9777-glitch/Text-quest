@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""100 ходов: попаданец с амнезией на дрейфующем малом корабле. Вариант каждый ход — случайный."""
+"""Случайный прогон попаданца на дрейфующем малом корабле. Длина — аргумент (по умолчанию 100)."""
 import json, os, sys, io, copy, random
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -14,6 +14,7 @@ import engine
 BRIEF = os.path.join(HERE, "brief_drift.json")
 STATE = os.path.join(HERE, "state_drift.json")
 LOG = os.path.join(HERE, "run_drift_log.json")
+SUMMARY = os.path.join(HERE, "run_drift_summary.json")
 engine.STATE = STATE
 engine._RULES = None
 
@@ -102,8 +103,8 @@ def options(S, rng):
 
     n, v = S["pc"]["needs"], S["pc"]["vitals"]
     wounds = S["pc"].get("wounds") or []
-    water = [i for i in S["items"] if "вода" in i.get("tags", [])]
-    food = [i for i in S["items"] if "еда" in i.get("tags", [])]
+    water_fill = engine.tagged_have(S, "вода")
+    food_fill = engine.tagged_have(S, "еда")
     name = st.get("name")
 
     fourth = None
@@ -114,23 +115,23 @@ def options(S, rng):
         fourth = {"label": "Пристегнуться к койке и попытаться уснуть", "kind": "сон",
                   "argv": ["act", "--minutes", "180", "--activity", "0", "--sleeping",
                            "--sheltered", "--window", "60"]}
+    elif n.get("thirst", 0) >= 20 and water_fill > 1e-9:
+        fourth = {"label": "Пить то, что с собой", "kind": "питьё",
+                  "argv": ["act", "--minutes", "8", "--activity", "0", "--water", "0.4",
+                           "--sheltered", "--window", "30"]}
     elif n.get("thirst", 0) >= 20 and take_spec(st, "вода", 0.5):
         fourth = {"label": "Набрать воды из того, что есть на площадке", "kind": "добыча",
                   "argv": ["act", "--minutes", "8", "--activity", "1",
                            "--take-resource", take_spec(st, "вода", 0.5),
                            "--sheltered", "--window", "30"]}
-    elif water and n.get("thirst", 0) >= 20:
-        fourth = {"label": "Пить то, что с собой", "kind": "питьё",
-                  "argv": ["act", "--minutes", "8", "--activity", "0", "--water", "0.4",
+    elif n.get("hunger", 0) >= 20 and food_fill > 1e-9:
+        fourth = {"label": "Есть то, что с собой", "kind": "еда",
+                  "argv": ["act", "--minutes", "15", "--activity", "0", "--food", "0.35",
                            "--sheltered", "--window", "30"]}
     elif n.get("hunger", 0) >= 20 and take_spec(st, "еда", 1):
         fourth = {"label": "Взять еду с площадки", "kind": "добыча",
                   "argv": ["act", "--minutes", "10", "--activity", "1",
                            "--take-resource", take_spec(st, "еда", 1), "--window", "30"]}
-    elif food and n.get("hunger", 0) >= 20:
-        fourth = {"label": "Есть то, что с собой", "kind": "еда",
-                  "argv": ["act", "--minutes", "15", "--activity", "0", "--food", "0.35",
-                           "--sheltered", "--window", "30"]}
     elif name in ("Рубка", "Машинный"):
         fourth = {"label": "Ковыряться в неподписанной панели", "kind": "ремонт",
                   "argv": ["act", "--minutes", "25", "--activity", "1",
@@ -169,13 +170,55 @@ def snapshot_pc(S):
         "symptoms": engine.symptoms(S),
         "wounds": copy.deepcopy(S["pc"].get("wounds", [])),
         "clocks": [{"name": c["name"], "filled": c["filled"], "max": c["max"],
-                    "hidden": c.get("hidden")} for c in S["clocks"]],
+                    "hidden": c.get("hidden"), "fired": bool(c.get("fired"))} for c in S["clocks"]],
         "gear": [f"{i['name']} ({i.get('in')})" for i in S["items"]],
+        "items": [{"name": i["name"], "tags": i.get("tags") or [], "fill": i.get("fill"),
+                   "charge_pct": i.get("charge_pct"), "in": i.get("in")} for i in S["items"]],
+        "site_resources": [{"name": r.get("name"), "amount": r.get("amount")}
+                           for r in (site(S).get("resources") or [])],
         "carryover_ctx": next((c for c in S["pc"].get("conditions", []) if "перенесён" in c or "амнезия" in c), None),
     }
 
 
+def summarize(history):
+    turns = history.get("turns") or []
+    kinds, sites = {}, {}
+    clocks_fired, takes, drinks, refuses = [], 0, 0, 0
+    for rec in turns:
+        kinds[rec["kind"]] = kinds.get(rec["kind"], 0) + 1
+        sites[rec["after"]["site"]] = sites.get(rec["after"]["site"], 0) + 1
+        if rec.get("refused"):
+            refuses += 1
+        if rec["kind"] == "добыча":
+            takes += 1
+        if rec["kind"] == "питьё":
+            drinks += 1
+        for ev in rec.get("events") or []:
+            if "СЧЁТЧИК СРАБОТАЛ" in ev or "счётчик" in ev.lower() and "env" in ev:
+                clocks_fired.append({"n": rec["n"], "ev": ev})
+    fin = history.get("final") or {}
+    return {
+        "turns_done": len(turns),
+        "ended": history.get("ended"),
+        "t_h": fin.get("t_h"),
+        "status": fin.get("status"),
+        "site": fin.get("site"),
+        "needs": fin.get("needs"),
+        "envelope": fin.get("envelope"),
+        "kinds": kinds,
+        "sites": sites,
+        "take": takes,
+        "drink": drinks,
+        "refused": refuses,
+        "clock_events": clocks_fired,
+        "clocks": fin.get("clocks"),
+        "items": fin.get("items"),
+        "skills": fin.get("skills"),
+    }
+
+
 def main():
+    turns_n = int(sys.argv[1]) if len(sys.argv) > 1 else 100
     brief = json.load(open(BRIEF, encoding="utf-8"))
     S0 = worldgen.expand(brief)
     err, warn = worldgen.validate(S0)
@@ -190,13 +233,15 @@ def main():
     history = {
         "setting": brief["setting"],
         "seed": brief["seed"],
+        "turns_planned": turns_n,
         "gen_notes": notes,
         "gen_warn": warn,
         "start": snapshot_pc(engine.load()),
         "turns": [],
         "ended": None,
     }
-    for i in range(1, 101):
+    width = max(2, len(str(turns_n)))
+    for i in range(1, turns_n + 1):
         S = engine.load()
         if S.get("status") != "alive":
             history["ended"] = {"at_planned_turn": i, "status": S.get("status"), "reason": "уже не alive до хода"}
@@ -222,7 +267,7 @@ def main():
         history["turns"].append(rec)
         n = S2["pc"]["needs"]
         e = S2.get("envelope") or {}
-        print(f"ход {i:02d} [{chosen['kind']}] {chosen['label']} -> {S2.get('status')} "
+        print(f"ход {i:0{width}d} [{chosen['kind']}] {chosen['label']} -> {S2.get('status')} "
               f"{S2['position']['path'].split('/')[-1]} "
               + ",".join(f"{k[0]}={v:.0f}" for k, v in n.items())
               + f" pO2={e.get('po2_kpa', '—')} pCO2={e.get('pco2_kpa', '—')} "
@@ -231,15 +276,20 @@ def main():
             history["ended"] = {"at_planned_turn": i, "status": S2.get("status")}
             break
     else:
-        history["ended"] = {"at_planned_turn": 100, "status": engine.load().get("status"), "reason": "лимит 100 ходов"}
+        history["ended"] = {"at_planned_turn": turns_n, "status": engine.load().get("status"),
+                            "reason": f"лимит {turns_n} ходов"}
 
     history["final"] = snapshot_pc(engine.load())
+    history["summary"] = summarize(history)
     json.dump(history, open(LOG, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    json.dump(history["summary"], open(SUMMARY, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print("записано:", LOG)
+    print("сводка:", SUMMARY)
     print("состояние:", STATE)
     print("генерация:", notes)
     print("замечания:", warn)
     print("итог:", history["ended"])
+    print("сводка:", json.dumps(history["summary"], ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

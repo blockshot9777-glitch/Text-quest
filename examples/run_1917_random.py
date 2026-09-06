@@ -109,8 +109,8 @@ def options(S, rng):
         })
 
     npcs = [n for n in S["world"]["npcs"] if n.get("alive", True) and n.get("path") == here]
-    water = [i for i in S["items"] if "вода" in i.get("tags", [])]
-    food = [i for i in S["items"] if "еда" in i.get("tags", [])]
+    water_fill = engine.tagged_have(S, "вода")
+    food_fill = engine.tagged_have(S, "еда")
     n, v = S["pc"]["needs"], S["pc"]["vitals"]
     wounds = S["pc"].get("wounds") or []
 
@@ -120,21 +120,21 @@ def options(S, rng):
     elif n.get("fatigue", 0) >= 70 and indoor:
         fourth = {"label": "Попытаться уснуть", "kind": "сон",
                   "argv": ["act", "--minutes", "180", "--activity", "0", "--sleeping", "--sheltered", "--window", "60"]}
+    elif n.get("thirst", 0) >= 20 and water_fill > 1e-9:
+        fourth = {"label": "Пить то, что с собой", "kind": "питьё",
+                  "argv": ["act", "--minutes", "8", "--activity", "0", "--water", "0.4", "--sheltered", "--window", "30"]}
     elif n.get("thirst", 0) >= 20 and take_spec(st, "вода", 0.5):
         fourth = {"label": "Набрать воды из того, что есть на площадке", "kind": "добыча",
                   "argv": ["act", "--minutes", "8", "--activity", "1",
                            "--take-resource", take_spec(st, "вода", 0.5),
                            "--sheltered", "--window", "30"]}
-    elif water and n.get("thirst", 0) >= 20:
-        fourth = {"label": "Пить то, что с собой", "kind": "питьё",
-                  "argv": ["act", "--minutes", "8", "--activity", "0", "--water", "0.4", "--sheltered", "--window", "30"]}
+    elif n.get("hunger", 0) >= 20 and food_fill > 1e-9:
+        fourth = {"label": "Есть то, что с собой", "kind": "еда",
+                  "argv": ["act", "--minutes", "15", "--activity", "0", "--food", "0.35", "--window", "30"]}
     elif n.get("hunger", 0) >= 20 and take_spec(st, "еда", 1):
         fourth = {"label": "Взять еду с площадки", "kind": "добыча",
                   "argv": ["act", "--minutes", "10", "--activity", "1",
                            "--take-resource", take_spec(st, "еда", 1), "--window", "30"]}
-    elif food and n.get("hunger", 0) >= 20:
-        fourth = {"label": "Есть то, что с собой", "kind": "еда",
-                  "argv": ["act", "--minutes", "15", "--activity", "0", "--food", "0.35", "--window", "30"]}
     elif npcs:
         foe = npcs[0]
         if foe.get("disposition", 0) <= -40 and st.get("name") == "Участок околоточных":

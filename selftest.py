@@ -727,6 +727,23 @@ good = abs(_got - 0.4) < 0.01 and abs(_fill["items"][0]["fill"] - 0.6) < 0.02
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'питьё списывает fill':<40}fill={_fill['items'][0]['fill']}")
 
+_empty = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_empty["items"] = [{"id": "itm_w", "name": "фляга", "kg": 0.0, "l": 1.0, "qty": 1,
+                    "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["вода"], "fill": 0.0}]
+_empty["gear"]["hands"]["held"] = ["itm_w"]
+_empty["pc"]["needs"] = {k: 0.0 for k in _empty["pc"]["needs"]}
+_ew = os.path.join(TMP, "empty_water.json")
+_turn0 = _empty["meta"]["turn"]
+_json.dump(_empty, open(_ew, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "8", "--water", "0.4"], SIM_STATE=_ew)
+_after_e = _json.load(open(_ew, encoding="utf-8"))
+good = "ОТКАЗ" in (_r.stdout or "") and _after_e["meta"]["turn"] == _turn0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'пустая фляга — отказ, ход не идёт':<40}{'отклонено' if good else 'ПРОПУЩЕНО'}")
+good = "def tagged_have(" in _src4
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'tagged_have в engine':<40}{'да' if good else 'нет'}")
+
 _ch = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
 _ch["ruleset"] = _json.load(open("ruleset.json", encoding="utf-8"))
 _ch["items"] = [{"id": "itm_f", "name": "фонарик", "kg": 0.2, "l": 0.2, "qty": 1,

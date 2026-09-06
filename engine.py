@@ -283,6 +283,21 @@ def take_site_resource(S, spec, log):
     log.append(f"[ресурс] взял из «{res.get('name')}»")
     return True
 
+def tagged_have(S, tag):
+    """Сколько запаса с тегом ещё можно выпить/съесть (ёмкость × fill × qty)."""
+    total = 0.0
+    for it in S.get("items") or []:
+        if tag not in (it.get("tags") or []):
+            continue
+        cap = it.get("l") if tag == "вода" else (it.get("kg") or 0)
+        if not cap:
+            continue
+        fill = it.get("fill")
+        if fill is None:
+            fill = 1.0
+        total += cap * fill * it.get("qty", 1)
+    return total
+
 def consume_tagged(S, tag, amount, log):
     """Списать fill с предметов по тегу. Возвращает фактически взятое количество."""
     if not amount or amount <= 0:
@@ -305,10 +320,7 @@ def consume_tagged(S, tag, amount, log):
         remain = have - take
         denom = cap * it.get("qty", 1)
         it["fill"] = round(remain / denom, 4) if denom else 0.0
-        if tag == "вода":
-            it["kg"] = round(max(0.0, (it.get("kg") or 0) - take), 3)
-        else:
-            it["kg"] = round(max(0.0, (it.get("kg") or 0) - take), 3)
+        it["kg"] = round(max(0.0, (it.get("kg") or 0) - take), 3)
         got += take
         log.append(f"[запас] {it['name']}")
         if got >= amount - 1e-9:
@@ -1091,6 +1103,10 @@ def main():
     if len(a.check) > lim:
         print(f"ОТКАЗ: {len(a.check)} проверок за ход при лимите {lim}. "
               f"Ход слишком крупный — разбей его на несколько."); return
+    if a.water and tagged_have(S, "вода") <= 1e-9:
+        print("ОТКАЗ: пить нечего — нет запаса с тегом «вода»."); return
+    if a.food and tagged_have(S, "еда") <= 1e-9:
+        print("ОТКАЗ: есть нечего — нет запаса с тегом «еда»."); return
     S["meta"]["turn"] += 1
     if a.to:
         paths = {x["path"] for x in S["world"]["sites_canon"]}
