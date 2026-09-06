@@ -70,6 +70,10 @@ def site(S):
 
 
 def options(S, rng):
+    if S.get("status") == "unconscious":
+        wait = {"label": "Тело лежит. Время идёт.", "kind": "беспамятство",
+                "argv": ["act", "--minutes", "60", "--activity", "0", "--window", "60"]}
+        return [wait, wait, wait, wait]
     st = site(S)
     paths = {x["path"] for x in S["world"]["sites_canon"]}
     here = S["position"]["path"]
@@ -81,6 +85,8 @@ def options(S, rng):
     opts.append({"label": "Осмотреться, держась за скобу", "kind": "осмотр", "argv": look})
 
     rest = ["act", "--minutes", "40", "--activity", "0", "--window", "60", "--sheltered"]
+    if engine.can_fire(S, 60):
+        rest.append("--fire")
     opts.append({"label": "Переждать в этом отсеке", "kind": "ожидание", "argv": rest})
 
     exits = [e for e in st.get("exits", []) if e.get("to") in paths]
@@ -111,10 +117,22 @@ def options(S, rng):
     if wounds and not wounds[0].get("treated"):
         fourth = {"label": "Попытаться перевязать рану", "kind": "лечение",
                   "argv": ["treat", "--supplies", "0"]}
+    elif engine.fuel_have(S) <= 1e-9 and take_spec(st, "топливо", 1):
+        fourth = {"label": "Взять горючее с площадки", "kind": "добыча",
+                  "argv": ["act", "--minutes", "10", "--activity", "1",
+                           "--take-resource", take_spec(st, "топливо", 1),
+                           "--sheltered", "--window", "30"]}
+    elif n.get("cold_stress", 0) >= 25 and engine.can_fire(S, 60):
+        fire_rest = ["act", "--minutes", "40", "--activity", "0", "--window", "60",
+                     "--sheltered", "--fire"]
+        fourth = {"label": "Зажечь то, что горит, и греться", "kind": "огонь", "argv": fire_rest}
     elif n.get("fatigue", 0) >= 70:
+        sleep = ["act", "--minutes", "180", "--activity", "0", "--sleeping",
+                 "--sheltered", "--window", "60"]
+        if engine.can_fire(S, 60):
+            sleep.append("--fire")
         fourth = {"label": "Пристегнуться к койке и попытаться уснуть", "kind": "сон",
-                  "argv": ["act", "--minutes", "180", "--activity", "0", "--sleeping",
-                           "--sheltered", "--window", "60"]}
+                  "argv": sleep}
     elif n.get("thirst", 0) >= 20 and water_fill > 1e-9:
         fourth = {"label": "Пить то, что с собой", "kind": "питьё",
                   "argv": ["act", "--minutes", "8", "--activity", "0", "--water", "0.4",
@@ -183,7 +201,7 @@ def snapshot_pc(S):
 def summarize(history):
     turns = history.get("turns") or []
     kinds, sites = {}, {}
-    clocks_fired, takes, drinks, refuses = [], 0, 0, 0
+    clocks_fired, takes, drinks, fires, refuses = [], 0, 0, 0, 0
     for rec in turns:
         kinds[rec["kind"]] = kinds.get(rec["kind"], 0) + 1
         sites[rec["after"]["site"]] = sites.get(rec["after"]["site"], 0) + 1
@@ -193,6 +211,8 @@ def summarize(history):
             takes += 1
         if rec["kind"] == "питьё":
             drinks += 1
+        if rec["kind"] == "огонь" or "--fire" in (rec.get("argv") or []):
+            fires += 1
         for ev in rec.get("events") or []:
             if "СЧЁТЧИК СРАБОТАЛ" in ev or "счётчик" in ev.lower() and "env" in ev:
                 clocks_fired.append({"n": rec["n"], "ev": ev})
@@ -209,6 +229,7 @@ def summarize(history):
         "sites": sites,
         "take": takes,
         "drink": drinks,
+        "fire": fires,
         "refused": refuses,
         "clock_events": clocks_fired,
         "clocks": fin.get("clocks"),
@@ -243,8 +264,8 @@ def main():
     width = max(2, len(str(turns_n)))
     for i in range(1, turns_n + 1):
         S = engine.load()
-        if S.get("status") != "alive":
-            history["ended"] = {"at_planned_turn": i, "status": S.get("status"), "reason": "уже не alive до хода"}
+        if S.get("status") == "dead":
+            history["ended"] = {"at_planned_turn": i, "status": S.get("status"), "reason": "уже мёртв до хода"}
             break
         opts = options(S, rng)
         pick = rng.randrange(4)
@@ -272,7 +293,7 @@ def main():
               + ",".join(f"{k[0]}={v:.0f}" for k, v in n.items())
               + f" pO2={e.get('po2_kpa', '—')} pCO2={e.get('pco2_kpa', '—')} "
               + f"T={e.get('ambient_c', '—')} dose={e.get('dose_sv', 0)}")
-        if S2.get("status") != "alive":
+        if S2.get("status") == "dead":
             history["ended"] = {"at_planned_turn": i, "status": S2.get("status")}
             break
     else:

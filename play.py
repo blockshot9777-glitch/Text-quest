@@ -129,6 +129,9 @@ SYS_MECH = """Ты — разборщик намерений для симуля
  water, food  — сколько выпить/съесть из предметов с тегами вода/еда (спишет fill)
             без запаса (fill=0 или нет предмета) движок откажет, нужду не тронет
  sheltered, fire, sleeping — true/false
+            fire=true только если есть топливо (тег топливо) и чем зажечь (тег огонь),
+            либо на площадке уже есть очаг (hearth); спишет fuel_per_h кг/ч
+            без сознания — только ждать (minutes), без to/check/take/water/food/fire
  window   — секунды доступного времени: схватка 2, падение 2, обвал 5, обычно 60
 
 Если действие физически невозможно — верни {"impossible": "почему"}."""
@@ -173,6 +176,9 @@ def scene_context(S):
         "ресурсы_площадки": res,
         "под_рукой": [n for n, _ in avail],
         "в_руках": [sim.item_name(S, i) for i in S["gear"]["hands"]["held"]],
+        "чем_зажечь": any("огонь" in (i.get("tags") or []) for i in S.get("items") or []),
+        "топливо_с_собой": sim.fuel_have(S) > 0,
+        "очаг": bool(site.get("hearth")),
         "погода": S["time"].get("weather"),
         "свет": S["time"].get("light"),
         "известные_факты": S["known"].get("facts", [])[-6:],

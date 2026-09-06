@@ -171,7 +171,9 @@ def resource_tags(res):
     tags = []
     for needle, tag in (("вод", "вода"), ("кипят", "вода"), ("хлеб", "еда"),
                         ("пайк", "еда"), ("еда", "еда"), ("сухар", "еда"),
-                        ("зерн", "еда")):
+                        ("зерн", "еда"), ("дров", "топливо"), ("топлив", "топливо"),
+                        ("спирт", "топливо"), ("керосин", "топливо"), ("мазут", "топливо"),
+                        ("хворост", "топливо"), ("угол", "топливо")):
         if needle in n and tag not in tags:
             tags.append(tag)
     return tags or ["ресурс"]
@@ -328,6 +330,74 @@ def consume_tagged(S, tag, amount, log):
     if got + 1e-9 < amount:
         log.append(f"[запас] {tag}: хватило {got:g} из {amount:g}")
     return got
+
+def has_tags_accessible(S, tags, window_s=60):
+    """Есть ли предмет с одним из тегов в окне доступа."""
+    tags = [t for t in (tags or []) if t]
+    if not tags:
+        return False
+    if window_s is None:
+        window_s = 60
+    for it in S.get("items") or []:
+        if not any(t in (it.get("tags") or []) for t in tags):
+            continue
+        if access_time(S, it) <= window_s:
+            return True
+    return False
+
+def is_sheltered(S, flag=False):
+    """Укрытие: флаг хода или свойство площадки (не зашитое имя трактира)."""
+    if flag:
+        return True
+    st = site_of(S)
+    if st.get("shelter"):
+        return True
+    env = st.get("env") or {}
+    return bool(env.get("shelter"))
+
+def fuel_have(S):
+    tags = (rules(S).get("item_use") or {}).get("fuel_tags") or []
+    return sum(tagged_have(S, t) for t in tags)
+
+def can_fire(S, window_s=60):
+    """Можно ли жечь этот час: топливо в запасе и чем зажечь (или очаг площадки)."""
+    iu = rules(S).get("item_use") or {}
+    ft = iu.get("fuel_tags") or []
+    if not ft:
+        return True
+    if fuel_have(S) <= 1e-9:
+        return False
+    if site_of(S).get("hearth"):
+        return True
+    return has_tags_accessible(S, iu.get("igniter_tags") or [], window_s)
+
+def spend_fuel(S, hours, log):
+    """Списать кг топлива за часы горения. 0 — гореть нечем."""
+    iu = rules(S).get("item_use") or {}
+    tags = iu.get("fuel_tags") or []
+    rate = iu.get("fuel_per_h")
+    if not tags or not rate or hours <= 0:
+        return 0.0
+    need = float(rate) * hours
+    got = 0.0
+    for tag in tags:
+        if got >= need - 1e-9:
+            break
+        got += consume_tagged(S, tag, need - got, log)
+    return got
+
+def fire_refuse(S, window_s=60):
+    """Почему --fire сейчас невозможен, или None."""
+    iu = rules(S).get("item_use") or {}
+    ft = iu.get("fuel_tags") or []
+    itags = iu.get("igniter_tags") or []
+    if not ft:
+        return None
+    if fuel_have(S) <= 1e-9:
+        return "ОТКАЗ: нечем кормить огонь — нет запаса с тегом «топливо»."
+    if not site_of(S).get("hearth") and itags and not has_tags_accessible(S, itags, window_s):
+        return "ОТКАЗ: нечем зажечь — нет предмета с тегом «огонь» в доступе."
+    return None
 
 def spend_held_charge(S, hours, log):
     rate = (rules(S).get("item_use") or {}).get("charge_per_h")
@@ -522,6 +592,12 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
     """Дробит время по часам и считает среду ВНУТРИ действия."""
     log = log if log is not None else []
     rem, n, mult = hours, S["pc"]["needs"], load_penalty(load_state(S)[2])[1]
+    def _status_tick(S, log):
+        was = S.get("status")
+        d = death_check(S)
+        if was == "unconscious" and S.get("status") == "alive":
+            log.append(f"[{fmt_time(S)}] пришёл в себя")
+        return d
     while rem > 1e-6:
         h = min(1.0, rem); rem -= h
         S["time"]["t_h"] += h
@@ -529,6 +605,13 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
         # пересчитанный envelope («если было холоднее X»); исключению
         # нужен второй проход, не сдвиг этой строки.
         tick_clocks(S, log)
+        sheltered = is_sheltered(S, sheltered)
+        if fire:
+            iu = rules(S).get("item_use") or {}
+            if iu.get("fuel_tags"):
+                if spend_fuel(S, h, log) <= 0:
+                    fire = False
+                    log.append("[огонь] топливо кончилось.")
         recompute_env(S, sheltered, fire)
         wet_step(S, h, sheltered, fire)
         R = rules(S)
@@ -589,7 +672,7 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
             v[it_] = max(0.0, v[it_] - inf_heal * h)
         vital_key = cm.get("core_vital")
         if not vital_key or vital_key not in v or not need_key or need_key not in n:
-            d = death_check(S)
+            d = _status_tick(S, log)
             if d: log.append(f"[{fmt_time(S)}] ПРЕРВАНО: {d}"); return log
             continue
         tgt = core_temp(n.get(need_key, 0), S)
@@ -597,7 +680,7 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
         step_h = (R.get("vitals", {}).get(vital_key) or {}).get("max_change_per_h", 0.5)
         step = step_h * h
         v[vital_key] = round(cur + max(-step, min(step, tgt - cur)), 2)
-        d = death_check(S)
+        d = _status_tick(S, log)
         if d:
             log.append(f"[{fmt_time(S)}] ПРЕРВАНО: {d}")
             return log
@@ -649,6 +732,14 @@ def death_check(S):
     for key, spec in R.get("needs", {}).items():
         if n.get(key, 0) >= R.get("scales", {}).get("max", 100) and spec.get("at_max"):
             S["status"] = "dead"; return spec["at_max"]
+
+    if S["status"] == "unconscious":
+        for key, spec in R.get("vitals", {}).items():
+            rec = spec.get("recover_above")
+            val = v.get(key)
+            if rec is not None and val is not None and val >= rec:
+                S["status"] = "alive"
+                break
 
     for key, spec in R.get("vitals", {}).items():
         val = v.get(key)
@@ -1098,6 +1189,12 @@ def main():
 
     if a.minutes < 0:
         print("ОТКАЗ: время не идёт назад. Длительность действия не может быть отрицательной."); return
+    if S.get("status") == "dead":
+        print("ОТКАЗ: мёртв."); return
+    if S.get("status") == "unconscious":
+        acting = bool(a.check or a.to or a.take or a.water or a.food or a.take_resource or a.fire)
+        if acting:
+            print("ОТКАЗ: без сознания нельзя действовать. Тело всё ещё в этой среде."); return
     R0 = rules(S)
     lim = R0.get("resolution", {}).get("max_checks_per_turn", 2)
     if len(a.check) > lim:
@@ -1107,6 +1204,10 @@ def main():
         print("ОТКАЗ: пить нечего — нет запаса с тегом «вода»."); return
     if a.food and tagged_have(S, "еда") <= 1e-9:
         print("ОТКАЗ: есть нечего — нет запаса с тегом «еда»."); return
+    if a.fire:
+        why = fire_refuse(S, a.window)
+        if why:
+            print(why); return
     S["meta"]["turn"] += 1
     if a.to:
         paths = {x["path"] for x in S["world"]["sites_canon"]}

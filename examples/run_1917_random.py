@@ -69,10 +69,14 @@ def site(S):
 
 
 def options(S, rng):
+    if S.get("status") == "unconscious":
+        wait = {"label": "Тело лежит. Время идёт.", "kind": "беспамятство",
+                "argv": ["act", "--minutes", "60", "--activity", "0", "--window", "60"]}
+        return [wait, wait, wait, wait]
     st = site(S)
     paths = {x["path"] for x in S["world"]["sites_canon"]}
     here = S["position"]["path"]
-    indoor = st.get("name") in ("Трактир «Самовар»", "Участок околоточных", "Двор бараков")
+    indoor = bool(st.get("shelter"))
     opts = []
 
     opts.append({
@@ -86,7 +90,7 @@ def options(S, rng):
     rest = ["act", "--minutes", "40", "--activity", "0", "--window", "60"]
     if indoor:
         rest.append("--sheltered")
-    if st.get("name") == "Трактир «Самовар»":
+    if engine.can_fire(S, 60):
         rest.append("--fire")
     opts.append({"label": "Переждать в этом месте", "kind": "ожидание", "argv": rest})
 
@@ -117,9 +121,21 @@ def options(S, rng):
     fourth = None
     if wounds and not wounds[0].get("treated"):
         fourth = {"label": "Попытаться перевязать рану", "kind": "лечение", "argv": ["treat", "--supplies", "0"]}
+    elif engine.fuel_have(S) <= 1e-9 and take_spec(st, "топливо", 1):
+        fourth = {"label": "Набрать дров с площадки", "kind": "добыча",
+                  "argv": ["act", "--minutes", "10", "--activity", "1",
+                           "--take-resource", take_spec(st, "топливо", 1),
+                           "--window", "30"] + (["--sheltered"] if indoor else [])}
+    elif n.get("cold_stress", 0) >= 25 and engine.can_fire(S, 60):
+        fire_rest = ["act", "--minutes", "40", "--activity", "0", "--window", "60", "--fire"]
+        if indoor:
+            fire_rest.append("--sheltered")
+        fourth = {"label": "Кормить огонь и греться", "kind": "огонь", "argv": fire_rest}
     elif n.get("fatigue", 0) >= 70 and indoor:
-        fourth = {"label": "Попытаться уснуть", "kind": "сон",
-                  "argv": ["act", "--minutes", "180", "--activity", "0", "--sleeping", "--sheltered", "--window", "60"]}
+        sleep = ["act", "--minutes", "180", "--activity", "0", "--sleeping", "--sheltered", "--window", "60"]
+        if engine.can_fire(S, 60):
+            sleep.append("--fire")
+        fourth = {"label": "Попытаться уснуть", "kind": "сон", "argv": sleep}
     elif n.get("thirst", 0) >= 20 and water_fill > 1e-9:
         fourth = {"label": "Пить то, что с собой", "kind": "питьё",
                   "argv": ["act", "--minutes", "8", "--activity", "0", "--water", "0.4", "--sheltered", "--window", "30"]}
@@ -203,8 +219,8 @@ def main():
     }
     for i in range(1, 31):
         S = engine.load()
-        if S.get("status") != "alive":
-            history["ended"] = {"at_planned_turn": i, "status": S.get("status"), "reason": "уже не alive до хода"}
+        if S.get("status") == "dead":
+            history["ended"] = {"at_planned_turn": i, "status": S.get("status"), "reason": "уже мёртв до хода"}
             break
         opts = options(S, rng)
         pick = rng.randrange(4)
@@ -228,7 +244,7 @@ def main():
         print(f"ход {i:02d} [{chosen['kind']}] {chosen['label']} -> {S2.get('status')} "
               f"{S2['position']['path'].split('/')[-1]} needs "
               + ",".join(f"{k[0]}={v:.0f}" for k, v in S2["pc"]["needs"].items()))
-        if S2.get("status") != "alive":
+        if S2.get("status") == "dead":
             history["ended"] = {"at_planned_turn": i, "status": S2.get("status")}
             break
     else:

@@ -373,12 +373,20 @@ _tavern["pc"]["vitals"]["core_temp_c"] = 36.6
 _tavern["gear"]["worn"] = [
     {"id": "t", "name": "тест", "kg": 1, "clo": 1.48, "wet": 0.0}
 ]
+_tavern["items"] = [{"id": "itm_fuel", "name": "дрова", "kg": 2.0, "l": 2.0, "qty": 1,
+                    "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["топливо"], "fill": 1.0},
+                   {"id": "itm_ign", "name": "зажигалка", "kg": 0.02, "l": 0.02, "qty": 1,
+                    "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["огонь"]}]
+_tavern["gear"]["hands"]["held"] = ["itm_fuel", "itm_ign"]
 _before = _tavern["pc"]["needs"]["cold_stress"]
 _eng.tick(_tavern, 40/60, activity=0, sheltered=True, fire=True, log=[])
 _after = _tavern["pc"]["needs"]["cold_stress"]
 good = _after < _before
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'печь за 40 мин снижает cold_stress':<40}{_before:.1f} -> {_after:.1f}")
+good = _tavern["items"][0]["fill"] < 1.0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'горение списывает fill дров':<40}fill={_tavern['items'][0]['fill']}")
 
 _street = _env_fixture()
 _street["profile"]["physics_on"] = list(set(_street["profile"].get("physics_on", []) + ["холод"]))
@@ -774,6 +782,123 @@ _eng.spend_medicine_fill(_med, [])
 good = abs(_med["items"][0]["fill"] - (1.0 - _med["ruleset"]["item_use"]["medicine_fill_per_treat"])) < 0.001
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'перевязка тратит fill аптечки':<40}{_med['items'][0]['fill']}")
+
+print("\n── огонь как топливо, бессознательный тикает к смерти ──")
+_src5 = open(os.path.join(HERE, "engine.py"), encoding="utf-8").read()
+good = "def can_fire(" in _src5 and "def spend_fuel(" in _src5 and "def is_sheltered(" in _src5
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'can_fire/spend_fuel/is_sheltered в engine':<40}{'да' if good else 'нет'}")
+_Riu = _json.load(open(os.path.join(HERE, "ruleset.json"), encoding="utf-8"))
+good = (_Riu.get("item_use", {}).get("fuel_tags") == ["топливо"]
+        and _Riu.get("item_use", {}).get("igniter_tags") == ["огонь"]
+        and isinstance(_Riu.get("item_use", {}).get("fuel_per_h"), (int, float)))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'item_use.fuel_tags в ruleset':<40}{_Riu.get('item_use', {}).get('fuel_tags')}")
+good = _Riu.get("vitals", {}).get("core_temp_c", {}).get("recover_above") == 32.0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'recover_above 32 у ядра':<40}{_Riu.get('vitals', {}).get('core_temp_c', {}).get('recover_above')}")
+
+_nofire = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_nofire["pc"]["needs"] = {k: 0.0 for k in _nofire["pc"]["needs"]}
+_nofire["items"] = [{"id": "itm_ign", "name": "зажигалка", "kg": 0.02, "l": 0.02, "qty": 1,
+                     "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["огонь"]}]
+_nofire["gear"]["hands"]["held"] = ["itm_ign"]
+_nf = os.path.join(TMP, "nofuel_fire.json")
+_turn0 = _nofire["meta"]["turn"]
+_json.dump(_nofire, open(_nf, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "20", "--fire", "--window", "60"], SIM_STATE=_nf)
+_after_nf = _json.load(open(_nf, encoding="utf-8"))
+good = "ОТКАЗ" in (_r.stdout or "") and _after_nf["meta"]["turn"] == _turn0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'--fire без топлива — отказ':<40}{'отклонено' if good else 'ПРОПУЩЕНО'}")
+
+_noign = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_noign["pc"]["needs"] = {k: 0.0 for k in _noign["pc"]["needs"]}
+_noign["items"] = [{"id": "itm_fuel", "name": "дрова", "kg": 1.0, "l": 1.0, "qty": 1,
+                    "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["топливо"], "fill": 1.0}]
+_noign["gear"]["hands"]["held"] = ["itm_fuel"]
+for _s in _noign["world"]["sites_canon"]:
+    _s["hearth"] = False
+_ni = os.path.join(TMP, "noign_fire.json")
+_json.dump(_noign, open(_ni, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "20", "--fire", "--window", "60"], SIM_STATE=_ni)
+good = "ОТКАЗ" in (_r.stdout or "") and "зажечь" in (_r.stdout or "")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'--fire без зажигалки — отказ':<40}{'отклонено' if good else 'ПРОПУЩЕНО'}")
+
+_hearth = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_hearth["pc"]["needs"] = {k: 0.0 for k in _hearth["pc"]["needs"]}
+_hearth["profile"]["physics_on"] = []
+_hearth["items"] = [{"id": "itm_fuel", "name": "дрова", "kg": 1.0, "l": 1.0, "qty": 1,
+                     "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["топливо"], "fill": 1.0}]
+_hearth["gear"]["hands"]["held"] = ["itm_fuel"]
+_here = _hearth["position"]["path"]
+for _s in _hearth["world"]["sites_canon"]:
+    if _s["path"] == _here:
+        _s["hearth"] = True
+_hh = os.path.join(TMP, "hearth_fire.json")
+_json.dump(_hearth, open(_hh, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "20", "--fire", "--window", "60"], SIM_STATE=_hh)
+_after_h = _json.load(open(_hh, encoding="utf-8"))
+good = "ОТКАЗ" not in (_r.stdout or "")[:80] and _after_h["items"][0]["fill"] < 1.0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'очаг: огонь без зажигалки, дрова тают':<40}fill={_after_h['items'][0].get('fill')}")
+
+_shsite = _env_fixture()
+_here = _shsite["position"]["path"]
+for _s in _shsite["world"]["sites_canon"]:
+    if _s["path"] == _here:
+        _s["shelter"] = True
+_eng.tick(_shsite, 1/60, activity=0, sheltered=False, fire=False, log=[])
+good = (_shsite["envelope"]["windchill_c"] == _shsite["envelope"]["ambient_c"]
+        and _shsite["envelope"]["wind_ms"] == 9)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'site.shelter без флага — штиль':<40}wc={_shsite['envelope']['windchill_c']}")
+
+_unc = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_unc["status"] = "unconscious"
+_unc["pc"]["needs"] = {k: 0.0 for k in _unc["pc"]["needs"]}
+_unc["pc"]["needs"]["cold_stress"] = 99.5
+_unc["pc"]["vitals"]["core_temp_c"] = 30.0
+_unc["profile"]["physics_on"] = ["холод"]
+_unc["calendar"]["natural_light"] = False
+_unc["envelope"]["ambient_c"] = 4.0
+_unc["envelope"]["wind_ms"] = 0
+_unc["envelope"]["windchill_c"] = 4.0
+for _s in _unc["world"]["sites_canon"]:
+    _s.pop("env", None)
+    _s["shelter"] = True
+_unc["gear"]["worn"] = [{"id": "t", "name": "тест", "kg": 1, "clo": 0.5, "wet": 0.0}]
+_eng.tick(_unc, 3.0, activity=0, sheltered=True, fire=False, log=[])
+good = _unc["status"] == "dead"
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'unconscious в 4°C доходит до dead':<40}{_unc['status']} t={_unc['pc']['vitals'].get('core_temp_c')}")
+
+_wake = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_wake["status"] = "unconscious"
+_wake["pc"]["vitals"]["core_temp_c"] = 33.0
+_wake["pc"]["needs"] = {k: 0.0 for k in _wake["pc"]["needs"]}
+_eng.death_check(_wake)
+good = _wake["status"] == "alive"
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'ядро выше recover_above — в сознание':<40}{_wake['status']}")
+
+_ua = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_ua["status"] = "unconscious"
+_ua["pc"]["needs"] = {k: 0.0 for k in _ua["pc"]["needs"]}
+_upath = os.path.join(TMP, "unc_act.json")
+_json.dump(_ua, open(_upath, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "5", "--to", _ua["position"]["path"]], SIM_STATE=_upath)
+good = "ОТКАЗ" in (_r.stdout or "") and "сознан" in (_r.stdout or "")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'без сознания нельзя переходить':<40}{'отклонено' if good else 'ПРОПУЩЕНО'}")
+_uw = os.path.join(TMP, "unc_wait.json")
+_json.dump(_ua, open(_uw, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "15"], SIM_STATE=_uw)
+_after_w = _json.load(open(_uw, encoding="utf-8"))
+good = "ОТКАЗ" not in (_r.stdout or "")[:80] and _after_w["meta"]["turn"] == _ua["meta"]["turn"] + 1
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'без сознания время всё ещё идёт':<40}ход {_after_w['meta']['turn']}")
 
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)

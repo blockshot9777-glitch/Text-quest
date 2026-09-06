@@ -1,48 +1,48 @@
 {
- "turns_done": 137,
+ "turns_done": 130,
  "ended": {
-  "at_planned_turn": 137,
-  "status": "unconscious"
+  "at_planned_turn": 130,
+  "status": "dead"
  },
- "t_h": 50.55,
- "status": "unconscious",
- "site": "Осевой коридор",
+ "t_h": 48.52,
+ "status": "dead",
+ "site": "Криоотсек",
  "needs": {
-  "hunger": 37.05,
-  "thirst": 96.02,
-  "fatigue": 39.88,
-  "cold_stress": 99.71,
-  "stress": 19.85
+  "hunger": 36.44,
+  "thirst": 100.0,
+  "fatigue": 34.79,
+  "cold_stress": 88.99,
+  "stress": 21.88
  },
  "envelope": {
   "ambient_c": 4.0,
   "windchill_c": 4.0,
-  "pressure_atm": 0.8,
-  "po2_kpa": 15.6,
-  "pco2_kpa": 2.201,
-  "dose_rate_msv_h": 0.05,
-  "dose_sv": 0.0027,
+  "pressure_atm": 0.78,
+  "po2_kpa": 14.8,
+  "pco2_kpa": 6.305,
+  "dose_rate_msv_h": 0.04,
+  "dose_sv": 0.0026,
   "breathable": 1.0
  },
  "kinds": {
-  "переход": 37,
-  "ожидание": 27,
-  "удержание": 29,
-  "осмотр": 31,
+  "переход": 36,
+  "ожидание": 25,
+  "удержание": 26,
+  "осмотр": 30,
   "сон": 3,
   "добыча": 1,
-  "питьё": 2,
-  "ремонт": 7
+  "ремонт": 9
  },
  "sites": {
   "Машинный": 9,
-  "Криоотсек": 36,
-  "Осевой коридор": 52,
+  "Криоотсек": 34,
+  "Осевой коридор": 47,
   "Жилой отсек": 14,
   "Рубка": 26
  },
  "take": 1,
- "drink": 2,
+ "drink": 0,
+ "fire": 1,
  "refused": 0,
  "clock_events": [
   {
@@ -78,7 +78,7 @@
    "ev": "[счётчик] Тепловой контур садится: sol/drift/relay/engineering env {'ambient_c': 4.0}"
   },
   {
-   "n": 122,
+   "n": 120,
    "ev": "[СЧЁТЧИК СРАБОТАЛ] Автопилот жжёт ориентацию: Топливо ориентации кончится. Корабль начнёт кувыркаться быстрее. Антенна уже не поймает луч, даже если бы было кому звать."
   }
  ],
@@ -144,9 +144,9 @@
    "in": "cnt_01"
   },
   {
-   "name": "вода под палубой (0.5)",
+   "name": "спирт для горелки (1)",
    "tags": [
-    "вода"
+    "топливо"
    ],
    "fill": 0.0,
    "charge_pct": null,
@@ -154,9 +154,9 @@
   }
  ],
  "skills": {
-  "athletics": 34,
+  "athletics": 33,
   "stealth": 22,
-  "perception": 43,
+  "perception": 42,
   "craft": 28,
   "medicine": 18,
   "social": 20,

@@ -224,7 +224,7 @@
   "recovery_per_h": -5,
   "wet_penalty": 0.67,
   "fire_bonus_c": 22,
-  "note": "T_comf = base - clo_coeff*clo - activity_coeff*активность; прирост = (T_comf - ветрохолод)/divisor. --sheltered: ветер 0 в windchill. --fire: ambient += fire_bonus_c, без расхода топлива."
+  "note": "T_comf = base - clo_coeff*clo - activity_coeff*активность; прирост = (T_comf - ветрохолод)/divisor. --sheltered или site.shelter: ветер 0 в windchill. --fire: ambient += fire_bonus_c, топливо по item_use.fuel_per_h."
  },
  "mounts": {
   "рука": 0,
@@ -287,8 +287,11 @@
   "note": "у механоида нет крови и заражения — повреждения копятся в раме"
  },
  "item_use": {
-  "note": "списание при использовании. charge_pct у предмета в руках, fill у расходников.",
+  "note": "списание при использовании. charge_pct у предмета в руках, fill у расходников. --fire требует fuel_tags и igniter_tags, если нет site.hearth.",
   "charge_per_h": 12.0,
-  "medicine_fill_per_treat": 0.25
+  "medicine_fill_per_treat": 0.25,
+  "igniter_tags": ["огонь"],
+  "fuel_tags": ["топливо"],
+  "fuel_per_h": 0.25
  }
 }

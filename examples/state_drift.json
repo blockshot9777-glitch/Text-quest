@@ -1,7 +1,7 @@
 {
  "meta": {
   "seed": 55020714,
-  "turn": 137,
+  "turn": 130,
   "setting": "Малый курьер «Релей» дрейфует без тяги. Попаданец из XXI века с амнезией: не знает, кто он здесь, чей это корабль и сколько на нём воздуха, воды и тепла.",
   "tech_ceiling": "spacefaring",
   "tone": "безжалостный реализм"
@@ -48,34 +48,34 @@
   "natural_light": false
  },
  "time": {
-  "t_h": 50.549999999999955,
+  "t_h": 48.51666666666662,
   "weather": "—",
-  "light": "редкие аварийные точки"
+  "light": "аварийное освещение"
  },
  "position": {
-  "path": "sol/drift/relay/spine",
+  "path": "sol/drift/relay/cryo",
   "z_m": 0.0,
-  "local": "spine"
+  "local": "cryo"
  },
  "pc": {
   "name": "без имени",
   "posture": "стоит",
   "needs": {
-   "hunger": 37.045000000000066,
-   "thirst": 96.02038904899135,
-   "fatigue": 39.87500000000001,
-   "cold_stress": 99.70766666666663,
-   "stress": 19.850000000000016
+   "hunger": 36.43500000000006,
+   "thirst": 100.0,
+   "fatigue": 34.79166666666664,
+   "cold_stress": 88.98566666666662,
+   "stress": 21.88333333333335
   },
   "vitals": {
    "blood_loss_pct": 0,
    "infection": 0,
-   "core_temp_c": 29.89
+   "core_temp_c": 31.2
   },
   "skills": {
-   "athletics": 34,
+   "athletics": 33,
    "stealth": 22,
-   "perception": 43,
+   "perception": 42,
    "craft": 28,
    "medicine": 18,
    "social": 20,
@@ -160,77 +160,72 @@
     "outcome": "УСПЕХ",
     "consequence": null
    },
-   "переход|10": {
-    "roll": 88,
-    "outcome": "ПРОВАЛ",
-    "consequence": "отбросило от опоры, время вдвое"
-   },
-   "осмотр|8": {
-    "roll": 11,
-    "outcome": "УСПЕХ ЦЕНОЙ",
-    "consequence": "принял одно за другое — ложный вывод"
-   },
-   "осмотр|7": {
-    "roll": 73,
-    "outcome": "ПРОВАЛ",
-    "consequence": "устал глазами, время вдвое"
-   },
-   "переход|7": {
-    "roll": 30,
-    "outcome": "ПРОВАЛ",
-    "consequence": "ударился, ушиб"
-   },
-   "осмотр|12": {
-    "roll": 37,
-    "outcome": "ПРОВАЛ",
-    "consequence": "устал глазами, время вдвое"
-   },
-   "переход|14": {
-    "roll": 29,
-    "outcome": "УСПЕХ ЦЕНОЙ",
-    "consequence": "шум на весь отсек"
-   },
    "панель|5": {
     "roll": null,
     "outcome": "ПРОВАЛ (без броска: невозможно в таком состоянии)",
-    "consequence": "время вдвое"
+    "consequence": "сделал хуже, чем было"
    },
-   "переход|13": {
-    "roll": 91,
+   "поручень|8": {
+    "roll": 8,
+    "outcome": "УСПЕХ",
+    "consequence": null
+   },
+   "переход|7": {
+    "roll": 76,
     "outcome": "ПРОВАЛ",
-    "consequence": "шум на весь отсек"
+    "consequence": "ударился, ушиб"
    },
-   "осмотр|9": {
-    "roll": 48,
+   "осмотр|11": {
+    "roll": 77,
     "outcome": "ПРОВАЛ",
     "consequence": "устал глазами, время вдвое"
    },
-   "осмотр|6": {
-    "roll": 10,
+   "осмотр|12": {
+    "roll": 22,
     "outcome": "УСПЕХ ЦЕНОЙ",
-    "consequence": "принял одно за другое — ложный вывод"
+    "consequence": "ничего не разобрал"
    },
    "поручень|5": {
     "roll": null,
     "outcome": "ПРОВАЛ (без броска: невозможно в таком состоянии)",
     "consequence": "ударился, ушиб"
    },
-   "осмотр|5": {
-    "roll": 32,
+   "осмотр|7": {
+    "roll": 11,
+    "outcome": "УСПЕХ ЦЕНОЙ",
+    "consequence": "принял одно за другое — ложный вывод"
+   },
+   "осмотр|6": {
+    "roll": 73,
     "outcome": "ПРОВАЛ",
+    "consequence": "устал глазами, время вдвое"
+   },
+   "осмотр|9": {
+    "roll": 37,
+    "outcome": "ПРОВАЛ",
+    "consequence": "устал глазами, время вдвое"
+   },
+   "переход|10": {
+    "roll": 9,
+    "outcome": "УСПЕХ",
+    "consequence": null
+   },
+   "осмотр|5": {
+    "roll": null,
+    "outcome": "ПРОВАЛ (без броска: невозможно в таком состоянии)",
     "consequence": "принял одно за другое — ложный вывод"
    }
   },
   "body_mass_kg": 75,
   "carry_base_kg": 25.0,
-  "circadian_drift_h": 1.5044999999999997,
+  "circadian_drift_h": 1.4434999999999996,
   "skill_growth_day": {
    "athletics": {
-    "day": 1,
+    "day": 0,
     "gained": 1
    },
    "perception": {
-    "day": 2,
+    "day": 1,
     "gained": 1
    }
   }
@@ -340,18 +335,18 @@
    "qty_left": 4
   },
   {
-   "name": "вода под палубой (0.5)",
+   "name": "спирт для горелки (1)",
    "kg": 0.0,
-   "l": 0.5,
+   "l": 0.09,
    "materials": [
-    "вода"
+    "дерево"
    ],
    "tags": [
-    "вода"
+    "топливо"
    ],
-   "hardness": 0,
-   "flammability": 0.0,
-   "soaks": 1.0,
+   "hardness": 3,
+   "flammability": 0.9,
+   "soaks": 0.35,
    "condition": 1.0,
    "fill": 0.0,
    "id": "itm_04",
@@ -367,11 +362,11 @@
   "gravity_g": 0.0,
   "breathable": true,
   "ttl_min": null,
-  "pressure_atm": 0.8,
-  "po2_kpa": 15.6,
-  "pco2_kpa": 2.201,
-  "dose_rate_msv_h": 0.05,
-  "dose_sv": 0.002707
+  "pressure_atm": 0.78,
+  "po2_kpa": 14.8,
+  "pco2_kpa": 6.305,
+  "dose_rate_msv_h": 0.04,
+  "dose_sv": 0.002621
  },
  "world": {
   "gravity_g": 0.0,
@@ -421,7 +416,7 @@
      "ambient_c": 4.0,
      "pressure_atm": 0.78,
      "po2_kpa": 14.8,
-     "pco2_kpa": 6.855,
+     "pco2_kpa": 6.305,
      "pco2_rise_kpa_h": 0.55,
      "dose_rate_msv_h": 0.04,
      "breathable": true,
@@ -455,6 +450,7 @@
      "пустое второе гнездо",
      "разбитый манометр"
     ],
+    "shelter": true,
     "touched": true
    },
    {
@@ -466,7 +462,7 @@
      "ambient_c": 4.0,
      "pressure_atm": 0.8,
      "po2_kpa": 15.6,
-     "pco2_kpa": 2.201,
+     "pco2_kpa": 2.07,
      "pco2_rise_kpa_h": 0.08,
      "dose_rate_msv_h": 0.05,
      "breathable": true,
@@ -516,6 +512,7 @@
      "неподписанные люки",
      "бумажка с цифрами"
     ],
+    "shelter": true,
     "touched": false
    },
    {
@@ -527,7 +524,7 @@
      "ambient_c": 4.0,
      "pressure_atm": 0.82,
      "po2_kpa": 16.4,
-     "pco2_kpa": 0.702,
+     "pco2_kpa": 0.704,
      "pco2_rise_kpa_h": 0.06,
      "dose_rate_msv_h": 0.03,
      "breathable": true,
@@ -554,7 +551,7 @@
     "resources": [
      {
       "name": "вода под палубой",
-      "amount": 39.5,
+      "amount": 40,
       "renew_per_day": 0,
       "tags": [
        "вода"
@@ -567,6 +564,14 @@
       "tags": [
        "еда"
       ]
+     },
+     {
+      "name": "спирт для горелки",
+      "amount": 2.0,
+      "renew_per_day": 0,
+      "tags": [
+       "топливо"
+      ]
      }
     ],
     "hazards": [
@@ -578,6 +583,7 @@
      "тёмный индикатор бака",
      "сетка с пайками"
     ],
+    "shelter": true,
     "touched": false
    },
    {
@@ -589,7 +595,7 @@
      "ambient_c": 4.0,
      "pressure_atm": 0.8,
      "po2_kpa": 15.9,
-     "pco2_kpa": 1.416,
+     "pco2_kpa": 1.457,
      "pco2_rise_kpa_h": 0.07,
      "dose_rate_msv_h": 0.06,
      "breathable": true,
@@ -623,6 +629,7 @@
      "автопилот",
      "мутные камеры"
     ],
+    "shelter": true,
     "touched": false
    },
    {
@@ -675,6 +682,7 @@
      "оборванный теплоконтур",
      "ряд рубильников без ярлыков"
     ],
+    "shelter": true,
     "touched": false
    }
   ],
@@ -701,7 +709,7 @@
     }
    }
   ],
-  "_society_period": 2
+  "_society_period": 1
  },
  "clocks": [
   {
@@ -731,7 +739,7 @@
    "max": 7,
    "scale": "региональный",
    "period_h": 5,
-   "last_tick_h": 50.4,
+   "last_tick_h": 45.4,
    "hidden": true,
    "payoff": "Жилой теплеет в последний раз, потом металл отдаёт холод космоса. Без второго контура отсеки сравняются с машинным.",
    "fired": true,
@@ -788,5 +796,5 @@
    "fact": "Тьма, скоба, чужой отсек. Имени нет. Корабль не гудит тягой. Сколько воздуха и воды — неизвестно. Момент переноса: курил на балконе."
   }
  ],
- "status": "unconscious"
+ "status": "dead"
 }

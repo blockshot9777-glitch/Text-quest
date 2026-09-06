@@ -1,7 +1,7 @@
 {
  "meta": {
   "seed": 19170308,
-  "turn": 26,
+  "turn": 24,
   "setting": "Петроград, 23 февраля 1917 (8 марта по новому стилю). Российская империя на грани. Попаданец из XXI века.",
   "tech_ceiling": "industrial",
   "tone": "безжалостный реализм"
@@ -50,35 +50,35 @@
   "natural_light": true
  },
  "time": {
-  "t_h": 19.449999999999996,
-  "weather": "ясно",
+  "t_h": 18.016666666666662,
+  "weather": "переменная облачность",
   "light": "темнота",
-  "_weather_period": 3
+  "_weather_period": 2
  },
  "position": {
-  "path": "rossiya/petrograd/vyborg/traktir",
-  "z_m": 7.0,
-  "local": "traktir"
+  "path": "rossiya/petrograd/vyborg/neva",
+  "z_m": 2.0,
+  "local": "neva"
  },
  "pc": {
   "name": "чужак",
   "posture": "стоит",
   "needs": {
-   "hunger": 21.614999999999995,
-   "thirst": 40.075,
-   "fatigue": 58.12499999999997,
+   "hunger": 21.184999999999988,
+   "thirst": 30.72038904899135,
+   "fatigue": 54.54166666666664,
    "cold_stress": 100.0,
-   "stress": 42.95000000000003
+   "stress": 44.38333333333337
   },
   "vitals": {
    "blood_loss_pct": 0,
    "infection": 0,
-   "core_temp_c": 32.27
+   "core_temp_c": 32.01
   },
   "skills": {
-   "athletics": 38,
+   "athletics": 39,
    "stealth": 28,
-   "perception": 42,
+   "perception": 43,
    "craft": 30,
    "medicine": 20,
    "social": 22,
@@ -97,42 +97,37 @@
     "outcome": "ПРОВАЛ",
     "consequence": "ударился, ушиб"
    },
-   "переход|22": {
+   "переход|23": {
     "roll": 70,
     "outcome": "ПРОВАЛ",
     "consequence": "ударился, ушиб"
    },
-   "разговор|5": {
-    "roll": null,
-    "outcome": "ПРОВАЛ (без броска: невозможно в таком состоянии)",
-    "consequence": "сказал лишнее"
-   },
-   "переход|30": {
+   "переход|31": {
     "roll": 30,
     "outcome": "УСПЕХ",
     "consequence": null
    },
-   "переход|20": {
+   "переход|17": {
     "roll": 6,
     "outcome": "УСПЕХ",
     "consequence": null
    },
-   "укрытие|8": {
-    "roll": 55,
-    "outcome": "ПРОВАЛ",
-    "consequence": "шум на весь отсек"
-   },
-   "осмотр|26": {
+   "осмотр|21": {
     "roll": 33,
     "outcome": "УСПЕХ ЦЕНОЙ",
     "consequence": "ничего не разобрал"
    },
-   "переход|18": {
+   "переход|15": {
     "roll": 84,
     "outcome": "ПРОВАЛ",
     "consequence": "ударился, ушиб"
    },
-   "осмотр|21": {
+   "переход|9": {
+    "roll": 26,
+    "outcome": "УСПЕХ ЦЕНОЙ",
+    "consequence": "отбросило от опоры, время вдвое"
+   },
+   "осмотр|11": {
     "roll": 59,
     "outcome": "ПРОВАЛ",
     "consequence": "устал глазами, время вдвое"
@@ -142,29 +137,36 @@
     "outcome": "ПРОВАЛ (без броска: невозможно в таком состоянии)",
     "consequence": "потерял из рук то, что держал"
    },
-   "осмотр|9": {
+   "осмотр|12": {
     "roll": 34,
     "outcome": "ПРОВАЛ",
     "consequence": "принял одно за другое — ложный вывод"
    },
-   "осмотр|6": {
+   "осмотр|7": {
     "roll": 3,
     "outcome": "УСПЕХ (пол)",
     "consequence": null
-   },
-   "переход|5": {
-    "roll": 27,
-    "outcome": "ПРОВАЛ",
-    "consequence": "отбросило от опоры, время вдвое"
    }
   },
   "body_mass_kg": 75,
-  "carry_base_kg": 25.0
+  "carry_base_kg": 25.0,
+  "skill_growth_day": {
+   "athletics": {
+    "day": 0,
+    "gained": 1
+   },
+   "perception": {
+    "day": 0,
+    "gained": 1
+   }
+  }
  },
  "gear": {
   "hands": {
    "slots": 2,
-   "held": []
+   "held": [
+    "itm_07"
+   ]
   },
   "worn": [
    {
@@ -341,12 +343,32 @@
     "свет"
    ],
    "charge_pct": 97
+  },
+  {
+   "name": "кипяток (0.5)",
+   "kg": 0.0,
+   "l": 0.5,
+   "materials": [
+    "вода"
+   ],
+   "tags": [
+    "вода"
+   ],
+   "hardness": 0,
+   "flammability": 0.0,
+   "soaks": 1.0,
+   "condition": 1.0,
+   "fill": 0.0,
+   "id": "itm_07",
+   "qty": 1,
+   "depth": 0,
+   "in": "cnt_00"
   }
  ],
  "envelope": {
-  "ambient_c": -7.6,
+  "ambient_c": -5.2,
   "wind_ms": 7,
-  "windchill_c": -7.6,
+  "windchill_c": -12.6,
   "gravity_g": 1.0,
   "breathable": true,
   "ttl_min": null,
@@ -421,8 +443,11 @@
     "resources": [
      {
       "name": "дрова во дворе",
-      "amount": 3.71,
-      "renew_per_day": 0
+      "amount": 3.83,
+      "renew_per_day": 0,
+      "tags": [
+       "топливо"
+      ]
      }
     ],
     "hazards": [
@@ -432,6 +457,7 @@
     "objects": [
      "колодец замёрз"
     ],
+    "shelter": true,
     "touched": true
    },
    {
@@ -468,8 +494,11 @@
     "resources": [
      {
       "name": "чёрный хлеб",
-      "amount": 6.57,
-      "renew_per_day": 2
+      "amount": 6.42,
+      "renew_per_day": 2,
+      "tags": [
+       "еда"
+      ]
      }
     ],
     "hazards": [
@@ -515,8 +544,11 @@
     "resources": [
      {
       "name": "кипяток",
-      "amount": 8.23,
-      "renew_per_day": 3
+      "amount": 7.67,
+      "renew_per_day": 3,
+      "tags": [
+       "вода"
+      ]
      }
     ],
     "hazards": [
@@ -526,6 +558,8 @@
      "печь",
      "задняя комната на засове"
     ],
+    "shelter": true,
+    "hearth": true,
     "touched": false
    },
    {
@@ -595,6 +629,7 @@
      "решётка",
      "книга учёта"
     ],
+    "shelter": true,
     "touched": false
    }
   ],
@@ -602,7 +637,7 @@
    {
     "id": "npc_01",
     "name": "Фёдор, дворник",
-    "path": "rossiya/petrograd/vyborg/dvor",
+    "path": "rossiya/petrograd/vyborg/traktir",
     "goal": "не впустить беду во двор",
     "long_goal": "дотянуть до весны на табаке и молчании",
     "resources": [
@@ -626,13 +661,13 @@
     "alive": true,
     "schedule": "двор с рассвета",
     "faction": "fac_dvor",
-    "_last_acted_period": 3,
+    "_last_acted_period": 2,
     "_knew_at_h": 7.816666666666667
    },
    {
     "id": "npc_02",
     "name": "Анна, ткачиха",
-    "path": "rossiya/petrograd/vyborg/uchastok",
+    "path": "rossiya/petrograd/vyborg/ochered",
     "goal": "унести хоть корку детям",
     "long_goal": "чтобы муж не сгинул на фронте зря",
     "resources": [
@@ -650,7 +685,7 @@
     "alive": true,
     "schedule": "очередь до обеда",
     "faction": "fac_rabochie",
-    "_last_acted_period": 3,
+    "_last_acted_period": 2,
     "_knew_at_h": 8.15
    },
    {
@@ -680,7 +715,7 @@
     "alive": true,
     "schedule": "за стойкой",
     "faction": "fac_dvor",
-    "_last_acted_period": 3,
+    "_last_acted_period": 2,
     "_knew_at_h": 7.816666666666667
    },
    {
@@ -709,13 +744,13 @@
     "alive": true,
     "schedule": "задняя комната",
     "faction": "fac_garnizon",
-    "_last_acted_period": 3,
+    "_last_acted_period": 2,
     "_knew_at_h": 7.816666666666667
    },
    {
     "id": "npc_05",
     "name": "околоточный Крылов",
-    "path": "rossiya/petrograd/vyborg/dvor",
+    "path": "rossiya/petrograd/vyborg/uchastok",
     "goal": "взять хоть кого к отчёту",
     "long_goal": "выжить в чине, когда улица пойдёт",
     "resources": [
@@ -724,18 +759,11 @@
      "ориентировка"
     ],
     "disposition": -55,
-    "knows_about_pc": [
-     {
-      "turn": 24,
-      "source": "услышал шум рядом",
-      "fact": "что-то происходит поблизости"
-     }
-    ],
+    "knows_about_pc": [],
     "alive": true,
     "schedule": "дежурство",
     "faction": "fac_okhrana",
-    "_last_acted_period": 3,
-    "_knew_at_h": 18.78333333333333
+    "_last_acted_period": 2
    }
   ],
   "factions": [
@@ -800,7 +828,8 @@
    "period_h": 4,
    "last_tick_h": 15.4,
    "hidden": false,
-   "payoff": "Давка у пекарни. Витрину бьют. Околоточные требуют документы у всех чужих."
+   "payoff": "Давка у пекарни. Витрину бьют. Околоточные требуют документы у всех чужих.",
+   "fired": false
   },
   {
    "id": "clk_02",
@@ -811,7 +840,8 @@
    "period_h": 6,
    "last_tick_h": 13.4,
    "hidden": true,
-   "payoff": "По участкам разослан приметы: одежда не по сезону, стекло в кармане. Задержание без разговора."
+   "payoff": "По участкам разослан приметы: одежда не по сезону, стекло в кармане. Задержание без разговора.",
+   "fired": false
   },
   {
    "id": "clk_03",
@@ -822,7 +852,8 @@
    "period_h": 8,
    "last_tick_h": 15.4,
    "hidden": true,
-   "payoff": "Семён выходит на улицу с пустой винтовкой. Патруль уже близко."
+   "payoff": "Семён выходит на улицу с пустой винтовкой. Патруль уже близко.",
+   "fired": false
   },
   {
    "id": "clk_04",
@@ -833,7 +864,8 @@
    "period_h": 12,
    "last_tick_h": 7.4,
    "hidden": false,
-   "payoff": "Нева трещит. Без укрытия холод убивает за ночь."
+   "payoff": "Нева трещит. Без укрытия холод убивает за ночь.",
+   "fired": false
   }
  ],
  "known": {

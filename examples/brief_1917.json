@@ -36,9 +36,10 @@
     {"to": "rossiya/petrograd/vyborg/traktir", "mode": "пешком", "travel_min": 8, "dz_m": 1, "difficulty": 8, "gate": null},
     {"to": "rossiya/petrograd/vyborg/neva", "mode": "пешком", "travel_min": 25, "dz_m": -4, "difficulty": 18, "gate": "ветер с Невы"}
    ],
-   "resources": [{"name": "дрова во дворе", "amount": 4, "renew_per_day": 0}],
+   "resources": [{"name": "дрова во дворе", "amount": 4, "renew_per_day": 0, "tags": ["топливо"]}],
    "hazards": ["скользкий лёд", "чужой во дворе сразу виден"],
    "objects": ["колодец замёрз"],
+   "shelter": true,
    "touched": true
   },
   {
@@ -69,6 +70,8 @@
    "resources": [{"name": "кипяток", "amount": 8, "renew_per_day": 3, "tags": ["вода"]}],
    "hazards": ["дым, теснота, кто угодно может подслушать"],
    "objects": ["печь", "задняя комната на засове"],
+   "shelter": true,
+   "hearth": true,
    "touched": false
   },
   {
@@ -97,6 +100,7 @@
    "resources": [],
    "hazards": ["задержание с ходу", "обыск"],
    "objects": ["решётка", "книга учёта"],
+   "shelter": true,
    "touched": false
   }
  ],

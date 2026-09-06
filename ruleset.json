@@ -186,7 +186,8 @@
    "lethal_high": 42.0,
    "max_change_per_h": 0.5,
    "formula": "cold_model: core_base_c - core_drop_c*max(0, need-core_drop_start)/core_drop_span",
-   "unconscious_below": 30.0
+   "unconscious_below": 30.0,
+   "recover_above": 32.0
   }
  },
  "environment": {
@@ -454,7 +455,7 @@
   "core_drop_start": 30,
   "core_drop_span": 70,
   "core_drop_c": 9,
-  "note": "T_comf = base - clo_coeff*clo - activity_coeff*активность; прирост = (T_comf - ветрохолод)/divisor. Ядро: base - drop*max(0, need-start)/span. --sheltered: ветер 0. --fire: ambient += fire_bonus_c."
+  "note": "T_comf = base - clo_coeff*clo - activity_coeff*активность; прирост = (T_comf - ветрохолод)/divisor. Ядро: base - drop*max(0, need-start)/span. --sheltered или site.shelter: ветер 0. --fire: ambient += fire_bonus_c, топливо списывается по item_use.fuel_per_h."
  },
  "mounts": {
   "рука": 0,
@@ -522,8 +523,11 @@
   "infection_per_h": 0.8
  },
  "item_use": {
-  "note": "списание при использовании: заряд у предмета в руках, fill у воды/еды/аптечки. --water/--food без предмета больше не восполняют нужду.",
+  "note": "списание при использовании: заряд у предмета в руках, fill у воды/еды/аптечки/топлива. --water/--food без предмета — отказ. --fire без топлива или без зажигателя (тег огонь), если на площадке нет hearth — отказ. fuel_per_h — кг/ч горения.",
   "charge_per_h": 12.0,
-  "medicine_fill_per_treat": 0.25
+  "medicine_fill_per_treat": 0.25,
+  "igniter_tags": ["огонь"],
+  "fuel_tags": ["топливо"],
+  "fuel_per_h": 0.25
  }
 }
