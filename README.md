@@ -26,7 +26,7 @@ python selftest.py
 python sim.py selftest
 ```
 
-Ожидается ноль ошибок в `audit.py`, **130/130** в `selftest.py`, **21/21** в `sim.py selftest`, код выхода `0`.
+Ожидается ноль ошибок в `audit.py`, **141/141** в `selftest.py`, **21/21** в `sim.py selftest`, код выхода `0`.
 
 ## Как это устроено
 
@@ -77,7 +77,7 @@ python examples/run_1917_random.py
 | `engine.py` | ход: время, среда, нужды, броски, бой, лечение |
 | `worldgen.py` | генерация мира из brief + валидация |
 | `matter.py` | масса / объём / clo из материала и формы |
-| `edc.py` | вещи попаданца из нашего времени |
+| `edc.py` | вещи попаданца из нашего времени (только XXI век; другие эпохи — не этот модуль) |
 | `society.py` | NPC, слухи, фракции, ресурсы площадок |
 | `ruleset.json` | человек: шкалы, симптомы, cold_model, healing |
 | `ruleset_mech.json` | то же ядро, другое существо |

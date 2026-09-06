@@ -287,7 +287,7 @@
   "note": "у механоида нет крови и заражения — повреждения копятся в раме"
  },
  "item_use": {
-  "note": "списание при использовании. charge_pct у предмета в руках, fill у расходников. --fire требует fuel_tags и igniter_tags, если нет site.hearth.",
+  "note": "списание при использовании. charge_pct у предмета в руках, fill у расходников. --fire требует fuel_tags и igniter_tags, если нет site.hearth. water_tags/food_tags нет: это существо не пьёт и не ест, --water/--food — отказ, без флагов ход идёт.",
   "charge_per_h": 12.0,
   "medicine_fill_per_treat": 0.25,
   "igniter_tags": ["огонь"],

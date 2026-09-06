@@ -94,9 +94,19 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
  chain — список узлов [{path,scale,canon,...}] от корня до региона,
  sites — 1-3 площадки [{path,name,z_m,desc_true,exits[{to,mode,travel_min,dz_m,difficulty,gate}],
    resources:[{name,amount,tags?}], hazards, objects, shelter?, hearth?, touched:true}].
-   tags ресурса обязательны, если его можно взять и использовать: вода, еда, топливо —
-   или те теги, что в правилах существа (item_use). Имя «спирт» или «дрова» само по себе
-   ничего не значит. shelter:true — помещение (штиль без флага). hearth:true — очаг уже есть.
+   tags ресурса обязательны, если его можно взять и использовать.
+   Имя само по себе ничего не значит: «кипяток» без тега — просто ресурс.
+   Пример (подсказка автору, не словарь ядра; теги должны совпасть с item_use
+   правил существа):
+     resources: [
+       {"name": "кипяток", "amount": 8, "tags": ["вода"]},
+       {"name": "чёрный хлеб", "amount": 6, "tags": ["еда"]},
+       {"name": "дрова у печи", "amount": 4, "tags": ["топливо"]}
+     ]
+     item_use человека: water_tags ["вода"], food_tags ["еда"],
+       fuel_tags ["топливо"], igniter_tags ["огонь"], fuel_per_h 0.25
+   Другое существо — другие теги. shelter:true — помещение (штиль без флага).
+   hearth:true — очаг уже есть.
  npcs — 4-6 [{id,name,path,goal,long_goal,resources,disposition,knows_about_pc:[],alive:true,schedule,faction}],
  factions — 2-4 [{id,name,goal,power,stance_to_pc,relations:{}}],
  clocks — 3-5 [{name,filled,max,period_h,hidden,payoff, on_complete?, fired?}],
@@ -129,7 +139,8 @@ SYS_MECH = """Ты — разборщик намерений для симуля
  local    — краткое новое описание позиции, если сместился в пределах площадки
  take_resource — строка "имя:количество", взять из resources текущей площадки
             (только то, что есть в ресурсы_площадки; количество — литры/порции)
- water, food  — сколько выпить/съесть из предметов с тегами вода/еда (спишет fill)
+ water, food  — сколько списать с предметов, чьи теги в теги_питья / теги_еды обстановки
+            (синонимы CLI, не зашитые слова «вода»/«еда»). Нет тегов в правилах — не ставь.
             без запаса (fill=0 или нет предмета) движок откажет, нужду не тронет
  sheltered, fire, sleeping — true/false
             fire=true только если в обстановке топливо_с_собой и чем_зажечь (или очаг).
@@ -174,6 +185,8 @@ def scene_context(S):
     iu = sim.rules(S).get("item_use") or {}
     ign = iu.get("igniter_tags") or []
     fuel_tags = iu.get("fuel_tags") or []
+    drink_tags = iu.get("water_tags") or []
+    eat_tags = iu.get("food_tags") or []
     return {
         "место": S["position"]["local"],
         "площадка": site.get("name", ""),
@@ -184,6 +197,8 @@ def scene_context(S):
         "в_руках": [sim.item_name(S, i) for i in S["gear"]["hands"]["held"]],
         "теги_зажигателя": ign,
         "теги_горючего": fuel_tags,
+        "теги_питья": drink_tags,
+        "теги_еды": eat_tags,
         "чем_зажечь": sim.has_tags_accessible(S, ign, 60) or bool(site.get("hearth")),
         "топливо_с_собой": sim.fuel_have(S) > 0,
         "очаг": bool(site.get("hearth")),

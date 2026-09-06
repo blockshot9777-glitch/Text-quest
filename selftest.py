@@ -882,6 +882,92 @@ good = "ОТКАЗ" in (_r.stdout or "")
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'человеческие теги при чужих правилах — отказ':<40}{'отклонено' if good else 'ПРОПУЩЕНО'}")
 
+print("\n── питьё/еда по тегам, не по имени ──")
+good = _eng.resource_tags({"name": "кипяток"}) == ["ресурс"]
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'имя кипяток без тега — не вода':<40}{_eng.resource_tags({'name': 'кипяток'})}")
+good = _eng.resource_tags({"name": "чёрный хлеб"}) == ["ресурс"]
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'имя хлеб без тега — не еда':<40}{_eng.resource_tags({'name': 'чёрный хлеб'})}")
+good = _eng.resource_tags({"name": "кипяток", "tags": ["вода"]}) == ["вода"]
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'явный тег вода остаётся водой':<40}{_eng.resource_tags({'name': 'кипяток', 'tags': ['вода']})}")
+
+_boil = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_boil_it = _eng.item_from_resource(_boil, {"name": "кипяток"}, 0.5)
+good = "вода" not in (_boil_it.get("tags") or [])
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'взятый кипяток без тега не пьётся':<40}{_boil_it.get('tags')}")
+
+_alw = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_alw["ruleset"] = _json.load(open("ruleset.json", encoding="utf-8"))
+_alw["ruleset"]["item_use"]["water_tags"] = ["слизь"]
+_alw["ruleset"]["item_use"]["food_tags"] = ["жмых"]
+_alw["ruleset"]["needs"]["thirst"]["recovers_by"] = "слизь"
+_alw["ruleset"]["needs"]["hunger"]["recovers_by"] = "жмых"
+_alw["pc"]["needs"] = {k: 0.0 for k in _alw["pc"]["needs"]}
+_alw["pc"]["needs"]["thirst"] = 50.0
+_alw["pc"]["needs"]["hunger"] = 50.0
+_alw["profile"]["physics_on"] = []
+_alw["items"] = [
+    {"id": "itm_d", "name": "ихор", "kg": 1.0, "l": 1.0, "qty": 1,
+     "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["слизь"], "fill": 1.0},
+    {"id": "itm_f", "name": "жмых", "kg": 1.0, "l": 1.0, "qty": 1,
+     "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["жмых"], "fill": 1.0},
+]
+_alw["gear"]["hands"]["held"] = ["itm_d", "itm_f"]
+_aw = os.path.join(TMP, "alien_drink.json")
+_json.dump(_alw, open(_aw, "w", encoding="utf-8"), ensure_ascii=False)
+_thirst0 = _alw["pc"]["needs"]["thirst"]
+_r = _run(["engine.py", "act", "--minutes", "5", "--water", "0.4", "--food", "0.35"], SIM_STATE=_aw)
+_after_d = _json.load(open(_aw, encoding="utf-8"))
+good = ("ОТКАЗ" not in (_r.stdout or "")[:80]
+        and _after_d["items"][0]["fill"] < 1.0
+        and _after_d["items"][1]["fill"] < 1.0
+        and _after_d["pc"]["needs"]["thirst"] < _thirst0)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'чужие теги слизь/жмых восстанавливают':<40}thirst={_after_d['pc']['needs']['thirst']:.1f}")
+
+_alw["items"][0]["tags"] = ["вода"]
+_alw["items"][1]["tags"] = ["еда"]
+_alw["items"][0]["fill"] = 1.0
+_alw["items"][1]["fill"] = 1.0
+_json.dump(_alw, open(_aw, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "5", "--water", "0.4"], SIM_STATE=_aw)
+good = "ОТКАЗ" in (_r.stdout or "")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'вода при чужих water_tags — отказ':<40}{'отклонено' if good else 'ПРОПУЩЕНО'}")
+_r = _run(["engine.py", "act", "--minutes", "5", "--food", "0.35"], SIM_STATE=_aw)
+good = "ОТКАЗ" in (_r.stdout or "")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'еда при чужих food_tags — отказ':<40}{'отклонено' if good else 'ПРОПУЩЕНО'}")
+
+_st_m2 = os.path.join(TMP, "mech_nowater.json")
+import shutil as _sh
+_sh.copy("examples/mech_state.json", _st_m2)
+_r = _run(["engine.py", "act", "--minutes", "5"], SIM_RULES="ruleset_mech.json", SIM_STATE=_st_m2)
+good = _r.returncode == 0 and "ОТКАЗ" not in (_r.stdout or "")[:80]
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'механоид act без --water/--food':<40}{'шёл' if good else 'УПАЛ'}")
+_st_m3 = os.path.join(TMP, "mech_water.json")
+_sh.copy("examples/mech_state.json", _st_m3)
+_r = _run(["engine.py", "act", "--minutes", "5", "--water", "0.4"],
+          SIM_RULES="ruleset_mech.json", SIM_STATE=_st_m3)
+good = "ОТКАЗ" in (_r.stdout or "") and "water_tags" in (_r.stdout or "")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'механоид --water без water_tags — отказ':<40}{'отклонено' if good else 'ПРОПУЩЕНО'}")
+
+_wsrc = open("worldgen.py", encoding="utf-8").read()
+_edc_at = _wsrc.find("edc.build")
+good = (_wsrc.count("edc.build") == 1 and _edc_at > 0
+        and "carryover" in _wsrc[max(0, _edc_at - 400):_edc_at])
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'edc.build только под carryover':<40}{'да' if good else 'нет'}")
+_edoc = open("edc.py", encoding="utf-8").read()
+good = "других эпох" in _edoc and "XXI" in _edoc
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'edc.py граница: не другие эпохи':<40}{'да' if good else 'нет'}")
+
 _shsite = _env_fixture()
 _here = _shsite["position"]["path"]
 for _s in _shsite["world"]["sites_canon"]:

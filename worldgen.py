@@ -208,7 +208,7 @@ def expand(brief):
         S["envelope"]["dose_sv"] = b.get("dose_sv", 0.0)
 
     _rand_notes = []
-    if b.get("carryover"):          # попаданец: вещи наших дней, момент переноса случаен
+    if b.get("carryover"):          # только XXI: edc не знает других эпох
         if edc is None: raise RuntimeError("нужен edc.py рядом с worldgen.py")
         spec = b["carryover"] if isinstance(b["carryover"], dict) else {}
         ctx, worn_o, cont_o, items_o, notes_o = edc.build(

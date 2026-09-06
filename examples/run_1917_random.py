@@ -29,8 +29,8 @@ def take_spec(st, tag, amount):
     return None
 
 
-def fuel_query(S):
-    tags = (engine.rules(S).get("item_use") or {}).get("fuel_tags") or []
+def tag_query(S, key):
+    tags = engine.use_tags(S, key)
     return tags[0] if tags else None
 
 
@@ -120,18 +120,18 @@ def options(S, rng):
         })
 
     npcs = [n for n in S["world"]["npcs"] if n.get("alive", True) and n.get("path") == here]
-    water_fill = engine.tagged_have(S, "вода")
-    food_fill = engine.tagged_have(S, "еда")
+    water_fill = engine.tagged_have_any(S, engine.use_tags(S, "water_tags"))
+    food_fill = engine.tagged_have_any(S, engine.use_tags(S, "food_tags"))
     n, v = S["pc"]["needs"], S["pc"]["vitals"]
     wounds = S["pc"].get("wounds") or []
 
     fourth = None
     if wounds and not wounds[0].get("treated"):
         fourth = {"label": "Попытаться перевязать рану", "kind": "лечение", "argv": ["treat", "--supplies", "0"]}
-    elif engine.fuel_have(S) <= 1e-9 and take_spec(st, fuel_query(S), 1):
+    elif engine.fuel_have(S) <= 1e-9 and take_spec(st, tag_query(S, "fuel_tags"), 1):
         fourth = {"label": "Набрать дров с площадки", "kind": "добыча",
                   "argv": ["act", "--minutes", "10", "--activity", "1",
-                           "--take-resource", take_spec(st, fuel_query(S), 1),
+                           "--take-resource", take_spec(st, tag_query(S, "fuel_tags"), 1),
                            "--window", "30"] + (["--sheltered"] if indoor else [])}
     elif n.get("cold_stress", 0) >= 25 and engine.can_fire(S, 60):
         fire_rest = ["act", "--minutes", "40", "--activity", "0", "--window", "60", "--fire"]
@@ -146,18 +146,18 @@ def options(S, rng):
     elif n.get("thirst", 0) >= 20 and water_fill > 1e-9:
         fourth = {"label": "Пить то, что с собой", "kind": "питьё",
                   "argv": ["act", "--minutes", "8", "--activity", "0", "--water", "0.4", "--sheltered", "--window", "30"]}
-    elif n.get("thirst", 0) >= 20 and take_spec(st, "вода", 0.5):
+    elif n.get("thirst", 0) >= 20 and take_spec(st, tag_query(S, "water_tags"), 0.5):
         fourth = {"label": "Набрать воды из того, что есть на площадке", "kind": "добыча",
                   "argv": ["act", "--minutes", "8", "--activity", "1",
-                           "--take-resource", take_spec(st, "вода", 0.5),
+                           "--take-resource", take_spec(st, tag_query(S, "water_tags"), 0.5),
                            "--sheltered", "--window", "30"]}
     elif n.get("hunger", 0) >= 20 and food_fill > 1e-9:
         fourth = {"label": "Есть то, что с собой", "kind": "еда",
                   "argv": ["act", "--minutes", "15", "--activity", "0", "--food", "0.35", "--window", "30"]}
-    elif n.get("hunger", 0) >= 20 and take_spec(st, "еда", 1):
+    elif n.get("hunger", 0) >= 20 and take_spec(st, tag_query(S, "food_tags"), 1):
         fourth = {"label": "Взять еду с площадки", "kind": "добыча",
                   "argv": ["act", "--minutes", "10", "--activity", "1",
-                           "--take-resource", take_spec(st, "еда", 1), "--window", "30"]}
+                           "--take-resource", take_spec(st, tag_query(S, "food_tags"), 1), "--window", "30"]}
     elif npcs:
         foe = npcs[0]
         if foe.get("disposition", 0) <= -40 and st.get("name") == "Участок околоточных":

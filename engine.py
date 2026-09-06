@@ -165,16 +165,15 @@ def next_item_id(S):
     return f"itm_{n+1:02d}"
 
 def resource_tags(res):
+    """Теги только из данных. Имя «кипяток» само по себе ничего не значит."""
     if res.get("tags"):
         return list(res["tags"])
-    n = (res.get("name") or "").lower()
-    tags = []
-    for needle, tag in (("вод", "вода"), ("кипят", "вода"), ("хлеб", "еда"),
-                        ("пайк", "еда"), ("еда", "еда"), ("сухар", "еда"),
-                        ("зерн", "еда")):
-        if needle in n and tag not in tags:
-            tags.append(tag)
-    return tags or ["ресурс"]
+    return ["ресурс"]
+
+
+def use_tags(S, key):
+    """Список тегов из item_use[key]. Пустой — глагол CLI к этому существу не привязан."""
+    return list((rules(S).get("item_use") or {}).get(key) or [])
 
 def find_site_resource(site, query):
     q = (query or "").strip().lower()
@@ -208,15 +207,16 @@ def item_from_resource(S, res, amount):
     tags = resource_tags(res)
     name = res.get("name") or "ресурс"
     side = max(1.0, (max(amount, 0.05) * 1000.0) ** (1.0 / 3.0))
-    if "вода" in tags:
+    tagset = set(tags)
+    if tagset & set(use_tags(S, "water_tags")):
         it = make_item(f"{name} ({amount:g})",
                        [("вода", "жидкость", side, side, side)],
-                       tags=["вода"], tech_ceiling=tech, rng=rng, condition=1.0, packing=1.0)
+                       tags=tags, tech_ceiling=tech, rng=rng, condition=1.0, packing=1.0)
         it["fill"] = 1.0
-    elif "еда" in tags:
+    elif tagset & set(use_tags(S, "food_tags")):
         it = make_item(f"{name} ({amount:g})",
                        [("мясо/еда", "сыпучее", side, side, side)],
-                       tags=["еда"], tech_ceiling=tech, rng=rng, condition=1.0, packing=1.0)
+                       tags=tags, tech_ceiling=tech, rng=rng, condition=1.0, packing=1.0)
         it["fill"] = 1.0
     else:
         it = make_item(f"{name} ({amount:g})",
@@ -285,11 +285,12 @@ def take_site_resource(S, spec, log):
 
 def tagged_have(S, tag):
     """Сколько запаса с тегом ещё можно выпить/съесть (ёмкость × fill × qty)."""
+    liquid = tag in use_tags(S, "water_tags")
     total = 0.0
     for it in S.get("items") or []:
         if tag not in (it.get("tags") or []):
             continue
-        cap = it.get("l") if tag == "вода" else (it.get("kg") or 0)
+        cap = it.get("l") if liquid else (it.get("kg") or 0)
         if not cap:
             continue
         fill = it.get("fill")
@@ -298,16 +299,20 @@ def tagged_have(S, tag):
         total += cap * fill * it.get("qty", 1)
     return total
 
+def tagged_have_any(S, tags):
+    return sum(tagged_have(S, t) for t in tags)
+
 def consume_tagged(S, tag, amount, log):
     """Списать fill с предметов по тегу. Возвращает фактически взятое количество."""
     if not amount or amount <= 0:
         return 0.0
     got = 0.0
+    liquid = tag in use_tags(S, "water_tags")
     items = sorted(S["items"], key=lambda it: access_time(S, it))
     for it in items:
         if tag not in (it.get("tags") or []):
             continue
-        cap = it.get("l") if tag == "вода" else (it.get("kg") or 0)
+        cap = it.get("l") if liquid else (it.get("kg") or 0)
         if not cap:
             continue
         fill = it.get("fill")
@@ -327,6 +332,14 @@ def consume_tagged(S, tag, amount, log):
             break
     if got + 1e-9 < amount:
         log.append(f"[запас] {tag}: хватило {got:g} из {amount:g}")
+    return got
+
+def consume_tags(S, tags, amount, log):
+    got = 0.0
+    for tag in tags:
+        if got >= amount - 1e-9:
+            break
+        got += consume_tagged(S, tag, amount - got, log)
     return got
 
 def has_tags_accessible(S, tags, window_s=60):
@@ -689,14 +702,22 @@ def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
     def _replenish(amount, kind):
         """Находит потребность по тому, ЧЕМ она восполняется, а не по имени поля.
         Работает для любого вида: воду пьёт человек, заряд берёт механоид."""
-        if not amount: return
+        if not amount:
+            return False
         for key, spec in R.get("needs", {}).items():
             if spec.get("recovers_by") == kind and key in n:
                 upp = spec.get("unit_per_point")
                 n[key] = max(0.0, n[key] - (amount / upp if upp else amount))
-                return
-    _replenish(water, "вода")
-    _replenish(food, "еда")
+                return True
+        return False
+    if water:
+        for kind in use_tags(S, "water_tags"):
+            if _replenish(water, kind):
+                break
+    if food:
+        for kind in use_tags(S, "food_tags"):
+            if _replenish(food, kind):
+                break
     npc_step(S, log, hours*60)
     if society is not None:
         society.society_step(S, log, hours, rules(S))
@@ -1040,8 +1061,10 @@ def main():
     p.add_argument("--sheltered", action="store_true")
     p.add_argument("--fire", action="store_true")
     p.add_argument("--sleeping", action="store_true")
-    p.add_argument("--water", type=float, default=0)
-    p.add_argument("--food", type=float, default=0)
+    p.add_argument("--water", type=float, default=0,
+                   help="списать fill по item_use.water_tags (синоним CLI; без объявления — отказ)")
+    p.add_argument("--food", type=float, default=0,
+                   help="списать fill по item_use.food_tags (синоним CLI; без объявления — отказ)")
     p.add_argument("--take-resource", dest="take_resource", action="append", default=[],
                    help="имя:количество — списать resources площадки, создать предмет")
     p.add_argument("--window", type=int, default=None)
@@ -1200,10 +1223,17 @@ def main():
     if len(a.check) > lim:
         print(f"ОТКАЗ: {len(a.check)} проверок за ход при лимите {lim}. "
               f"Ход слишком крупный — разбей его на несколько."); return
-    if a.water and tagged_have(S, "вода") <= 1e-9:
-        print("ОТКАЗ: пить нечего — нет запаса с тегом «вода»."); return
-    if a.food and tagged_have(S, "еда") <= 1e-9:
-        print("ОТКАЗ: есть нечего — нет запаса с тегом «еда»."); return
+    wt, ft = use_tags(S, "water_tags"), use_tags(S, "food_tags")
+    if a.water:
+        if not wt:
+            print("ОТКАЗ: --water не к чему привязать — в item_use нет water_tags."); return
+        if tagged_have_any(S, wt) <= 1e-9:
+            print(f"ОТКАЗ: пить нечего — нет запаса с тегом «{' / '.join(wt)}»."); return
+    if a.food:
+        if not ft:
+            print("ОТКАЗ: --food не к чему привязать — в item_use нет food_tags."); return
+        if tagged_have_any(S, ft) <= 1e-9:
+            print(f"ОТКАЗ: есть нечего — нет запаса с тегом «{' / '.join(ft)}»."); return
     if a.fire:
         why = fire_refuse(S, a.window)
         if why:
@@ -1221,8 +1251,8 @@ def main():
     log = []
     for spec in (a.take_resource or []):
         take_site_resource(S, spec, log)
-    water = consume_tagged(S, "вода", a.water, log) if a.water else 0.0
-    food = consume_tagged(S, "еда", a.food, log) if a.food else 0.0
+    water = consume_tags(S, wt, a.water, log) if a.water else 0.0
+    food = consume_tags(S, ft, a.food, log) if a.food else 0.0
     log = tick(S, a.minutes/60, a.activity, a.sheltered, a.fire, a.sleeping, water, food, log)
     spend_held_charge(S, a.minutes/60, log)
     rolls = []
