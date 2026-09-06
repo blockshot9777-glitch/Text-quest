@@ -161,6 +161,9 @@ def options(S, rng):
     elif npcs:
         foe = npcs[0]
         if foe.get("disposition", 0) <= -40 and st.get("name") == "Участок околоточных":
+            # Бой в равном слоте — известный сдвиг (юра, черновик на 41-м).
+            # Здесь оставлен только как явный триггер одного участка 1917;
+            # в новые харнессы не копировать. См. FEATURE_GUIDE §10.
             fourth = {"label": f"Схватиться с {foe['name']}", "kind": "бой",
                       "argv": ["fight", "--skill", "combat", "--foe", f"{foe['name']}:40:8:2"]}
         else:
