@@ -6,6 +6,8 @@
 Не выдумывает зажигалку, очаг, бой и материал, которого нет в данных.
 Бой в набор не входит (черновик на 41-м — дыра сценария).
 take сначала наполняет предмет с тем же тегом и fill<1.
+К врагу не подходит никогда, даже ради еды: голод при охраняемой туше —
+предел этой стратегии, не дыра выдачи ресурса.
 """
 import json, os, sys, io, copy, random
 
@@ -23,6 +25,13 @@ LOG = os.path.join(HERE, "run_jurassic_log.json")
 SUMMARY = os.path.join(HERE, "run_jurassic_summary.json")
 engine.STATE = STATE
 engine._RULES = None
+
+# Сознательный параметр риска, не спрятанный порог в decide().
+# 0 — никогда не идти на площадку с врагом и не брать еду при нём
+# (осмысленный, не героический тест). Смерть от голода при туше с тегом
+# еды — задокументированный предел, не баг take/food. Сменить на 1 —
+# правка политики харнесса, не движка.
+RISK_APPROACH_HOSTILE = 0
 
 
 def take_spec(st, tag, amount):
@@ -247,7 +256,7 @@ def decide(S):
     if wounds and not wounds[0].get("treated"):
         return {"label": "Попытаться перевязать рану", "kind": "лечение",
                 "argv": ["treat", "--supplies", "0"]}
-    if hostiles:
+    if hostiles and not RISK_APPROACH_HOSTILE:
         leave = None
         for e in engine.site_exits(st):
             if e.get("to") in paths and not str(e["to"]).endswith("/gnezdo"):
@@ -289,7 +298,8 @@ def decide(S):
         return {"label": "Есть то, что с собой", "kind": "еда",
                 "argv": shelter_argv(S, 15) + ["--food", "0.35"]}
     food_spec = take_spec(st, food_tag, 1)
-    if hunger >= 22 and food_spec and not hostiles and (can_refill(S, food_tag) or hands_have_slot(S)):
+    if (hunger >= 22 and food_spec and (RISK_APPROACH_HOSTILE or not hostiles)
+            and (can_refill(S, food_tag) or hands_have_slot(S))):
         return {"label": "Срезать мясо с площадки", "kind": "добыча",
                 "argv": shelter_argv(S, 10, activity=1) + ["--take-resource", food_spec]}
 
@@ -307,7 +317,8 @@ def decide(S):
             dest_st = next(x for x in S["world"]["sites_canon"] if x["path"] == hop["to"])
         nest_here = any(n.get("alive", True) and n.get("path") == (hop or {}).get("to")
                         and n.get("disposition", 0) <= -40 for n in S["world"]["npcs"])
-        if hop and dest_st and not nest_here:
+        # Та же политика: к площадке с врагом не идти, голод не перевешивает.
+        if hop and dest_st and not (nest_here and not RISK_APPROACH_HOSTILE):
             return {"label": f"К еде: {dest_st.get('name')}", "kind": "переход",
                     "argv": travel_argv(S, hop)}
 
@@ -413,6 +424,7 @@ def summarize(history):
         "skills": fin.get("skills"),
         "carryover_ctx": fin.get("carryover_ctx"),
         "wounds": fin.get("wounds"),
+        "risk_policy": "к врагу не подходить: голод при охраняемой туше — предел стратегии, не дыра выдачи ресурса",
     }
 
 

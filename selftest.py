@@ -1326,5 +1326,13 @@ good = (not _eng.take_site_resource(_alr, "лужа:0.5", _rlog)
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'вода при ресурсе слизь — не тара':<40}{'отклонено' if good else 'ПРОПУЩЕНО'}")
 
+_jura_h = open(os.path.join(HERE, "examples", "run_jurassic_random.py"), encoding="utf-8").read()
+_handoff = open(os.path.join(HERE, "HANDOFF.md"), encoding="utf-8").read()
+good = ("RISK_APPROACH_HOSTILE = 0" in _jura_h
+        and "не дыра выдачи ресурса" in _jura_h
+        and "RISK_APPROACH_HOSTILE" in _handoff)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'юра: голод у туши — предел стратегии':<40}{'да' if good else 'нет'}")
+
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)
