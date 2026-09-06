@@ -260,10 +260,13 @@ def expand(brief):
                            "in":cid,"depth":d,"condition":1.0,"tags":tags})
 
     for i, c in enumerate(b.get("clocks",[]), 1):
-        S["clocks"].append({"id":f"clk_{i:02d}","name":c["name"],"filled":c["filled"],
-                            "max":c["max"],"scale":c.get("scale","региональный"),
-                            "period_h":c["period_h"],"last_tick_h":S["time"]["t_h"],
-                            "hidden":c.get("hidden",True),"payoff":c["payoff"]})
+        clk = {"id":f"clk_{i:02d}","name":c["name"],"filled":c["filled"],
+               "max":c["max"],"scale":c.get("scale","региональный"),
+               "period_h":c["period_h"],"last_tick_h":S["time"]["t_h"],
+               "hidden":c.get("hidden",True),"payoff":c["payoff"]}
+        if c.get("on_complete"):
+            clk["on_complete"] = json.loads(json.dumps(c["on_complete"]))
+        S["clocks"].append(clk)
     S["_gen_notes"] = _rand_notes
     return S
 
@@ -316,10 +319,52 @@ def validate(S):
             for f in ("travel_min","difficulty"):
                 if f not in e: err.append(f"{s['name']}: у выхода нет поля {f}")
 
+    CLOCK_PATH_ROOTS = {"pc","world","time","envelope","meta","position","profile","calendar"}
     for c in S["clocks"]:
         for f in ("period_h","max","filled","payoff"):
             if f not in c: err.append(f"счётчик {c.get('name','?')}: нет поля {f}")
         if c.get("filled",0) > c.get("max",1): err.append(f"счётчик {c['name']}: filled > max")
+        oc = c.get("on_complete")
+        name = c.get("name", "?")
+        if not oc:
+            if c.get("payoff"):
+                warn.append(f"счётчик {name}: payoff без on_complete — сработает только строкой в журнале")
+            continue
+        if not isinstance(oc, list):
+            err.append(f"счётчик {name}: on_complete должен быть списком")
+            continue
+        for i, fx in enumerate(oc):
+            if not isinstance(fx, dict):
+                err.append(f"счётчик {name} on_complete[{i}]: не объект"); continue
+            if "site" in fx and "sites" in fx:
+                err.append(f"счётчик {name} on_complete[{i}]: укажите site или sites, не оба")
+                continue
+            env_op = "env" in fx and ("site" in fx or "sites" in fx)
+            has_set, has_add = "set" in fx, "add" in fx
+            path_op = "path" in fx and (has_set or has_add) and not (has_set and has_add)
+            if env_op and not path_op:
+                if not isinstance(fx.get("env"), dict):
+                    err.append(f"счётчик {name} on_complete[{i}]: env должен быть объектом")
+                    continue
+                canon = {st.get("path") for st in S["world"]["sites_canon"]}
+                if "site" in fx and fx["site"] not in canon:
+                    err.append(f"счётчик {name} on_complete[{i}]: площадка {fx['site']} не в каноне")
+                if "sites" in fx:
+                    sel = fx["sites"]
+                    if sel != "*" and not isinstance(sel, list):
+                        err.append(f"счётчик {name} on_complete[{i}]: sites — '*' или список путей")
+                    elif isinstance(sel, list):
+                        for pth in sel:
+                            if pth not in canon:
+                                err.append(f"счётчик {name} on_complete[{i}]: площадка {pth} не в каноне")
+            elif path_op and not env_op:
+                root = str(fx.get("path","")).split(".")[0]
+                if root not in CLOCK_PATH_ROOTS:
+                    err.append(f"счётчик {name} on_complete[{i}]: путь должен начинаться с известного корня")
+                if has_add and not isinstance(fx.get("add"), (int, float)):
+                    err.append(f"счётчик {name} on_complete[{i}]: add должен быть числом")
+            else:
+                err.append(f"счётчик {name} on_complete[{i}]: неизвестная операция")
     if not S["clocks"]: warn.append("нет ни одного счётчика — мир не будет развиваться сам")
     if len(S["hidden_truths"]) < 3: warn.append("меньше трёх скрытых истин — разведка обесценится")
     if "холод" in on and not any(s.get("env") for s in S["world"]["sites_canon"]) \

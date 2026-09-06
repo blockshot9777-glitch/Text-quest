@@ -514,5 +514,98 @@ good = abs(_a0 - 28.0) < 0.05 and abs(_a1 - 19.0) < 0.05
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'core_temp слушает cold_model':<40}{_a0:.1f} vs {_a1:.1f}")
 
+print("\n── счётчик: payoff — журнал, on_complete — состояние ──")
+_src3 = open(os.path.join(HERE, "engine.py"), encoding="utf-8").read()
+_wg_src = open(os.path.join(HERE, "worldgen.py"), encoding="utf-8").read()
+good = "def apply_clock_effects(" in _src3 and "apply_clock_effects(S, c, log)" in _src3
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'tick_clocks вызывает apply_clock_effects':<40}{'да' if good else 'нет'}")
+good = 'clk["on_complete"]' in _wg_src
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'worldgen копирует on_complete':<40}{'да' if good else 'нет'}")
+
+from worldgen import expand as _wg_expand, validate as _wg_validate
+
+def _clock_fixture(on_complete=None):
+    st = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+    st["calendar"]["natural_light"] = False
+    here = st["position"]["path"]
+    for site in st["world"]["sites_canon"]:
+        if site["path"] == here:
+            site["env"] = {"ambient_c": 16.0, "light": "дежурный", "breathable": True}
+    st["envelope"]["ambient_c"] = 16.0
+    st["pc"]["needs"] = {k: 0.0 for k in st["pc"]["needs"]}
+    st["profile"]["physics_on"] = []
+    clk = {"name": "тест тепла", "filled": 2, "max": 3, "period_h": 1,
+           "last_tick_h": st["time"]["t_h"], "payoff": "стало холодно", "hidden": False}
+    if on_complete is not None:
+        clk["on_complete"] = on_complete
+    st["clocks"] = [clk]
+    return st, here
+
+_plain, _here = _clock_fixture()
+_plog = []
+_eng.tick(_plain, 1.05, activity=0, log=_plog)
+_psite = next(s for s in _plain["world"]["sites_canon"] if s["path"] == _here)
+good = (any("СЧЁТЧИК СРАБОТАЛ" in x for x in _plog)
+        and abs(_psite["env"]["ambient_c"] - 16.0) < 0.01
+        and abs(_plain["envelope"]["ambient_c"] - 16.0) < 0.15)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'без on_complete только журнал':<40}{_psite['env']['ambient_c']}")
+
+_mut, _here = _clock_fixture([{"site": _here, "env": {"ambient_c": 4.0}}])
+_mlog = []
+_eng.tick(_mut, 1.05, activity=0, log=_mlog)
+_msite = next(s for s in _mut["world"]["sites_canon"] if s["path"] == _here)
+good = (any("СЧЁТЧИК СРАБОТАЛ" in x for x in _mlog)
+        and abs(_msite["env"]["ambient_c"] - 4.0) < 0.01
+        and abs(_mut["envelope"]["ambient_c"] - 4.0) < 0.15)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'site env и envelope после срабатывания':<40}{_msite['env']['ambient_c']}/{_mut['envelope']['ambient_c']}")
+
+_add, _ = _clock_fixture([{"path": "envelope.dose_sv", "add": 10}])
+_add["envelope"]["dose_sv"] = 1.0
+_eng.tick(_add, 1.05, activity=0, log=[])
+_s1 = _add["envelope"]["dose_sv"]
+_eng.tick(_add, 1.05, activity=0, log=[])
+_s2 = _add["envelope"]["dose_sv"]
+good = abs(_s1 - 11.0) < 0.01 and abs(_s2 - 11.0) < 0.01
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'add один раз, повторно не плюсует':<40}{_s1}->{_s2}")
+
+_badc = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_badc["clocks"][0]["on_complete"] = [{"foo": 1}]
+_e_bad, _ = _wg_validate(_badc)
+good = any("неизвестная операция" in e for e in _e_bad)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'validate ловит неизвестную операцию':<40}{'да' if good else 'нет'}")
+
+_txtc = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_e_txt, _w_txt = _wg_validate(_txtc)
+good = (not any("неизвестная операция" in e for e in _e_txt)
+        and any("только строкой в журнале" in w for w in _w_txt))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'payoff без эффектов — замечание, не ошибка':<40}{'да' if good else 'нет'}")
+
+_drift = _wg_expand(_json.load(open("examples/brief_drift.json", encoding="utf-8")))
+_e_d, _w_d = _wg_validate(_drift)
+_drift["pc"]["needs"] = {k: 0.0 for k in _drift["pc"]["needs"]}
+_drift["profile"]["physics_on"] = []
+_dlog = []
+_eng.tick(_drift, 31.0, activity=0, log=_dlog)
+_cryo = next(s for s in _drift["world"]["sites_canon"] if s["path"].endswith("/cryo"))
+_hab = next(s for s in _drift["world"]["sites_canon"] if s["path"].endswith("/hab"))
+_engn = next(s for s in _drift["world"]["sites_canon"] if s["path"].endswith("/engineering"))
+good = (not _e_d
+        and abs(_cryo["env"]["pco2_rise_kpa_h"] - 0.55) < 0.001
+        and abs(_hab["env"]["ambient_c"] - 4.0) < 0.01
+        and abs(_engn["env"]["ambient_c"] - 4.0) < 0.01
+        and abs(_drift["envelope"]["ambient_c"] - 4.0) < 0.15
+        and any("Скруббер" in x for x in _dlog)
+        and any("Тепловой контур" in x for x in _dlog))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'Релей: CO2 и тепло меняют отсеки':<40}"
+      f"rise={_cryo['env']['pco2_rise_kpa_h']} hab={_hab['env']['ambient_c']}")
+
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)

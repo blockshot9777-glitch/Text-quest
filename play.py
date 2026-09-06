@@ -96,7 +96,9 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
    resources,hazards,objects,touched:true}],
  npcs — 4-6 [{id,name,path,goal,long_goal,resources,disposition,knows_about_pc:[],alive:true,schedule,faction}],
  factions — 2-4 [{id,name,goal,power,stance_to_pc,relations:{}}],
- clocks — 3-5 [{name,filled,max,period_h,hidden,payoff}],
+ clocks — 3-5 [{name,filled,max,period_h,hidden,payoff, on_complete?}],
+   on_complete — список операций при срабатывании (site/sites+env или path+set/add);
+   без него payoff остаётся только строкой в журнале,
  truths — 4-6 строк (то, что верно, но игрок не знает),
  opening_fact (строка).
 

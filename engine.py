@@ -518,6 +518,86 @@ def weather_step(S, log):
             return
     S["time"]["weather"] = opts[-1][0]
 
+CLOCK_PATH_ROOTS = ("pc", "world", "time", "envelope", "meta", "position", "profile", "calendar")
+
+def _clock_target_sites(S, fx):
+    canon = (S.get("world") or {}).get("sites_canon") or []
+    if "site" in fx:
+        return [st for st in canon if st.get("path") == fx["site"]]
+    sel = fx.get("sites")
+    if sel == "*":
+        return [st for st in canon if isinstance(st.get("env"), dict)]
+    if isinstance(sel, list):
+        want = set(sel)
+        return [st for st in canon if st.get("path") in want]
+    return []
+
+def _clock_set_path(S, path, set_v=None, add_v=None):
+    parts = [p for p in str(path).split(".") if p]
+    if not parts or parts[0] not in CLOCK_PATH_ROOTS:
+        return False
+    cur = S
+    for p in parts[:-1]:
+        if not isinstance(cur, dict) or p not in cur:
+            return False
+        cur = cur[p]
+    k = parts[-1]
+    if not isinstance(cur, dict):
+        return False
+    if add_v is not None:
+        if k not in cur:
+            return False
+        try:
+            cur[k] = (cur[k] or 0) + add_v
+        except TypeError:
+            return False
+        return True
+    cur[k] = set_v
+    return True
+
+def apply_clock_effects(S, clock, log):
+    """Один раз при срабатывании: payoff — фраза, on_complete — мутация состояния."""
+    effects = clock.get("on_complete") or []
+    if not effects:
+        return
+    here = (S.get("position") or {}).get("path")
+    touched_here = False
+    for fx in effects:
+        if not isinstance(fx, dict):
+            log.append(f"[счётчик] {clock.get('name','?')}: пропуск кривой операции")
+            continue
+        env_op = "env" in fx and ("site" in fx or "sites" in fx)
+        has_set, has_add = "set" in fx, "add" in fx
+        path_op = "path" in fx and (has_set or has_add) and not (has_set and has_add)
+        if env_op and not path_op:
+            patch = fx.get("env")
+            if not isinstance(patch, dict):
+                log.append(f"[счётчик] {clock.get('name','?')}: env должен быть объектом")
+                continue
+            targets = _clock_target_sites(S, fx)
+            if not targets:
+                log.append(f"[счётчик] {clock.get('name','?')}: площадка не найдена")
+                continue
+            for st in targets:
+                if not isinstance(st.get("env"), dict):
+                    continue
+                st["env"].update(patch)
+                log.append(f"[счётчик] {clock.get('name','?')}: {st.get('path')} env {patch}")
+                if st.get("path") == here:
+                    touched_here = True
+        elif path_op and not env_op:
+            ok = _clock_set_path(S, fx["path"], fx.get("set") if has_set else None,
+                                 fx.get("add") if has_add else None)
+            if ok:
+                how = f"+={fx['add']}" if has_add else f"={fx['set']}"
+                log.append(f"[счётчик] {clock.get('name','?')}: {fx['path']} {how}")
+            else:
+                log.append(f"[счётчик] {clock.get('name','?')}: путь {fx.get('path')} не найден")
+        else:
+            log.append(f"[счётчик] {clock.get('name','?')}: неизвестная операция")
+    if touched_here:
+        recompute_env(S)
+
 def tick_clocks(S, log):
     for c in S["clocks"]:
         k = int((S["time"]["t_h"] - c["last_tick_h"]) // c["period_h"])
@@ -527,6 +607,7 @@ def tick_clocks(S, log):
             c["filled"] = min(c["max"], c["filled"] + k)
             if c["filled"] >= c["max"] and before < c["max"]:
                 log.append(f"[СЧЁТЧИК СРАБОТАЛ] {c['name']}: {c['payoff']}")
+                apply_clock_effects(S, c, log)
             elif c["filled"] != before:
                 log.append(f"[счётчик] {c['name']} {c['filled']}/{c['max']}" +
                            ("" if c.get("hidden") else " (игрок может заметить)"))
