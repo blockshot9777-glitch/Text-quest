@@ -73,6 +73,9 @@
 `rimworld2.json`, `kastor.json`, `novgorod_1052.json`, `gory.json`,
 `state_start.json` — сгенерированные миры для трёх сеттингов из разговора.
 `brief_*.json` — замыслы, из которых они собраны.
+`brief_jurassic.json` / `run_jurassic_random.py` — попаданец из XXI в поздней юре,
+seed `150145000`. Прогон на 1000: `python examples/run_jurassic_random.py 1000`.
+На текущем seed смерть на 113-м от усталости, не от зашитого «динозавра».
 
 ---
 

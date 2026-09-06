@@ -1,0 +1,181 @@
+{
+ "turns_done": 113,
+ "ended": {
+  "at_planned_turn": 113,
+  "status": "dead"
+ },
+ "t_h": 49.72,
+ "status": "dead",
+ "site": "Поляна цикадовых",
+ "needs": {
+  "hunger": 29.05,
+  "thirst": 82.07,
+  "fatigue": 100.0,
+  "cold_stress": 0.0,
+  "stress": 18.48
+ },
+ "vitals": {
+  "blood_loss_pct": 0.0,
+  "infection": 0.0,
+  "core_temp_c": 37.0
+ },
+ "envelope": {
+  "ambient_c": 16.4,
+  "windchill_c": 14.4,
+  "pressure_atm": 1.0,
+  "po2_kpa": 21.2,
+  "breathable": 1.0,
+  "wind_ms": 12.0
+ },
+ "climate": {
+  "t_min": 16,
+  "t_max": 34,
+  "sunrise": 5.8,
+  "sunset": 18.6,
+  "note": "пойма поздней юры: дни тяжёлые от пара, ночи ещё терпимы, пока не придёт фронт"
+ },
+ "kinds": {
+  "добыча": 9,
+  "осмотр": 39,
+  "ожидание": 17,
+  "скрытность": 9,
+  "переход": 36,
+  "питьё": 2,
+  "сон": 1
+ },
+ "sites": {
+  "Поляна цикадовых": 27,
+  "Пещера в обрыве": 7,
+  "Гнездо на косе": 27,
+  "Речная отмель": 43,
+  "Туша зауропода": 9
+ },
+ "take": 9,
+ "drink": 2,
+ "fire": 0,
+ "fight": 0,
+ "refused": 0,
+ "clock_events": [
+  {
+   "n": 51,
+   "ev": "[СЧЁТЧИК СРАБОТАЛ] Ливень над поймой: Дождь пропитывает одежду на открытом месте. В пещере ткань сохнет медленно, без очага."
+  },
+  {
+   "n": 74,
+   "ev": "[СЧЁТЧИК СРАБОТАЛ] Шторм с лагуны: Ветер с воды ломает кроны. На отмели и косе без укрытия холод режет сквозь мокрую ткань."
+  }
+ ],
+ "clocks": [
+  {
+   "name": "Шторм с лагуны",
+   "filled": 5,
+   "max": 5,
+   "hidden": false,
+   "fired": true
+  },
+  {
+   "name": "Ночи после фронта",
+   "filled": 4,
+   "max": 6,
+   "hidden": true,
+   "fired": false
+  },
+  {
+   "name": "Ливень над поймой",
+   "filled": 4,
+   "max": 4,
+   "hidden": false,
+   "fired": true
+  },
+  {
+   "name": "Запах падали держит охотника",
+   "filled": 6,
+   "max": 7,
+   "hidden": true,
+   "fired": false
+  }
+ ],
+ "items": [
+  {
+   "name": "наушники",
+   "tags": [
+    "улика"
+   ],
+   "fill": null,
+   "charge_pct": 29,
+   "in": "cnt_01"
+  },
+  {
+   "name": "повербанк",
+   "tags": [
+    "металл",
+    "улика",
+    "энергия"
+   ],
+   "fill": null,
+   "charge_pct": 82,
+   "in": "cnt_01"
+  },
+  {
+   "name": "смартфон",
+   "tags": [
+    "стекло",
+    "улика",
+    "знание",
+    "свет"
+   ],
+   "fill": null,
+   "charge_pct": 83,
+   "in": "cnt_01"
+  },
+  {
+   "name": "часы наручные",
+   "tags": [
+    "время",
+    "измерение"
+   ],
+   "fill": null,
+   "charge_pct": null,
+   "in": "cnt_01"
+  },
+  {
+   "name": "ключи",
+   "tags": [
+    "металл"
+   ],
+   "fill": null,
+   "charge_pct": null,
+   "in": "cnt_01"
+  },
+  {
+   "name": "сухостой у тропы (1)",
+   "tags": [
+    "топливо"
+   ],
+   "fill": 1.0,
+   "charge_pct": null,
+   "in": "cnt_00"
+  },
+  {
+   "name": "светлая вода выше падали (0.5)",
+   "tags": [
+    "вода"
+   ],
+   "fill": 0.0,
+   "charge_pct": null,
+   "in": "cnt_00"
+  }
+ ],
+ "skills": {
+  "athletics": 38,
+  "stealth": 26,
+  "perception": 42,
+  "craft": 22,
+  "medicine": 16,
+  "social": 18,
+  "survival": 22,
+  "combat": 16
+ },
+ "carryover_ctx": "перенесён в момент: бежал кросс",
+ "wounds": []
+}
