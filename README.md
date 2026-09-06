@@ -26,7 +26,7 @@ python selftest.py
 python sim.py selftest
 ```
 
-Ожидается ноль ошибок в `audit.py`, **126/126** в `selftest.py`, **21/21** в `sim.py selftest`, код выхода `0`.
+Ожидается ноль ошибок в `audit.py`, **130/130** в `selftest.py`, **21/21** в `sim.py selftest`, код выхода `0`.
 
 ## Как это устроено
 

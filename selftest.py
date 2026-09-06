@@ -844,6 +844,44 @@ good = "ОТКАЗ" not in (_r.stdout or "")[:80] and _after_h["items"][0]["fill
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'очаг: огонь без зажигалки, дрова тают':<40}fill={_after_h['items'][0].get('fill')}")
 
+good = _eng.resource_tags({"name": "спирт для горелки"}) == ["ресурс"]
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'имя без тега не делает топливо':<40}{_eng.resource_tags({'name': 'спирт для горелки'})}")
+good = _eng.resource_tags({"name": "glow-pits", "tags": ["навоз"]}) == ["навоз"]
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'тег автора, не словарь имён':<40}{_eng.resource_tags({'name': 'glow-pits', 'tags': ['навоз']})}")
+
+_alien = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_alien["ruleset"] = _json.load(open("ruleset.json", encoding="utf-8"))
+_alien["ruleset"]["item_use"]["fuel_tags"] = ["навоз"]
+_alien["ruleset"]["item_use"]["igniter_tags"] = ["искра"]
+_alien["pc"]["needs"] = {k: 0.0 for k in _alien["pc"]["needs"]}
+_alien["profile"]["physics_on"] = []
+_alien["items"] = [
+    {"id": "itm_fuel", "name": "кизяк", "kg": 1.0, "l": 1.0, "qty": 1,
+     "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["навоз"], "fill": 1.0},
+    {"id": "itm_ign", "name": "огниво", "kg": 0.1, "l": 0.1, "qty": 1,
+     "in": "cnt_00", "depth": 0, "condition": 1.0, "tags": ["искра"]},
+]
+_alien["gear"]["hands"]["held"] = ["itm_fuel", "itm_ign"]
+for _s in _alien["world"]["sites_canon"]:
+    _s["hearth"] = False
+_al = os.path.join(TMP, "alien_fire.json")
+_json.dump(_alien, open(_al, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "20", "--fire", "--window", "60"], SIM_STATE=_al)
+_after_a = _json.load(open(_al, encoding="utf-8"))
+good = "ОТКАЗ" not in (_r.stdout or "")[:80] and _after_a["items"][0]["fill"] < 1.0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'чужие теги навоз/искра жгут':<40}fill={_after_a['items'][0].get('fill')}")
+_alien["items"][0]["tags"] = ["топливо"]
+_alien["items"][1]["tags"] = ["огонь"]
+_alien["items"][0]["fill"] = 1.0
+_json.dump(_alien, open(_al, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "20", "--fire", "--window", "60"], SIM_STATE=_al)
+good = "ОТКАЗ" in (_r.stdout or "")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'человеческие теги при чужих правилах — отказ':<40}{'отклонено' if good else 'ПРОПУЩЕНО'}")
+
 _shsite = _env_fixture()
 _here = _shsite["position"]["path"]
 for _s in _shsite["world"]["sites_canon"]:

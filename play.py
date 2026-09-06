@@ -93,7 +93,10 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
  skills (необязательно), conditions (список),
  chain — список узлов [{path,scale,canon,...}] от корня до региона,
  sites — 1-3 площадки [{path,name,z_m,desc_true,exits[{to,mode,travel_min,dz_m,difficulty,gate}],
-   resources,hazards,objects,touched:true}],
+   resources:[{name,amount,tags?}], hazards, objects, shelter?, hearth?, touched:true}].
+   tags ресурса обязательны, если его можно взять и использовать: вода, еда, топливо —
+   или те теги, что в правилах существа (item_use). Имя «спирт» или «дрова» само по себе
+   ничего не значит. shelter:true — помещение (штиль без флага). hearth:true — очаг уже есть.
  npcs — 4-6 [{id,name,path,goal,long_goal,resources,disposition,knows_about_pc:[],alive:true,schedule,faction}],
  factions — 2-4 [{id,name,goal,power,stance_to_pc,relations:{}}],
  clocks — 3-5 [{name,filled,max,period_h,hidden,payoff, on_complete?, fired?}],
@@ -129,8 +132,8 @@ SYS_MECH = """Ты — разборщик намерений для симуля
  water, food  — сколько выпить/съесть из предметов с тегами вода/еда (спишет fill)
             без запаса (fill=0 или нет предмета) движок откажет, нужду не тронет
  sheltered, fire, sleeping — true/false
-            fire=true только если есть топливо (тег топливо) и чем зажечь (тег огонь),
-            либо на площадке уже есть очаг (hearth); спишет fuel_per_h кг/ч
+            fire=true только если в обстановке топливо_с_собой и чем_зажечь (или очаг).
+            Теги горючего и зажигателя — поля обстановки, не угадывай дрова и зажигалку.
             без сознания — только ждать (minutes), без to/check/take/water/food/fire
  window   — секунды доступного времени: схватка 2, падение 2, обвал 5, обычно 60
 
@@ -168,6 +171,9 @@ def scene_context(S):
     avail = sim.available(S, 60)
     res = [{"name": r.get("name"), "есть": (r.get("amount") or 0) > 0}
            for r in (site.get("resources") or [])]
+    iu = sim.rules(S).get("item_use") or {}
+    ign = iu.get("igniter_tags") or []
+    fuel_tags = iu.get("fuel_tags") or []
     return {
         "место": S["position"]["local"],
         "площадка": site.get("name", ""),
@@ -176,7 +182,9 @@ def scene_context(S):
         "ресурсы_площадки": res,
         "под_рукой": [n for n, _ in avail],
         "в_руках": [sim.item_name(S, i) for i in S["gear"]["hands"]["held"]],
-        "чем_зажечь": any("огонь" in (i.get("tags") or []) for i in S.get("items") or []),
+        "теги_зажигателя": ign,
+        "теги_горючего": fuel_tags,
+        "чем_зажечь": sim.has_tags_accessible(S, ign, 60) or bool(site.get("hearth")),
         "топливо_с_собой": sim.fuel_have(S) > 0,
         "очаг": bool(site.get("hearth")),
         "погода": S["time"].get("weather"),

@@ -19,12 +19,19 @@ engine._RULES = None
 
 
 def take_spec(st, tag, amount):
+    if not tag:
+        return None
     for r in st.get("resources") or []:
         if (r.get("amount") or 0) <= 0:
             continue
         if tag in (r.get("tags") or []) or tag in (r.get("name") or "").lower():
             return f"{r['name']}:{amount}"
     return None
+
+
+def fuel_query(S):
+    tags = (engine.rules(S).get("item_use") or {}).get("fuel_tags") or []
+    return tags[0] if tags else None
 
 
 def run_argv(argv):
@@ -121,10 +128,10 @@ def options(S, rng):
     fourth = None
     if wounds and not wounds[0].get("treated"):
         fourth = {"label": "Попытаться перевязать рану", "kind": "лечение", "argv": ["treat", "--supplies", "0"]}
-    elif engine.fuel_have(S) <= 1e-9 and take_spec(st, "топливо", 1):
+    elif engine.fuel_have(S) <= 1e-9 and take_spec(st, fuel_query(S), 1):
         fourth = {"label": "Набрать дров с площадки", "kind": "добыча",
                   "argv": ["act", "--minutes", "10", "--activity", "1",
-                           "--take-resource", take_spec(st, "топливо", 1),
+                           "--take-resource", take_spec(st, fuel_query(S), 1),
                            "--window", "30"] + (["--sheltered"] if indoor else [])}
     elif n.get("cold_stress", 0) >= 25 and engine.can_fire(S, 60):
         fire_rest = ["act", "--minutes", "40", "--activity", "0", "--window", "60", "--fire"]

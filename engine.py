@@ -171,9 +171,7 @@ def resource_tags(res):
     tags = []
     for needle, tag in (("вод", "вода"), ("кипят", "вода"), ("хлеб", "еда"),
                         ("пайк", "еда"), ("еда", "еда"), ("сухар", "еда"),
-                        ("зерн", "еда"), ("дров", "топливо"), ("топлив", "топливо"),
-                        ("спирт", "топливо"), ("керосин", "топливо"), ("мазут", "топливо"),
-                        ("хворост", "топливо"), ("угол", "топливо")):
+                        ("зерн", "еда")):
         if needle in n and tag not in tags:
             tags.append(tag)
     return tags or ["ресурс"]
@@ -394,9 +392,11 @@ def fire_refuse(S, window_s=60):
     if not ft:
         return None
     if fuel_have(S) <= 1e-9:
-        return "ОТКАЗ: нечем кормить огонь — нет запаса с тегом «топливо»."
+        shown = " / ".join(ft) or "горючее"
+        return f"ОТКАЗ: нечем кормить огонь — нет запаса с тегом «{shown}»."
     if not site_of(S).get("hearth") and itags and not has_tags_accessible(S, itags, window_s):
-        return "ОТКАЗ: нечем зажечь — нет предмета с тегом «огонь» в доступе."
+        shown = " / ".join(itags) or "зажигатель"
+        return f"ОТКАЗ: нечем зажечь — нет предмета с тегом «{shown}» в доступе."
     return None
 
 def spend_held_charge(S, hours, log):
