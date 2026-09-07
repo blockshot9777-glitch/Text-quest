@@ -1,0 +1,7 @@
+{
+ "minutes": 15,
+ "activity": 1,
+ "checks": [
+  {"skill": "perception", "difficulty": 20, "label": "осмотр", "adv": 0, "domain": "восприятие"}
+ ]
+}

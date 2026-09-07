@@ -1,0 +1,7 @@
+{
+ "minutes": 10,
+ "activity": 1,
+ "checks": [
+  {"skill": "perception", "difficulty": "high", "label": "осмотр"}
+ ]
+}

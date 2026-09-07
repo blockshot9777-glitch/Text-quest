@@ -1,0 +1,5 @@
+{
+ "minutes": 15,
+ "activity": 1,
+ "checks": ["perception:20:осмотр::восприятие"]
+}

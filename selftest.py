@@ -1537,5 +1537,68 @@ if not good and _r_po.returncode:
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'sim.PHYSICS_ON совпадает с worldgen':<40}{'да' if good else 'нет'}")
 
+print("\n── разбор хода SYS_MECH: схема из S, отказ вместо max(0) ──")
+import play as _play
+_src_pl2 = open(os.path.join(HERE, "play.py"), encoding="utf-8").read()
+good = ("def mech_schema(" in _src_pl2 and "def normalize_intent(" in _src_pl2
+        and "response_format=mech_response_format(S)" in _src_pl2
+        and "max(0, float" not in _src_pl2
+        and "MECH_MINUTES_CEILING" not in _src_pl2
+        and "INTENT_CHECK_KEYS" in _src_pl2)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'схема хода динамическая, clamp снят':<40}{'да' if good else 'нет'}")
+
+_Sh = _json.load(open(os.path.join(HERE, "examples", "rimworld2.json"), encoding="utf-8"))
+_Sm = _json.load(open(os.path.join(HERE, "examples", "mech_state.json"), encoding="utf-8"))
+_sch_h = _play.mech_schema(_Sh)
+_sch_m = _play.mech_schema(_Sm)
+_en_h = _sch_h["properties"]["checks"]["items"]["properties"]["skill"].get("enum") or []
+_en_m = _sch_m["properties"]["checks"]["items"]["properties"]["skill"].get("enum") or []
+good = ("athletics" in _en_h and "сервоприводы" in _en_m
+        and "сервоприводы" not in _en_h and "athletics" not in _en_m
+        and _sch_h["properties"]["checks"]["maxItems"] == 2)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'enum навыков из S, не константа':<40}{'да' if good else 'нет'}")
+
+def _n_ok(path, S, pred):
+    m = _play.normalize_intent(_json.load(open(os.path.join(HERE, "examples", path), encoding="utf-8")), S)
+    return pred(m)
+
+def _n_bad(path, S, needle):
+    try:
+        _play.normalize_intent(_json.load(open(os.path.join(HERE, "examples", path), encoding="utf-8")), S)
+        return False
+    except TypeError:
+        return False
+    except ValueError as e:
+        return needle in str(e)
+
+good = _n_bad("mech_intent_minutes_neg.json", _Sh, "minutes")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'minutes −400 — отказ, не ноль':<40}{'да' if good else 'нет'}")
+
+good = _n_ok("mech_intent_checks_obj.json", _Sh,
+             lambda m: m["checks"][0]["skill"] == "perception"
+             and _play.check_to_cli(m["checks"][0]).startswith("perception:20:осмотр"))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'checks-объект → канон и CLI-строка':<40}{'да' if good else 'нет'}")
+
+good = _n_ok("mech_intent_checks_str.json", _Sh,
+             lambda m: m["checks"][0]["skill"] == "perception"
+             and m["checks"][0]["difficulty"] == 20)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'checks-строка — вторая закрытая форма':<40}{'да' if good else 'нет'}")
+
+good = (_n_bad("mech_intent_skill_unknown.json", _Sm, "athletics")
+        and _n_ok("mech_intent_skill_unknown.json", _Sh,
+                  lambda m: m["checks"][0]["skill"] == "athletics"))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'чужой навык: отказ / свой — приём':<40}{'да' if good else 'нет'}")
+
+good = (_n_bad("mech_intent_diff_string.json", _Sh, "число")
+        and _n_bad("mech_intent_key_synonym.json", _Sh, "навык"))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'high / ключ навык — отказ, не синоним':<40}{'да' if good else 'нет'}")
+
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)

@@ -1,0 +1,7 @@
+{
+ "minutes": 10,
+ "activity": 1,
+ "checks": [
+  {"skill": "athletics", "difficulty": 20, "label": "рывок"}
+ ]
+}

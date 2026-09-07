@@ -149,6 +149,234 @@ def json_from(text):
     return json.loads(t[i:j+1])
 
 
+def _need_number(val, where):
+    if isinstance(val, bool) or not isinstance(val, (int, float)):
+        raise ValueError(f"{where}: нужно число, не {val!r}")
+    return val
+
+
+# Исчерпывающие ключи объекта проверки. навык / rating — отказ, не синоним.
+INTENT_CHECK_KEYS = ("skill", "difficulty", "label", "adv", "domain")
+INTENT_CHECK_REQUIRED = ("skill", "difficulty", "label")
+
+
+def _intent_skills(S):
+    return list((S.get("pc") or {}).get("skills") or {})
+
+
+def _intent_exits(S):
+    site = sim.site_of(S)
+    return [e["to"] for e in sim.site_exits(site)]
+
+
+def _intent_domains(S):
+    return list((sim.rules(S).get("consequences") or {}).keys())
+
+
+def _intent_max_checks(S):
+    return int((sim.rules(S).get("resolution") or {}).get("max_checks_per_turn", 2))
+
+
+def mech_schema(S):
+    """Схема разбора хода из текущего S. Не константа: навыки и выходы разные."""
+    skills = _intent_skills(S)
+    exits = _intent_exits(S)
+    domains = _intent_domains(S)
+    check_item = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": list(INTENT_CHECK_REQUIRED),
+        "properties": {
+            "skill": {"type": "string", "enum": skills} if skills else {"type": "string"},
+            "difficulty": {"type": "number", "minimum": 0, "maximum": 60},
+            "label": {"type": "string"},
+            "adv": {"type": "number", "minimum": 0, "maximum": 25},
+            "domain": {"type": "string", "enum": domains} if domains else {"type": "string"},
+        },
+    }
+    props = {
+        "impossible": {"type": "string"},
+        "minutes": {"type": "number", "minimum": 0},
+        "activity": {"type": "integer", "enum": [0, 1, 2]},
+        "checks": {
+            "type": "array",
+            "maxItems": _intent_max_checks(S),
+            "items": check_item,
+        },
+        "window": {"type": "number", "minimum": 0},
+        "water": {"type": "number", "minimum": 0},
+        "food": {"type": "number", "minimum": 0},
+        "sheltered": {"type": "boolean"},
+        "fire": {"type": "boolean"},
+        "sleeping": {"type": "boolean"},
+        "local": {"type": "string"},
+    }
+    if exits:
+        props["to"] = {"type": "string", "enum": exits}
+    return {"type": "object", "additionalProperties": True, "properties": props}
+
+
+def mech_response_format(S):
+    """response_format для openai/local. Схема собирается из S, не из константы."""
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "turn_intent",
+            "strict": True,
+            "schema": mech_schema(S),
+        },
+    }
+
+
+def _check_from_string(raw, skills, domains):
+    """Одна закрытая сериализация: навык:сложность:метка[:adv][:domain][:lethal]."""
+    parts = raw.split(":")
+    if len(parts) < 3:
+        raise ValueError(
+            "checks: строка «навык:сложность:метка[:adv][:domain][:lethal]», "
+            f"не {raw!r}")
+    extra = parts[6:] if len(parts) > 6 else []
+    if extra:
+        raise ValueError(f"checks: лишние поля в строке {raw!r}")
+    if len(parts) > 5 and parts[5] not in ("", "lethal"):
+        raise ValueError(f"checks: шестое поле только lethal, не {parts[5]!r}")
+    skill = parts[0]
+    if skill not in skills:
+        raise ValueError(f"checks: навыка «{skill}» нет у этого существа")
+    try:
+        diff = json.loads(parts[1])
+    except json.JSONDecodeError:
+        raise ValueError(f"checks «{skill}»: difficulty нужно число, не {parts[1]!r}")
+    diff = _need_number(diff, f"checks «{skill}»: difficulty")
+    if not 0 <= diff <= 60:
+        raise ValueError(f"checks «{skill}»: difficulty {diff} вне 0…60")
+    label = parts[2]
+    adv = 0
+    if len(parts) > 3 and parts[3] != "":
+        try:
+            adv = json.loads(parts[3])
+        except json.JSONDecodeError:
+            raise ValueError(f"checks «{skill}»: adv нужно число, не {parts[3]!r}")
+        adv = _need_number(adv, f"checks «{skill}»: adv")
+        if not 0 <= adv <= 25:
+            raise ValueError(f"checks «{skill}»: adv {adv} вне 0…25")
+    domain = parts[4] if len(parts) > 4 and parts[4] else None
+    if domain is not None and domains and domain not in domains:
+        raise ValueError(f"checks: домен «{domain}» не из consequences")
+    out = {"skill": skill, "difficulty": diff, "label": label, "adv": adv}
+    if domain:
+        out["domain"] = domain
+    if len(parts) > 5 and parts[5] == "lethal":
+        out["lethal"] = True
+    return out
+
+
+def _check_from_object(item, skills, domains):
+    unknown = sorted(set(item) - set(INTENT_CHECK_KEYS))
+    if unknown:
+        raise ValueError(f"checks: неизвестные ключи {unknown}, не {INTENT_CHECK_KEYS}")
+    for k in INTENT_CHECK_REQUIRED:
+        if k not in item:
+            raise ValueError(f"checks: нет поля {k}")
+    skill = item["skill"]
+    if not isinstance(skill, str) or skill not in skills:
+        raise ValueError(f"checks: навыка «{skill}» нет у этого существа")
+    diff = _need_number(item["difficulty"], f"checks «{skill}»: difficulty")
+    if not 0 <= diff <= 60:
+        raise ValueError(f"checks «{skill}»: difficulty {diff} вне 0…60")
+    if not isinstance(item["label"], str):
+        raise ValueError(f"checks «{skill}»: label должна быть строкой")
+    out = {"skill": skill, "difficulty": diff, "label": item["label"]}
+    if "adv" in item:
+        adv = _need_number(item["adv"], f"checks «{skill}»: adv")
+        if not 0 <= adv <= 25:
+            raise ValueError(f"checks «{skill}»: adv {adv} вне 0…25")
+        out["adv"] = adv
+    if "domain" in item:
+        domain = item["domain"]
+        if not isinstance(domain, str):
+            raise ValueError(f"checks «{skill}»: domain должна быть строкой")
+        if domains and domain not in domains:
+            raise ValueError(f"checks: домен «{domain}» не из consequences")
+        out["domain"] = domain
+    return out
+
+
+def normalize_check(item, S):
+    """Канон — объект. Строка «a:b:c» — вторая закрытая форма. Иных нет."""
+    skills = _intent_skills(S)
+    domains = _intent_domains(S)
+    if isinstance(item, str):
+        return _check_from_string(item, skills, domains)
+    if isinstance(item, dict):
+        return _check_from_object(item, skills, domains)
+    raise ValueError(f"checks: объект или строка, не {item!r}")
+
+
+def _cli_num(v):
+    if isinstance(v, float) and v == int(v):
+        return str(int(v))
+    return str(v)
+
+
+def check_to_cli(c):
+    """Объект проверки → argv --check. Движок и split(':') не меняем."""
+    bits = [c["skill"], _cli_num(c["difficulty"]), c.get("label") or "",
+            "" if not c.get("adv") else _cli_num(c["adv"]),
+            c.get("domain") or ""]
+    if c.get("lethal"):
+        bits.append("lethal")
+    return ":".join(bits)
+
+
+def normalize_intent(mech, S):
+    """Форма намерения → канон, или понятный отказ. Не чинит вход молча.
+
+    minutes < 0 — ValueError, не max(0, …): обёртка не отменяет отказ движка.
+    Верх minutes — физика хода, не схема: потолок абсурда не вводится впрок.
+    """
+    if not isinstance(mech, dict):
+        raise ValueError("намерение должно быть объектом JSON")
+    m = json.loads(json.dumps(mech))
+    if m.get("impossible") is not None:
+        if not isinstance(m["impossible"], str):
+            raise ValueError("impossible должен быть строкой")
+        return {"impossible": m["impossible"]}
+    if "minutes" in m:
+        minutes = _need_number(m["minutes"], "minutes")
+        if minutes < 0:
+            raise ValueError(f"minutes: нужно ≥ 0, не {minutes!r}")
+        m["minutes"] = minutes
+    if "activity" in m:
+        act = _need_number(m["activity"], "activity")
+        if act not in (0, 1, 2):
+            raise ValueError(f"activity: 0, 1 или 2, не {act!r}")
+        m["activity"] = int(act)
+    if "window" in m:
+        w = _need_number(m["window"], "window")
+        if w < 0:
+            raise ValueError(f"window: нужно ≥ 0, не {w!r}")
+        m["window"] = w
+    for k in ("water", "food"):
+        if k in m:
+            v = _need_number(m[k], k)
+            if v < 0:
+                raise ValueError(f"{k}: нужно ≥ 0, не {v!r}")
+            m[k] = v
+    if "to" in m and m["to"]:
+        exits = _intent_exits(S)
+        if m["to"] not in exits:
+            raise ValueError(f"to: «{m['to']}» нет среди выходов этой площадки")
+    if "checks" in m:
+        if not isinstance(m["checks"], list):
+            raise ValueError("checks должен быть списком")
+        lim = _intent_max_checks(S)
+        if len(m["checks"]) > lim:
+            raise ValueError(f"checks: {len(m['checks'])} при лимите {lim}")
+        m["checks"] = [normalize_check(c, S) for c in m["checks"]]
+    return m
+
+
 # ─────────────────────────── ПРОМПТЫ ───────────────────────────
 
 SYS_BRIEF = """Ты — генератор миров для безжалостного симулятора выживания.
@@ -211,9 +439,11 @@ SYS_MECH = """Ты — разборщик намерений для симуля
  minutes  — сколько реально займёт действие (осмотреться 2, обыскать 40,
             развести костёр 20, переход — по travel_min выхода, сон 480)
  activity — 0 покой, 1 ходьба/обычное, 2 тяжёлая работа
- checks   — список до ДВУХ строк вида "навык:сложность:метка:преимущество:домен"
-            домены: движение, точная, восприятие, среда, социальное, борьба
-            сложность 0-60, преимущество 0-25 (инструмент, упор, свет)
+ checks   — список до ДВУХ объектов
+            {skill, difficulty, label, adv?, domain?}
+            skill — имя из поля «навыки» обстановки, не выдумка и не «навык»
+            difficulty — число 0-60; adv — число 0-25 (инструмент, упор, свет)
+            domain — из поля «домены» обстановки, не выдуманное слово
             если исход не под вопросом — пустой список
  to       — полный путь площадки, если игрок переходит (только из списка выходов!)
  local    — краткое новое описание позиции, если сместился в пределах площадки
@@ -305,6 +535,7 @@ def scene_context(S):
         "свет": S["time"].get("light"),
         "известные_факты": S["known"].get("facts", [])[-6:],
         "навыки": list(S["pc"]["skills"].keys()),
+        "домены": _intent_domains(S),
     }
 
 
@@ -316,15 +547,19 @@ def play_turn(cfg, intent):
     ctx = scene_context(S)
     mech_raw = llm(cfg, SYS_MECH,
                    "Обстановка:\n" + json.dumps(ctx, ensure_ascii=False, indent=1) +
-                   f"\n\nИгрок хочет: {intent}", temperature=0.15, max_tokens=600)
-    m = json_from(mech_raw)
+                   f"\n\nИгрок хочет: {intent}", temperature=0.15, max_tokens=600,
+                   response_format=mech_response_format(S))
+    try:
+        m = normalize_intent(json_from(mech_raw), S)
+    except ValueError as e:
+        return {"prose": str(e), "options": [], "impossible": True}
     if m.get("impossible"):
         return {"prose": m["impossible"], "options": [], "impossible": True}
 
-    args = ["act", "--minutes", str(max(0, float(m.get("minutes", 5)))),
+    args = ["act", "--minutes", str(m.get("minutes", 5)),
             "--activity", str(int(m.get("activity", 1)))]
-    for c in (m.get("checks") or [])[:2]:
-        args += ["--check", c]
+    for c in (m.get("checks") or []):
+        args += ["--check", check_to_cli(c)]
     if m.get("to"):    args += ["--to", m["to"]]
     if m.get("local"): args += ["--local", m["local"]]
     if m.get("take_resource"):
