@@ -42,7 +42,7 @@ BRIEF_SCHEMA = {
     "properties": {
         "physics_on": {
             "type": "array",
-            "items": {"type": "string", "enum": list(sim.PHYSICS_ON)},
+            "items": {"type": "string", "enum": list(sim.PHYSICS_ON)},  # публичное имя бандла; не переименовывать в сборке
         },
         "skills": {
             "type": "object",
@@ -163,7 +163,10 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
  start_hour (число), weather, ambient_c, wind_ms,
  climate {t_min,t_max,sunrise,sunset,note}, epoch, start_date, seasons,
  needs {hunger,thirst,fatigue,cold_stress,stress} — числа 0..100,
- skills (необязательно), conditions (список),
+ skills — необязательно, объект {имя: число} (athletics, stealth, …).
+   Не список и не строки. Нормализатор ещё принимает список
+   {name, value|level|score} или [{имя: число}]; rating/skill_level — отказ.
+ conditions (список),
  chain — список узлов [{path,scale,canon,...}] от корня до региона,
  sites — 1-3 площадки [{path,name,z_m,desc_true,exits[{to,mode,travel_min,dz_m,difficulty,gate}],
    resources:[{name,amount,tags?}], hazards, objects, structures?, shelter?, hearth?, touched:true}].

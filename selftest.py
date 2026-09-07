@@ -537,6 +537,7 @@ print(f"  {'ok ' if good else 'MISS'} {'worldgen копирует on_complete':<
 
 from worldgen import expand as _wg_expand, validate as _wg_validate
 from worldgen import mass_claim_tol, mass_matches_parts
+from worldgen import normalize_brief as _wg_norm, SKILL_LIST_VALUE_KEYS, _make_item as _wg_make
 
 def _clock_fixture(on_complete=None):
     st = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
@@ -1440,9 +1441,11 @@ print(f"  {'ok ' if good else 'MISS'} {'юра: голод у туши — пр�
 print("\n── замысел Qwen3.5 9B: форма без TypeError, matter без префикса ──")
 _src_wg = open(os.path.join(HERE, "worldgen.py"), encoding="utf-8").read()
 _src_pl = open(os.path.join(HERE, "play.py"), encoding="utf-8").read()
-good = ("def _make_item(" in _src_wg and "matter.make_item" not in _src_wg
+good = ("def _make_item(" in _src_wg and "matter.make_item(" not in _src_wg
+        and "SKILL_LIST_VALUE_KEYS" in _src_wg
         and "BRIEF_SCHEMA" in _src_pl and "response_format" in _src_pl
-        and '"strict": True' in _src_pl)
+        and '"strict": True' in _src_pl
+        and "value|level|score" in _src_pl and "rating" in _src_pl)
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'схема brief и _make_item без matter.':<40}{'да' if good else 'нет'}")
 
@@ -1493,12 +1496,46 @@ _src_sim = open(os.path.join(HERE, "sim.py"), encoding="utf-8").read()
 _r3 = _run(["-c",
     "import json,sim; S=sim.expand(json.load(open('examples/qwen35_9b_structures.json',encoding='utf-8')));"
     "e,_=sim.validate(S); assert not e, e; print('bundle_ok')"])
-good = ("def _make_item(" in _src_sim and "matter.make_item" not in _src_sim
+good = ("def _make_item(" in _src_sim and "matter.make_item(" not in _src_sim
         and _r3.returncode == 0 and "bundle_ok" in (_r3.stdout or ""))
 if not good and _r3.returncode:
     print((_r3.stderr or _r3.stdout or "")[:400])
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'sim.py: structures без NameError matter':<40}{'да' if good else 'нет'}")
+
+good = SKILL_LIST_VALUE_KEYS == ("value", "level", "score")
+try:
+    _nr = _wg_norm({"skills": [{"name": "craft", "rating": 40}]})
+    good = False
+except ValueError as _ve:
+    good = good and "rating" in str(_ve) and "value" in str(_ve)
+except TypeError:
+    good = False
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'rating в skills — отказ, не синоним':<40}{'да' if good else 'нет'}")
+
+import inspect as _insp
+_src_proxy = _insp.getsource(_wg_make)
+_parts_px = [("дерево", "стержень", 180, 8, 8)]
+_a_px = _wg_make("заслон", _parts_px, ["укрытие"], "industrial", None, 1.0)
+_b_px = matter.make_item("заслон", _parts_px, ["укрытие"], "industrial", None, 1.0)
+good = ("getattr" in _src_proxy and "return fn(" in _src_proxy
+        and "check_plausible" not in _src_proxy
+        and "MATERIALS" not in _src_proxy
+        and _a_px["kg"] == _b_px["kg"])
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'_make_item — прокси, не копия тела':<40}{'да' if good else 'нет'}")
+
+from worldgen import PHYSICS_ON as _WG_PO
+_src_bb = open(os.path.join(HERE, "build_bundle.py"), encoding="utf-8").read()
+_r_po = _run(["-c", "import sim; print('|'.join(sim.PHYSICS_ON))"])
+good = ("PHYSICS_ON" in _src_bb and _r_po.returncode == 0
+        and (_r_po.stdout or "").strip() == "|".join(_WG_PO)
+        and "sim.PHYSICS_ON" in _src_pl)
+if not good and _r_po.returncode:
+    print((_r_po.stderr or _r_po.stdout or "")[:300])
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'sim.PHYSICS_ON совпадает с worldgen':<40}{'да' if good else 'нет'}")
 
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)

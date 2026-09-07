@@ -85,6 +85,9 @@ def _bundle_selftest():
     sys.exit(1 if fail else 0)
 """
 
+# Имена верхнего уровня, которые после склейки читает play.py / обёртки.
+# Не переименовывать и не прятать: PHYSICS_ON, make_item, expand, validate.
+# play.py берёт enum physics_on из sim.PHYSICS_ON, не из worldgen.py.
 ORDER = ["matter.py", "edc.py", "society.py", "worldgen.py", "engine.py"]
 
 HEADER = '''#!/usr/bin/env python3

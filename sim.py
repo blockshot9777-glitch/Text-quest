@@ -1329,9 +1329,13 @@ PHYSICS_ON = (
 
 
 def _make_item(*args, **kwargs):
-    """В сборке matter влит в тот же модуль; префикс matter. там NameError."""
-    mod = sys.modules.get("matter") or sys.modules[__name__]
-    fn = getattr(mod, "make_item", None)
+    """Прокси: getattr + вызов. Тела make_item из matter.py здесь нет.
+
+    Смена сигнатуры правится в matter.py; эта обёртка только ищет имя
+    в модуле matter или в бандле (sys.modules[__name__]).
+    """
+    m = sys.modules.get("matter") or sys.modules[__name__]
+    fn = getattr(m, "make_item", None)
     if fn is None:
         raise RuntimeError("make_item недоступен: нужен matter.py или сборка")
     return fn(*args, **kwargs)
@@ -1487,8 +1491,41 @@ def _need_number(val, where):
     return val
 
 
+# Исчерпывающий список на момент написания. rating / skill_level / pts — отказ,
+# не четвёртый синоним «заодно». Канон для модели — объект {имя: число}.
+SKILL_LIST_VALUE_KEYS = ("value", "level", "score")
+
+
+def _skill_from_list_item(item):
+    """Один элемент skills-списка → (имя, число) или ValueError."""
+    if not isinstance(item, dict):
+        raise ValueError("skills: элемент списка должен быть объектом")
+    if "name" in item:
+        name = str(item["name"])
+        for k in SKILL_LIST_VALUE_KEYS:
+            if k in item:
+                return name, _need_number(item[k], f"навык «{name}»")
+        extra = sorted(set(item) - {"name"})
+        raise ValueError(
+            f"навык «{name}»: нужно одно из {SKILL_LIST_VALUE_KEYS}, не {extra}")
+    if len(item) == 1:
+        k, v = next(iter(item.items()))
+        return str(k), _need_number(v, f"навык «{k}»")
+    raise ValueError(
+        "skills — объект {имя: число} или список "
+        "{name + value|level|score} / одноключевой {имя: число}")
+
+
 def normalize_brief(brief):
-    """Кривые формы модели → схема, или понятный отказ. Не словарь «high»→число."""
+    """Форма замысла → канон, или понятный отказ. Не словарь «high»→число.
+
+    Принимаемые формы skills (исчерпывающий список, не «ещё один синоним»):
+      1. объект {имя: число} — канон, то же что BRIEF_SCHEMA / SYS_BRIEF;
+      2. список {name, value|level|score} — ключ числа только из
+         SKILL_LIST_VALUE_KEYS;
+      3. список одноключевых объектов [{athletics: 38}, ...].
+    Всё иное (rating, skill_level, строка вместо числа) — ValueError.
+    """
     if not isinstance(brief, dict):
         raise ValueError("замысел должен быть объектом JSON")
     b = json.loads(json.dumps(brief))
@@ -1505,14 +1542,8 @@ def normalize_brief(brief):
     if isinstance(sk, list):
         d = {}
         for item in sk:
-            if isinstance(item, dict) and "name" in item:
-                raw = item.get("value", item.get("level", item.get("score")))
-                d[str(item["name"])] = _need_number(raw, f"навык «{item['name']}»")
-            elif isinstance(item, dict) and len(item) == 1:
-                k, v = next(iter(item.items()))
-                d[str(k)] = _need_number(v, f"навык «{k}»")
-            else:
-                raise ValueError("skills — объект {имя: число}, не список без name/value")
+            name, val = _skill_from_list_item(item)
+            d[name] = val
         b["skills"] = d
     elif isinstance(sk, dict):
         for k, v in sk.items():
