@@ -1583,6 +1583,21 @@ def expand(brief):
     S["_gen_notes"] = _rand_notes
     return S
 
+# Порог заявленной массы конструкции vs части: 50 г или 5%, что больше.
+# Именован, чтобы тест бил по границе, а не по «2 кг вместо тонн».
+MASS_ABS_TOL_KG = 0.05
+MASS_REL_TOL = 0.05
+
+
+def mass_claim_tol(computed_kg):
+    return max(MASS_ABS_TOL_KG, MASS_REL_TOL * float(computed_kg))
+
+
+def mass_matches_parts(claimed_kg, computed_kg):
+    """Заявленный kg сходится с make_item по частям."""
+    return abs(float(claimed_kg) - float(computed_kg)) <= mass_claim_tol(computed_kg)
+
+
 # ─────────── ВАЛИДАТОР ───────────
 def validate(S):
     err, warn = [], []
@@ -1661,7 +1676,7 @@ def validate(S):
             except (KeyError, ValueError) as e:
                 err.append(f"{s['name']}: конструкция «{stc.get('name')}»: {e}")
                 continue
-            if "kg" in stc and abs(float(stc["kg"]) - it["kg"]) > max(0.05, 0.05 * it["kg"]):
+            if "kg" in stc and not mass_matches_parts(stc["kg"], it["kg"]):
                 err.append(f"{s['name']}: «{stc['name']}»: заявленная масса "
                            f"{stc['kg']} кг не сходится с частями ({it['kg']} кг)")
             oc = stc.get("on_break")
@@ -2653,7 +2668,11 @@ def break_refuse(S, name, minutes):
 
 
 def apply_break(S, name, log):
-    """Снять конструкцию и слить on_break в состояние. Укрытие/очаг пересчитаются в том же тике."""
+    """Снять конструкцию целиком. Роль (укрытие/очаг) висит на тегах
+    конструкции, не на «крыше» или «стене». Одну часть из трёх снять
+    нельзя — такой команды нет. on_break сливается в состояние; укрытие
+    пересчитается в том же тике.
+    """
     st = site_of(S)
     struct, _ = find_structure(st, name)
     st["structures"] = [s for s in structures_of(st) if s is not struct]
@@ -2671,6 +2690,7 @@ def apply_break(S, name, log):
 
 
 def site_kept_after_compact(st, here, neigh):
+    """Площадку с player_made не выбрасывать. Повторный compact не снимает флаг."""
     if st.get("touched") or st.get("path") == here or st.get("path") in neigh:
         return True
     return any(s.get("player_made") for s in structures_of(st))

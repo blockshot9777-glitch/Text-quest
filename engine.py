@@ -813,7 +813,11 @@ def break_refuse(S, name, minutes):
 
 
 def apply_break(S, name, log):
-    """Снять конструкцию и слить on_break в состояние. Укрытие/очаг пересчитаются в том же тике."""
+    """Снять конструкцию целиком. Роль (укрытие/очаг) висит на тегах
+    конструкции, не на «крыше» или «стене». Одну часть из трёх снять
+    нельзя — такой команды нет. on_break сливается в состояние; укрытие
+    пересчитается в том же тике.
+    """
     st = site_of(S)
     struct, _ = find_structure(st, name)
     st["structures"] = [s for s in structures_of(st) if s is not struct]
@@ -831,6 +835,7 @@ def apply_break(S, name, log):
 
 
 def site_kept_after_compact(st, here, neigh):
+    """Площадку с player_made не выбрасывать. Повторный compact не снимает флаг."""
     if st.get("touched") or st.get("path") == here or st.get("path") in neigh:
         return True
     return any(s.get("player_made") for s in structures_of(st))

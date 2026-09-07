@@ -536,6 +536,7 @@ ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'worldgen копирует on_complete':<40}{'да' if good else 'нет'}")
 
 from worldgen import expand as _wg_expand, validate as _wg_validate
+from worldgen import mass_claim_tol, mass_matches_parts
 
 def _clock_fixture(on_complete=None):
     st = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
@@ -1222,6 +1223,107 @@ _e_mass, _ = _wg_validate(_badc)
 good = any("масс" in e for e in _e_mass)
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'validate ловит массу не от частей':<40}{'да' if good else 'нет'}")
+
+print("\n── стройка: три части, порог массы, compact×3 ──")
+_src_b = open(os.path.join(HERE, "engine.py"), encoding="utf-8").read()
+_src_w = open(os.path.join(HERE, "worldgen.py"), encoding="utf-8").read()
+good = ("целиком" in _src_b and "Одну часть из трёх" in _src_b
+        and "def mass_matches_parts(" in _src_w
+        and "--break-part" not in _src_b)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'разбор — вся конструкция, не часть':<40}{'да' if good else 'нет'}")
+
+_trip = _build_state()[0]
+_ht = next(s for s in _trip["world"]["sites_canon"] if s["path"] == _trip["position"]["path"])
+_3parts = [["дерево", "стержень", 180, 8, 8],
+           ["дерево", "пластина", 140, 70, 3],
+           ["дерево", "стержень", 160, 10, 10]]
+_it3 = matter.make_item("навес", _3parts, ["укрытие"], "primitive", None, 1.0)
+_ht["structures"] = [{"id": "str_3", "name": "навес", "parts": _3parts,
+                      "tags": ["укрытие"], "player_made": True,
+                      "kg": _it3["kg"], "l": _it3["l"]}]
+_ht["objects"] = []
+good = _eng.is_sheltered(_trip)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'три части с тегом — укрытие':<40}{'да' if good else 'нет'}")
+
+_mid = os.path.join(TMP, "break_3.json")
+_json.dump(_trip, open(_mid, "w", encoding="utf-8"), ensure_ascii=False)
+_r = _run(["engine.py", "act", "--minutes", "200", "--activity", "2", "--break", "навес"],
+          SIM_STATE=_mid)
+_after3 = _json.load(open(_mid, encoding="utf-8"))
+_ah3 = next(s for s in _after3["world"]["sites_canon"] if s["path"] == _after3["position"]["path"])
+good = ("ОТКАЗ" not in (_r.stdout or "")[:80]
+        and not (_ah3.get("structures") or [])
+        and not _eng.is_sheltered(_after3))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'--break трёх частей снимает роль сразу':<40}"
+      f"{'да' if good else (_r.stdout or '')[:60]}")
+
+_roof = _json.loads(_json.dumps(_trip))
+_hr = next(s for s in _roof["world"]["sites_canon"] if s["path"] == _roof["position"]["path"])
+_hr["structures"][0]["parts"] = [_3parts[0], _3parts[2]]
+_it2 = matter.make_item("навес", _hr["structures"][0]["parts"], ["укрытие"],
+                        "primitive", None, 1.0)
+_hr["structures"][0]["kg"] = _it2["kg"]
+_hr["structures"][0]["l"] = _it2["l"]
+_e_roof, _ = _wg_validate(_roof)
+good = (not any("масс" in e for e in _e_roof) and _eng.is_sheltered(_roof))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'снял среднюю в данных — роль на тегах':<40}"
+      f"{'укрытие' if good else 'нет'}")
+
+_parts_w = [["камень", "пластина", 200, 200, 40]]
+_itw = matter.make_item("стена", _parts_w, ["укрытие"], "primitive", None, 1.0)
+_tol = mass_claim_tol(_itw["kg"])
+_edge_ok = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_se = next(s for s in _edge_ok["world"]["sites_canon"] if s["path"] == _edge_ok["position"]["path"])
+_se["structures"] = [{"name": "стена", "parts": _parts_w, "kg": _itw["kg"] + _tol,
+                      "tags": ["укрытие"]}]
+_e_ok, _ = _wg_validate(_edge_ok)
+_edge_bad = _json.loads(_json.dumps(_edge_ok))
+_sb = next(s for s in _edge_bad["world"]["sites_canon"] if s["path"] == _edge_bad["position"]["path"])
+_sb["structures"][0]["kg"] = _itw["kg"] + _tol + 0.01
+_e_bad2, _ = _wg_validate(_edge_bad)
+good = (not any("масс" in e for e in _e_ok) and any("масс" in e for e in _e_bad2)
+        and mass_matches_parts(_itw["kg"] + _tol, _itw["kg"])
+        and not mass_matches_parts(_itw["kg"] + _tol + 0.01, _itw["kg"]))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'порог массы: внутри проходит, снаружи нет':<40}"
+      f"tol={_tol:.3f} кг")
+
+_stick = [["дерево", "стержень", 20, 2, 2]]
+_its = matter.make_item("кол", _stick, [], "primitive", None, 1.0)
+_tol_s = mass_claim_tol(_its["kg"])
+good = abs(_tol_s - 0.05) < 1e-12 and _its["kg"] < 1.0
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'малая масса — пол 50 г, не 5%':<40}"
+      f"kg={_its['kg']} tol={_tol_s}")
+
+_cmpn = os.path.join(TMP, "comp_n.json")
+_sn = _json.load(open("examples/rimworld2.json", encoding="utf-8"))
+_sn["log"] = [{"turn": i, "fact": f"событие {i}"} for i in range(80)]
+_far_pm = {"path": "x/built_stay", "name": "стойка", "z_m": 0, "desc_true": "",
+           "exits": [], "resources": [], "hazards": [], "objects": [], "touched": False,
+           "structures": [{"id": "str_stay", "name": "заслон", "parts": _3parts,
+                           "tags": ["укрытие"], "player_made": True,
+                           "kg": _it3["kg"], "l": _it3["l"]}]}
+_far_junk = {"path": "x/junk_gone", "name": "пустошь", "z_m": 0, "desc_true": "",
+             "exits": [], "resources": [], "hazards": [], "objects": [], "touched": False}
+_sn["world"]["sites_canon"] += [_far_pm, _far_junk]
+_json.dump(_sn, open(_cmpn, "w", encoding="utf-8"), ensure_ascii=False)
+for _i in range(3):
+    _r = _run(["engine.py", "compact", "--keep", "40"], SIM_STATE=_cmpn)
+_cn = _json.load(open(_cmpn, encoding="utf-8"))
+_paths = {s["path"] for s in _cn["world"]["sites_canon"]}
+_kept = next(s for s in _cn["world"]["sites_canon"] if s["path"] == "x/built_stay")
+good = ("x/built_stay" in _paths and "x/junk_gone" not in _paths
+        and (_kept.get("structures") or [])[0].get("player_made") is True
+        and (_kept["structures"][0].get("tags") or []) == ["укрытие"]
+        and len(_kept["structures"][0].get("parts") or []) == 3)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'player_made живёт три compact подряд':<40}"
+      f"{'да' if good else 'нет'}")
 
 print("\n── take наполняет тару по тегу, не создаёт вторую порцию ──")
 good = ("def fillable_items(" in _src4 and "def take_plan(" in _src4

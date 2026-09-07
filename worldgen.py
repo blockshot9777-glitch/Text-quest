@@ -275,6 +275,21 @@ def expand(brief):
     S["_gen_notes"] = _rand_notes
     return S
 
+# Порог заявленной массы конструкции vs части: 50 г или 5%, что больше.
+# Именован, чтобы тест бил по границе, а не по «2 кг вместо тонн».
+MASS_ABS_TOL_KG = 0.05
+MASS_REL_TOL = 0.05
+
+
+def mass_claim_tol(computed_kg):
+    return max(MASS_ABS_TOL_KG, MASS_REL_TOL * float(computed_kg))
+
+
+def mass_matches_parts(claimed_kg, computed_kg):
+    """Заявленный kg сходится с make_item по частям."""
+    return abs(float(claimed_kg) - float(computed_kg)) <= mass_claim_tol(computed_kg)
+
+
 # ─────────── ВАЛИДАТОР ───────────
 def validate(S):
     err, warn = [], []
@@ -353,7 +368,7 @@ def validate(S):
             except (KeyError, ValueError) as e:
                 err.append(f"{s['name']}: конструкция «{stc.get('name')}»: {e}")
                 continue
-            if "kg" in stc and abs(float(stc["kg"]) - it["kg"]) > max(0.05, 0.05 * it["kg"]):
+            if "kg" in stc and not mass_matches_parts(stc["kg"], it["kg"]):
                 err.append(f"{s['name']}: «{stc['name']}»: заявленная масса "
                            f"{stc['kg']} кг не сходится с частями ({it['kg']} кг)")
             oc = stc.get("on_break")
