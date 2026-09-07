@@ -1320,6 +1320,22 @@ def society_step(S, log, hours, R):
 """Генератор и валидатор состояний мира. Убирает ручной JSON и ловит ошибки схемы."""
 
 
+# Подсистемы, которые замысел имеет право включить. Строка вне списка — отказ, не синоним.
+PHYSICS_ON = (
+    "холод", "жара", "голод", "жажда", "сон", "раны", "болезни", "гипоксия",
+    "давление", "радиация", "вакуум", "углекислота", "невесомость", "нагрузка",
+    "погода",
+)
+
+
+def _make_item(*args, **kwargs):
+    """В сборке matter влит в тот же модуль; префикс matter. там NameError."""
+    mod = sys.modules.get("matter") or sys.modules[__name__]
+    fn = getattr(mod, "make_item", None)
+    if fn is None:
+        raise RuntimeError("make_item недоступен: нужен matter.py или сборка")
+    return fn(*args, **kwargs)
+
 # ─────────── БИБЛИОТЕКА ПРЕДМЕТОВ: кг, литры, теги ───────────
 ERA_RANK = {"primitive":0,"preindustrial":1,"industrial":2,"spacefaring":3,
             "interstellar":4,"modern_carryover":99}
@@ -1464,9 +1480,72 @@ def random_loadout(seed, tech_ceiling, spec, carryover_modern=False):
             notes.append(f"не поместилось никуда, не взято: {name}")
     return containers, placement, worn, notes
 
+
+def _need_number(val, where):
+    if isinstance(val, bool) or not isinstance(val, (int, float)):
+        raise ValueError(f"{where}: нужно число, не {val!r}")
+    return val
+
+
+def normalize_brief(brief):
+    """Кривые формы модели → схема, или понятный отказ. Не словарь «high»→число."""
+    if not isinstance(brief, dict):
+        raise ValueError("замысел должен быть объектом JSON")
+    b = json.loads(json.dumps(brief))
+    po = b.get("physics_on")
+    if po is not None:
+        if not isinstance(po, list):
+            raise ValueError("physics_on должен быть списком строк")
+        for x in po:
+            if not isinstance(x, str):
+                raise ValueError(f"physics_on: элемент {x!r} не строка")
+            if x not in PHYSICS_ON:
+                raise ValueError(f"physics_on: неизвестно «{x}»")
+    sk = b.get("skills")
+    if isinstance(sk, list):
+        d = {}
+        for item in sk:
+            if isinstance(item, dict) and "name" in item:
+                raw = item.get("value", item.get("level", item.get("score")))
+                d[str(item["name"])] = _need_number(raw, f"навык «{item['name']}»")
+            elif isinstance(item, dict) and len(item) == 1:
+                k, v = next(iter(item.items()))
+                d[str(k)] = _need_number(v, f"навык «{k}»")
+            else:
+                raise ValueError("skills — объект {имя: число}, не список без name/value")
+        b["skills"] = d
+    elif isinstance(sk, dict):
+        for k, v in sk.items():
+            _need_number(v, f"навык «{k}»")
+    elif sk is not None:
+        raise ValueError("skills должен быть объектом {имя: число}")
+    for site in b.get("sites") or []:
+        name = site.get("name") or site.get("path") or "площадка"
+        for e in site.get("exits") or []:
+            if "difficulty" in e:
+                _need_number(e["difficulty"], f"{name}: difficulty выхода")
+    for n in b.get("npcs") or []:
+        if "disposition" in n:
+            v = _need_number(n["disposition"], f"NPC «{n.get('name', '?')}»: disposition")
+            if not -100 <= v <= 100:
+                raise ValueError(f"NPC «{n.get('name', '?')}»: disposition {v} вне −100…100")
+    for f in b.get("factions") or []:
+        if "power" in f:
+            _need_number(f["power"], f"фракция «{f.get('name', '?')}»: power")
+        if "disposition" in f:
+            v = _need_number(f["disposition"], f"фракция «{f.get('name', '?')}»: disposition")
+            if not -100 <= v <= 100:
+                raise ValueError(f"фракция «{f.get('name', '?')}»: disposition {v} вне −100…100")
+        if "stance_to_pc" in f:
+            v = _need_number(f["stance_to_pc"], f"фракция «{f.get('name', '?')}»: stance_to_pc")
+            if not -100 <= v <= 100:
+                raise ValueError(f"фракция «{f.get('name', '?')}»: stance_to_pc {v} вне −100…100")
+    return b
+
+
 def expand(brief):
     """Разворачивает краткий замысел в полное состояние по схеме."""
-    b = brief
+    b = normalize_brief(brief)
     S = {
      "meta": {"seed": b["seed"], "turn": 0, "setting": b["setting"],
               "tech_ceiling": b.get("tech_ceiling","preindustrial"), "tone":"безжалостный реализм"},
@@ -1654,10 +1733,12 @@ def validate(S):
                 err.append(f"{s['name']}: objects[{i}] — строка или объект с name")
                 continue
             parts = o.get("parts")
-            if parts and matter is not None:
+            if parts:
                 try:
-                    matter.make_item(o["name"], parts, o.get("tags") or [], tech,
-                                     None, 1.0)
+                    _make_item(o["name"], parts, o.get("tags") or [], tech,
+                               None, 1.0)
+                except RuntimeError:
+                    pass
                 except (KeyError, ValueError) as e:
                     err.append(f"{s['name']}: объект «{o['name']}»: {e}")
         for i, stc in enumerate(s.get("structures") or []):
@@ -1668,11 +1749,11 @@ def validate(S):
                 warn.append(f"{s['name']}: «{stc.get('name')}» без частей — "
                             f"не ломается и не достраивается")
                 continue
-            if matter is None:
-                continue
             try:
-                it = matter.make_item(stc["name"], parts, stc.get("tags") or [],
-                                      tech, None, 1.0)
+                it = _make_item(stc["name"], parts, stc.get("tags") or [],
+                                tech, None, 1.0)
+            except RuntimeError:
+                continue
             except (KeyError, ValueError) as e:
                 err.append(f"{s['name']}: конструкция «{stc.get('name')}»: {e}")
                 continue

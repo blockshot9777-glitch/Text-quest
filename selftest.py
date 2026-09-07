@@ -1437,5 +1437,68 @@ good = ("RISK_APPROACH_HOSTILE = False" in _jura_h
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'юра: голод у туши — предел стратегии':<40}{'да' if good else 'нет'}")
 
+print("\n── замысел Qwen3.5 9B: форма без TypeError, matter без префикса ──")
+_src_wg = open(os.path.join(HERE, "worldgen.py"), encoding="utf-8").read()
+_src_pl = open(os.path.join(HERE, "play.py"), encoding="utf-8").read()
+good = ("def _make_item(" in _src_wg and "matter.make_item" not in _src_wg
+        and "BRIEF_SCHEMA" in _src_pl and "response_format" in _src_pl
+        and '"strict": True' in _src_pl)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'схема brief и _make_item без matter.':<40}{'да' if good else 'нет'}")
+
+_q1 = _json.load(open(os.path.join(HERE, "examples", "qwen35_9b_skills_list.json"), encoding="utf-8"))
+try:
+    _S1 = _wg_expand(_q1)
+    _e1, _ = _wg_validate(_S1)
+    good = isinstance(_S1["pc"]["skills"], dict) and _S1["pc"]["skills"].get("survival") == 45
+    good = good and _S1["pc"]["skills"].get("craft") == 50 and _S1["pc"]["skills"].get("medicine") == 25
+except TypeError as _te:
+    good = False
+    print(f"  TypeError на skills-list: {_te}")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'список skills нормализуется в словарь':<40}{'да' if good else 'нет'}")
+
+_q2 = _json.load(open(os.path.join(HERE, "examples", "qwen35_9b_string_stats.json"), encoding="utf-8"))
+_err2 = None
+try:
+    _wg_expand(_q2)
+    good = False
+except TypeError as _te:
+    _err2 = f"TypeError: {_te}"
+    good = False
+except ValueError as _ve:
+    _err2 = str(_ve)
+    good = "число" in _err2 and "high" in _err2
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'строки high/hostile — понятный отказ':<40}{_err2}")
+
+_q3 = _json.load(open(os.path.join(HERE, "examples", "qwen35_9b_structures.json"), encoding="utf-8"))
+try:
+    _S3 = _wg_expand(_q3)
+    _e3, _ = _wg_validate(_S3)
+    _site3 = next(s for s in _S3["world"]["sites_canon"] if s["path"] == _S3["position"]["path"])
+    good = any(st.get("name") == "заслон" for st in (_site3.get("structures") or []))
+    good = good and not any("NameError" in str(x) for x in _e3)
+except TypeError as _te:
+    good = False
+    print(f"  TypeError на structures: {_te}")
+except NameError as _ne:
+    good = False
+    print(f"  NameError на structures: {_ne}")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'structures: expand/validate без TypeError':<40}{'да' if good else 'нет'}")
+
+# чистый процесс: в sim.py нет модуля matter — префикс matter. даёт NameError
+_src_sim = open(os.path.join(HERE, "sim.py"), encoding="utf-8").read()
+_r3 = _run(["-c",
+    "import json,sim; S=sim.expand(json.load(open('examples/qwen35_9b_structures.json',encoding='utf-8')));"
+    "e,_=sim.validate(S); assert not e, e; print('bundle_ok')"])
+good = ("def _make_item(" in _src_sim and "matter.make_item" not in _src_sim
+        and _r3.returncode == 0 and "bundle_ok" in (_r3.stdout or ""))
+if not good and _r3.returncode:
+    print((_r3.stderr or _r3.stdout or "")[:400])
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'sim.py: structures без NameError matter':<40}{'да' if good else 'нет'}")
+
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)

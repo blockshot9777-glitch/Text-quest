@@ -1,0 +1,58 @@
+{
+ "seed": 3509003,
+ "setting": "Qwen3.5 9B, живой прогон: в замысле есть structures с parts — путь matter.make_item.",
+ "tech_ceiling": "industrial",
+ "ladder": ["мир", "хребет", "станция", "помещение"],
+ "ladder_root": "gory",
+ "physics_on": ["холод", "голод", "жажда", "сон", "раны", "гипоксия", "нагрузка", "погода"],
+ "start_path": "gory/hrebet/stanciya/apparatnaya",
+ "start_local": "у остывшей печи",
+ "start_z": 2400,
+ "start_hour": 15.5,
+ "weather": "низовая метель",
+ "ambient_c": -14,
+ "wind_ms": 12,
+ "climate": {"t_min": -22, "t_max": -8, "sunrise": 8.2, "sunset": 16.4, "note": "поздняя осень"},
+ "epoch": "конец октября",
+ "start_date": "1979-10-28",
+ "seasons": ["осень"],
+ "needs": {"hunger": 25, "thirst": 30, "fatigue": 55, "cold_stress": 38, "stress": 50},
+ "skills": {"survival": 45, "craft": 50, "medicine": 25},
+ "chain": [
+  {"path": "gory", "scale": "мир", "laws": "обычная физика", "canon": "Горный хребет."}
+ ],
+ "sites": [
+  {
+   "path": "gory/hrebet/stanciya/apparatnaya",
+   "name": "Аппаратная",
+   "z_m": 2400,
+   "desc_true": "Печь остыла. У стены сложен заслон из жердей.",
+   "exits": [{"to": "gory/hrebet/tropa", "mode": "пешком", "travel_min": 35, "dz_m": -180, "difficulty": 40, "gate": "обвал"}],
+   "resources": [],
+   "hazards": [],
+   "objects": [
+    {"name": "жерди у печи", "parts": [["дерево", "стержень", 180, 8, 8], ["дерево", "пластина", 140, 70, 3]]}
+   ],
+   "structures": [
+    {
+     "name": "заслон",
+     "parts": [["дерево", "стержень", 180, 8, 8], ["дерево", "пластина", 140, 70, 3]],
+     "tags": ["укрытие"],
+     "player_made": false
+    }
+   ],
+   "touched": true
+  }
+ ],
+ "npcs": [
+  {"id": "npc_01", "name": "Сергеев", "path": "gory/hrebet/stanciya/apparatnaya",
+   "goal": "дождаться вертолёта", "long_goal": "молчать", "resources": ["ключи"],
+   "disposition": -20, "knows_about_pc": [], "alive": true, "schedule": "на складе"}
+ ],
+ "factions": [
+  {"id": "fac_01", "name": "зимовщики", "goal": "дотянуть до весны", "power": 40, "stance_to_pc": -10, "relations": {}}
+ ],
+ "clocks": [],
+ "truths": ["Топлива мало."],
+ "opening_fact": "В замысле постройка с частями."
+}

@@ -24,6 +24,9 @@ python3 play.py
 
 Мир, люди, фракции, счётчики и снаряжение сгенерируются, пройдут валидацию,
 и начнётся партия. Дальше — жать варианты или писать своё действие.
+У OpenAI и LM Studio генерация замысла идёт со structured output
+(`response_format` + JSON Schema): `skills` — объект чисел, не список;
+`difficulty`/`power`/`disposition` — числа. Схема не заменяет `validate()`.
 
 ## Провайдеры
 

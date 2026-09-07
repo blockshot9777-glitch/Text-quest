@@ -34,7 +34,78 @@ PROVIDERS = {
 }
 
 
-def llm(cfg, system, user, temperature=0.2, max_tokens=1400):
+# JSON Schema замысла: ловит те формы, на которых Qwen3.5 9B сжигал 3 попытки.
+# LM Studio /v1/chat/completions требует name + strict внутри json_schema.
+BRIEF_SCHEMA = {
+    "type": "object",
+    "additionalProperties": True,
+    "properties": {
+        "physics_on": {
+            "type": "array",
+            "items": {"type": "string", "enum": list(sim.PHYSICS_ON)},
+        },
+        "skills": {
+            "type": "object",
+            "additionalProperties": {"type": "number"},
+        },
+        "sites": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": True,
+                "properties": {
+                    "exits": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "additionalProperties": True,
+                            "properties": {
+                                "difficulty": {"type": "number"},
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        "npcs": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": True,
+                "properties": {
+                    "disposition": {"type": "number", "minimum": -100, "maximum": 100},
+                },
+            },
+        },
+        "factions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": True,
+                "properties": {
+                    "power": {"type": "number"},
+                    "disposition": {"type": "number", "minimum": -100, "maximum": 100},
+                    "stance_to_pc": {"type": "number", "minimum": -100, "maximum": 100},
+                },
+            },
+        },
+    },
+}
+
+
+def brief_response_format():
+    """response_format для OpenAI-совместимых (LM Studio). strict — требование сервера."""
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "world_brief",
+            "strict": True,
+            "schema": BRIEF_SCHEMA,
+        },
+    }
+
+
+def llm(cfg, system, user, temperature=0.2, max_tokens=1400, response_format=None):
     """Единый вызов для всех провайдеров. Возвращает строку ответа."""
     prov = cfg.get("provider", "ollama")
     url = cfg.get("url") or PROVIDERS[prov]["url"]
@@ -55,6 +126,8 @@ def llm(cfg, system, user, temperature=0.2, max_tokens=1400):
         body = {"model": model, "temperature": temperature, "max_tokens": max_tokens,
                 "messages": [{"role": "system", "content": system},
                              {"role": "user", "content": user}]}
+        if response_format:
+            body["response_format"] = response_format
 
     req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"),
                                  headers=headers, method="POST")
@@ -324,7 +397,8 @@ def new_game(cfg, scenario):
         raw = llm(cfg, SYS_BRIEF,
                   f"Вводная игрока: {scenario}\nseed = {int(time.time()) % 10**7}" +
                   (f"\n\nПрошлая попытка не прошла проверку:\n{errors}\nИсправь." if errors else ""),
-                  temperature=0.7, max_tokens=4000)
+                  temperature=0.7, max_tokens=4000,
+                  response_format=brief_response_format())
         try:
             brief = json_from(raw)
             S = sim.expand(brief)
