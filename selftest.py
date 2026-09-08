@@ -1608,8 +1608,11 @@ good = (_sch_b.get("additionalProperties") is True
         and _sch_b["properties"]["start_local"]["type"] == "string"
         and _sch_b["properties"]["chain"]["type"] == "array"
         and _sch_b["properties"]["sites"]["items"].get("required") == list(_play.SITE_REQUIRED)
+        and _sch_b["properties"]["sites"]["items"]["properties"]["exits"]["items"].get("required") == list(_play.EXIT_REQUIRED)
+        and _sch_b["properties"]["clocks"]["items"].get("required") == list(_play.CLOCK_REQUIRED)
         and _sch_b["properties"]["npcs"]["items"].get("required") == list(_play.NPC_REQUIRED)
         and _sch_b["properties"]["factions"]["items"].get("required") == list(_play.FACTION_REQUIRED)
+        and "exits, не exits_list" in _src_pl2
         and "Поле в твоём ответе называется sites, не sites_canon" in _src_pl2
         and "format_brief_error" in _src_pl2
         and "str(e)[:500]" not in _src_pl2)
@@ -1648,21 +1651,21 @@ ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'NPC без id — дыра элемента массива':<40}{'да' if good else 'нет'}")
 
 import ast, inspect, textwrap
-def _expand_b_keys(fn):
-    """Ключи b[\"x\"] в expand: чтения vs записи. Не .get()."""
+def _sub_keys(fn, var):
+    """Ключи var[\"x\"] в функции: чтения vs записи. Не .get()."""
     tree = ast.parse(textwrap.dedent(inspect.getsource(fn)))
     reads, writes = set(), set()
     class V(ast.NodeVisitor):
         def visit_Assign(self, node):
             for t in node.targets:
-                k = self._b_key(t)
+                k = self._key(t)
                 if k is not None:
                     writes.add(k)
                 else:
                     self.visit(t)
             self.visit(node.value)
         def visit_AnnAssign(self, node):
-            k = self._b_key(node.target)
+            k = self._key(node.target)
             if k is not None:
                 writes.add(k)
             elif node.target:
@@ -1670,21 +1673,21 @@ def _expand_b_keys(fn):
             if node.value:
                 self.visit(node.value)
         def visit_AugAssign(self, node):
-            k = self._b_key(node.target)
+            k = self._key(node.target)
             if k is not None:
                 writes.add(k)
             else:
                 self.visit(node.target)
             self.visit(node.value)
         def visit_Subscript(self, node):
-            k = self._b_key(node)
+            k = self._key(node)
             if k is not None:
                 reads.add(k)
             self.generic_visit(node)
-        def _b_key(self, node):
+        def _key(self, node):
             if not isinstance(node, ast.Subscript):
                 return None
-            if not isinstance(node.value, ast.Name) or node.value.id != "b":
+            if not isinstance(node.value, ast.Name) or node.value.id != var:
                 return None
             sl = node.slice
             if isinstance(sl, ast.Constant) and isinstance(sl.value, str):
@@ -1693,13 +1696,29 @@ def _expand_b_keys(fn):
     V().visit(tree)
     return reads, writes
 
-_reads_b, _writes_b = _expand_b_keys(_wg_expand)
+_reads_b, _writes_b = _sub_keys(_wg_expand, "b")
 _direct_b = (_reads_b - _writes_b) - set(_play.BRIEF_EXPAND_GUARDED)
 good = (_direct_b == set(_play.BRIEF_EXPAND_DIRECT)
         and set(_play.BRIEF_EXPAND_DIRECT) <= set(_play.BRIEF_REQUIRED)
         and set(_play.BRIEF_EXPAND_DIRECT) <= set(_sch_b["properties"]))
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'expand() b[x] ⊆ required схемы':<40}{'да' if good else f'нет {_direct_b}'}")
+
+_reads_c, _writes_c = _sub_keys(_wg_expand, "c")
+_direct_c = (_reads_c - _writes_c) - set(_play.CLOCK_GUARDED)
+_reads_s, _ = _sub_keys(_wg_validate, "s")
+_reads_e, _ = _sub_keys(_wg_validate, "e")
+good = (_direct_c == set(_play.CLOCK_REQUIRED)
+        and _reads_s <= set(_play.SITE_REQUIRED)
+        and _reads_e <= set(_play.EXIT_REQUIRED)
+        and set(_play.SITE_REQUIRED) == set(_sch_b["properties"]["sites"]["items"]["required"])
+        and "disposition" not in _play.NPC_REQUIRED
+        and "power" not in _play.FACTION_REQUIRED
+        and "stance_to_pc" not in _play.FACTION_REQUIRED
+        and 'if "disposition" in n' in _src_wg
+        and "f.get(\"power\"" in open(os.path.join(HERE, "society.py"), encoding="utf-8").read())
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'вложенный required ↔ AST validate/expand':<40}{'да' if good else f'нет s={_reads_s} e={_reads_e} c={_direct_c}'}")
 
 _g4 = _gaps("qwen35_9b_missing_start_local.json")
 good = any("обязательного поля start_local" in x for x in _g4)
@@ -1726,6 +1745,40 @@ _g5 = _play.brief_form_errors(_chain_brief)
 good = any("обязательного поля chain" in x for x in _g5)
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'нет chain — тот же класс required':<40}{'да' if good else 'нет'}")
+
+def _exit_alias_case(name, alias):
+    g = _gaps(name)
+    form_ok = any("exits" in x and alias in x for x in g)
+    brief = _json.load(open(os.path.join(HERE, "examples", name), encoding="utf-8"))
+    exp_ok = False
+    try:
+        S = _wg_expand(brief)
+        exp_ok = True
+        try:
+            _wg_validate(S)
+            val = "passed"
+        except KeyError as ke:
+            val = ke.args[0] if ke.args else "?"
+    except Exception as ex:
+        val = type(ex).__name__
+        exp_ok = False
+    return form_ok and exp_ok and val == "exits"
+
+good = _exit_alias_case("qwen35_9b_exits_list.json", "exits_list")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'exits_list — отказ схемы до expand':<40}{'да' if good else 'нет'}")
+
+good = _exit_alias_case("qwen35_9b_exits_from_here.json", "exits_from_here")
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'exits_from_here — отказ схемы до expand':<40}{'да' if good else 'нет'}")
+
+_clk_brief = _json.loads(_json.dumps(_sl_brief))
+_clk_brief["start_local"] = "у остывшей печи"
+_clk_brief["clocks"] = [{"filled": 0, "max": 5, "period_h": 8, "payoff": "x"}]
+_g6 = _play.brief_form_errors(_clk_brief)
+good = any("clocks[0]" in x and "name" in x for x in _g6)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'часы без name — вложенный required':<40}{'да' if good else 'нет'}")
 
 print("\n── замысел: обрыв по length, не JSONDecodeError ──")
 good = (_play.BRIEF_MAX_TOKENS >= 6000

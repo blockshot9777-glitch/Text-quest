@@ -37,10 +37,13 @@ PROVIDERS = {
 # JSON Schema замысла. required заставляет LM Studio требовать ключи, не только типы.
 # additionalProperties: true — свободный текст (desc_true, truths, chain[].canon) не в схеме.
 #
-# expand() читает часть ключей как b["x"], не .get(): дыра в required → KeyError
-# после синтаксически верного JSON (живой прогон: нет start_local). Класс закрыт
-# списком BRIEF_EXPAND_DIRECT; selftest сверяет его с AST expand(), не по одному полю.
-# carryover/loadout — b["x"] только после .get / `in`, в required не входят.
+# Прямые x["k"] без .get() — дыра в required → KeyError после валидного JSON.
+# Корень: BRIEF_EXPAND_DIRECT ↔ AST expand(b). Вложенное: SITE/EXIT/CLOCK ↔
+# AST validate(s,e) и expand(c). Не по одному полю за живой прогон.
+# carryover/loadout — после .get / `in`.
+# disposition/power/stance_to_pc — `if k in` / .get, не KeyError: переименование
+# (disposition_to_pc) тихо теряется, это другой класс, не класть в required «заодно».
+# resources/structures — .get, пустой список законен.
 BRIEF_EXPAND_DIRECT = (
     "seed", "setting", "ladder", "ladder_root", "physics_on",
     "start_path", "start_local", "chain", "sites",
@@ -51,7 +54,11 @@ BRIEF_REQUIRED = (
     "start_path", "start_local", "chain", "skills", "sites", "npcs",
     "factions", "clocks", "truths",
 )
-SITE_REQUIRED = ("path", "name")
+SITE_REQUIRED = ("path", "name", "exits")
+SITE_EXIT_ALIASES = ("exits_list", "exits_from_here")  # отказ, не синоним
+EXIT_REQUIRED = ("to",)
+CLOCK_REQUIRED = ("name", "filled", "max", "period_h", "payoff")
+CLOCK_GUARDED = ("on_complete",)
 NPC_REQUIRED = ("id", "path")
 FACTION_REQUIRED = ("id", "name")
 BRIEF_FIELD_HINTS = {
@@ -65,7 +72,9 @@ BRIEF_FIELD_HINTS = {
     "start_local": "строка — где именно стоит персонаж",
     "chain": "список узлов [{path, scale, canon, ...}] от корня до региона",
     "skills": "объект {имя: число}, например {\"survival\": 45} — не список",
-    "sites": "массив [{path, name, ...}]. Не sites_canon.",
+    "sites": "массив [{path, name, exits, ...}]. Не sites_canon.",
+    "exits": "массив [{to, travel_min, difficulty, ...}]. Не exits_list и не exits_from_here.",
+    "to": "строка — путь площадки назначения",
     "npcs": "массив [{id, path, name, ...}]",
     "factions": "массив [{id, name, ...}]",
     "clocks": "массив [{name, filled, max, period_h, payoff, ...}]",
@@ -107,8 +116,11 @@ BRIEF_SCHEMA = {
                         "items": {
                             "type": "object",
                             "additionalProperties": True,
+                            "required": list(EXIT_REQUIRED),
                             "properties": {
+                                "to": {"type": "string"},
                                 "difficulty": {"type": "number"},
+                                "travel_min": {"type": "number"},
                             },
                         },
                     },
@@ -143,7 +155,21 @@ BRIEF_SCHEMA = {
                 },
             },
         },
-        "clocks": {"type": "array"},
+        "clocks": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": True,
+                "required": list(CLOCK_REQUIRED),
+                "properties": {
+                    "name": {"type": "string"},
+                    "filled": {"type": "number"},
+                    "max": {"type": "number"},
+                    "period_h": {"type": "number"},
+                    "payoff": {"type": "string"},
+                },
+            },
+        },
         "truths": {"type": "array", "items": {"type": "string"}},
     },
 }
@@ -181,9 +207,24 @@ def brief_form_errors(brief):
     for i, s in enumerate(brief.get("sites") or []):
         if not isinstance(s, dict):
             continue
+        leaked_exits = [a for a in SITE_EXIT_ALIASES if a in s]
+        if leaked_exits and "exits" not in s:
+            msgs.append(
+                f"sites[{i}] нет поля exits, добавь его в формате: "
+                "массив [{to, travel_min, difficulty, ...}]. "
+                f"Поле называется exits, не {leaked_exits[0]}.")
         for k in SITE_REQUIRED:
             if k not in s:
-                msgs.append(f"sites[{i}] нет поля {k} (нужны path, name)")
+                if k == "exits" and leaked_exits:
+                    continue
+                need = ", ".join(SITE_REQUIRED)
+                msgs.append(f"sites[{i}] нет поля {k} (нужны {need})")
+        for j, e in enumerate(s.get("exits") or []):
+            if not isinstance(e, dict):
+                continue
+            for k in EXIT_REQUIRED:
+                if k not in e:
+                    msgs.append(f"sites[{i}].exits[{j}] нет поля {k} (нужен to)")
     for i, n in enumerate(brief.get("npcs") or []):
         if not isinstance(n, dict):
             continue
@@ -196,6 +237,13 @@ def brief_form_errors(brief):
         for k in FACTION_REQUIRED:
             if k not in f:
                 msgs.append(f"factions[{i}] нет поля {k} (нужны id, name)")
+    for i, c in enumerate(brief.get("clocks") or []):
+        if not isinstance(c, dict):
+            continue
+        for k in CLOCK_REQUIRED:
+            if k not in c:
+                need = ", ".join(CLOCK_REQUIRED)
+                msgs.append(f"clocks[{i}] нет поля {k} (нужны {need})")
     return msgs
 
 
@@ -592,6 +640,7 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
    resources:[{name,amount,tags?}], hazards, objects, structures?, shelter?, hearth?, touched:true}].
    Поле в твоём ответе называется sites, не sites_canon — второе имя используется
    только внутри движка после генерации.
+   Выходы площадки — поле exits, не exits_list и не exits_from_here.
    objects — строки (проза, не ломается) или {name, parts?, tags?}.
    parts — как make_item: [материал, форма, Д, Ш, В]. Без parts объект неразрушим.
    structures — уже стоящие конструкции с тем же составом; теги роли из structure_use,
