@@ -1213,6 +1213,7 @@ def npc_step(S, log, minutes):
 
     for npc in S["world"]["npcs"]:
         if not npc.get("alive", True): continue
+        npc.setdefault("knows_about_pc", [])
         near = npc["path"] == here or npc["path"] in neigh or here in npc["path"]
 
         if near and npc["path"] == here:

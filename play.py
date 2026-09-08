@@ -216,6 +216,32 @@ def leaked_key(obj, canon, aliases=()):
     return None
 
 
+def _fused_brief_key(k, where):
+    """Слитый JSON в имени поля: «disposition):-20, ». Отказ, не разбор в disposition."""
+    if not isinstance(k, str):
+        return f"{where}: имя поля должно быть строкой"
+    if ":" in k or "," in k:
+        return (f"{where}: ключ «{k}» — имя поля, не слитый JSON. "
+                "Пиши \"disposition\": -20 и \"alive\": true, не одно имя с двоеточием")
+    if k != k.strip():
+        return (f"{where}: ключ «{k}» с пробелом по краям — отказ, "
+                f"не синоним «{k.strip()}»")
+    return None
+
+
+def _collect_fused_keys(obj, where, msgs):
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            bad = _fused_brief_key(k, where)
+            if bad:
+                msgs.append(bad)
+                continue
+            _collect_fused_keys(v, f"{where}.{k}", msgs)
+    elif isinstance(obj, list):
+        for i, x in enumerate(obj):
+            _collect_fused_keys(x, f"{where}[{i}]", msgs)
+
+
 def _slash_path(p, where):
     """Иерархия площадок — через /. | не разделитель и не список корней счётчика."""
     if not isinstance(p, str) or not p:
@@ -306,6 +332,7 @@ def brief_form_errors(brief):
     if not isinstance(brief, dict):
         return ["замысел должен быть объектом JSON"]
     msgs = []
+    _collect_fused_keys(brief, "замысел", msgs)
     leaked_sites = "sites_canon" in brief and "sites" not in brief
     if leaked_sites:
         msgs.append(
@@ -425,6 +452,9 @@ def brief_form_errors(brief):
 
 def format_brief_error(exc):
     """Самопочинка: модели — поле и формат, не сырой traceback."""
+    if isinstance(exc, json.JSONDecodeError):
+        return (f"JSON не разбирается ({exc.msg}). Ключи — имена без двоеточий "
+                "и запятых; внутри строк не оставляй сырые управляющие символы.")
     if isinstance(exc, KeyError):
         key = exc.args[0] if exc.args else "?"
         hint = BRIEF_FIELD_HINTS.get(key) if isinstance(key, str) else None
@@ -575,6 +605,27 @@ BRIEF_TIMEOUT_RETRY = (
     "1–3 площадки, короткие path; ladder_root равен первому сегменту start_path "
     "теми же символами"
 )
+BRIEF_HTTP_USER = "сервер модели отклонил запрос, пробую снова"
+BRIEF_HTTP_RETRY = (
+    "предыдущий вызов вернул ошибку HTTP — верни тот же JSON-замысел, "
+    "без пояснений и заборчиков"
+)
+
+
+def brief_transport_messages(exc):
+    """Timeout / HTTP / сеть — повтор попытки, не traceback. Не форма замысла."""
+    if isinstance(exc, TimeoutError):
+        return BRIEF_TIMEOUT_RETRY, BRIEF_TIMEOUT_USER, "timeout"
+    if isinstance(exc, urllib.error.HTTPError):
+        return BRIEF_HTTP_RETRY, BRIEF_HTTP_USER, "http"
+    if isinstance(exc, urllib.error.URLError):
+        reason = getattr(exc, "reason", None)
+        if isinstance(reason, TimeoutError):
+            return BRIEF_TIMEOUT_RETRY, BRIEF_TIMEOUT_USER, "timeout"
+        if "timed out" in str(exc).lower() or "timed out" in str(reason).lower():
+            return BRIEF_TIMEOUT_RETRY, BRIEF_TIMEOUT_USER, "timeout"
+        return BRIEF_HTTP_RETRY, BRIEF_HTTP_USER, "http"
+    return None
 
 
 def json_from(text):
@@ -818,8 +869,9 @@ def normalize_intent(mech, S):
 SYS_BRIEF = """Ты — генератор миров для безжалостного симулятора выживания.
 По вводной игрока верни ТОЛЬКО JSON-замысел мира, без пояснений и заборчиков.
 
-Стартовый замысел КОМПАКТНЫЙ. Не пиши parts и не пиши on_complete: без них мир принимается.
-objects — только строки (проза). clocks — name,filled,max,period_h,payoff, без on_complete.
+Замысел полный: сценарий и играбельный мир. Не урезай поля «под модель».
+Ключи JSON — идентификаторы без двоеточий и запятых внутри имени.
+Числа — JSON-числа: "disposition": -20, "alive": true. Не ключ «disposition:-20».
 
 Обязательные поля:
  seed (число), setting (строка), tech_ceiling (primitive|preindustrial|industrial|spacefaring),
@@ -843,19 +895,24 @@ objects — только строки (проза). clocks — name,filled,max,p
    У выхода ключи to, travel_min, difficulty — числа. Не travel_min_min,
    не difficulty_hard, не diff, не «легко», не ключ с пробелом.
    to не совпадает с path этой же площадки.
-   objects — строки. Не объекты с parts в стартовом замысле.
-   Если всё же пишешь parts — только [["дерево","пластина",140,70,3]], не «земля»/«песок»/«брус»/«плита».
+   objects — строки (проза) или {name, parts?, tags?}.
+   parts если есть — только [["дерево","пластина",140,70,3]], не «земля»/«песок»/«брус»/«плита».
+   Без parts объект не ломается. С parts — ломается по matter.
    resources с тегами, если взять можно: вода/еда/топливо (подсказка автору, не словарь ядра).
    shelter:true — помещение. hearth:true — очаг уже есть.
- npcs — 2–4 [{id,name,path,goal,disposition,alive:true}],
+ npcs — 2–4 [{id,name,path,goal,disposition (число −100..100),alive:true,knows_about_pc:[],resources:[]}],
  factions — 2–3 [{id,name,goal,power,stance_to_pc,relations:{}}],
- clocks — 1–3 [{name,filled,max,period_h,payoff}] без on_complete,
+ clocks — 1–3 [{name,filled,max,period_h,payoff,on_complete}].
+   on_complete — список {site, env} / {sites, env} или {path, set} / {path, add}.
+   env — объект полей среды, не строка. path счётчика — одно из pc, world, time,
+   envelope, meta, position, profile, calendar и поле через точку (envelope.wind_ms).
+   Не путь площадки; для площадки — site/sites+env. Без on_complete счётчик только журнал.
  truths — 3–5 строк,
  opening_fact (строка),
  carryover: {"context":"auto"} если человек нашего времени попал в другой мир
    (тогда НЕ указывай worn/containers/items).
 
-Каркас (скопируй структуру, смени текст; ladder_root = первый сегмент start_path = path стартовой площадки):
+Каркас (полный; скопируй структуру, смени текст; ladder_root = первый сегмент start_path = path стартовой площадки):
 {"seed":1,"setting":"окоп, 1916","tech_ceiling":"industrial",
  "ladder":["ww1","front","okop"],"ladder_root":"ww1",
  "physics_on":["холод","голод","жажда","сон","раны","нагрузка","погода"],
@@ -870,10 +927,14 @@ objects — только строки (проза). clocks — name,filled,max,p
  "sites":[{"path":"ww1/front/okop","name":"Окоп","z_m":180,"desc_true":"Вода по щиколотку.",
    "exits":[{"to":"ww1/front/noman","mode":"пешком","travel_min":8,"dz_m":4,"difficulty":50,"gate":"проволока"}],
    "resources":[{"name":"кипяток","amount":2,"tags":["вода"]},{"name":"сухари","amount":3,"tags":["еда"]}],
-   "hazards":["сырость"],"objects":["накатник","лужа"],"touched":true}],
- "npcs":[{"id":"npc_01","name":"ефрейтор","path":"ww1/front/okop","goal":"не высовываться","disposition":-10,"alive":true}],
+   "hazards":["сырость"],
+   "objects":["лужа",{"name":"накатник","parts":[["дерево","пластина",140,70,3]]}],
+   "touched":true}],
+ "npcs":[{"id":"npc_01","name":"ефрейтор","path":"ww1/front/okop","goal":"не высовываться",
+   "disposition":-10,"alive":true,"knows_about_pc":[],"resources":[]}],
  "factions":[{"id":"fac_01","name":"рота","goal":"удержать участок","power":45,"stance_to_pc":-5,"relations":{}}],
- "clocks":[{"name":"ночь","filled":0,"max":12,"period_h":12,"payoff":"темнеет"}],
+ "clocks":[{"name":"ночь","filled":0,"max":12,"period_h":12,"payoff":"темнеет",
+   "on_complete":[{"path":"time.light","set":"ночь"}]}],
  "truths":["Следующий залп ляжет мимо окопа.","В воде дизентерия.","Ротация отменена."],
  "opening_fact":"Лес кончился чужим окопом.","carryover":{"context":"auto"}}
 
@@ -1086,9 +1147,11 @@ def new_game(cfg, scenario):
                       (f"\n\nПрошлая попытка не прошла проверку:\n{errors}\nИсправь." if errors else ""),
                       temperature=0.7, max_tokens=brief_max_tokens(cfg),
                       response_format=brief_response_format())
-        except TimeoutError:
-            errors = BRIEF_TIMEOUT_RETRY
-            user_error = BRIEF_TIMEOUT_USER
+        except (TimeoutError, urllib.error.URLError) as e:
+            pair = brief_transport_messages(e)
+            if not pair:
+                raise
+            errors, user_error, _ = pair
             continue
         fault = brief_generation_fault(raw, reason)
         if fault == "loop":

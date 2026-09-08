@@ -167,13 +167,32 @@ done
   корень из `CLOCK_PATH_ROOTS` через точку, не путь площадки и не перечень
   через `|`; `sites:"*"`, не `site:"*"`; `site` есть в `sites[].path`;
   `env` — объект, не строка «time». `start_path` есть в `sites[].path`.
-  В стартовом замысле `parts` и `on_complete` не проси: без них мир
-  принимается. Не сыпь полный словарь MATERIALS в промпт — 9B начинает
-  сочинять «песок»/«древесина».
+  Ключ с `:` или `,` внутри имени (`disposition):-20, `) — отказ формы,
+  не разбор в `disposition`. Не класть `disposition`/`power` в schema
+  `required`: их нет в AST KeyError. Полный мир: промпт просит `parts` и
+  `on_complete` правильной формы; без них `expand` принимает, валидатор
+  предупреждает. Не сыпать полный словарь MATERIALS в промпт — любая
+  модель начинает сочинять «песок»/«древесина». `expand` дописывает
+  `knows_about_pc`/`alive`/`resources` у NPC — иначе `npc_step` падает
+  KeyError на первом тике. Это канон состояния, не синоним ключа.
   Живой прогон против LM Studio: `python examples/live_brief_probe.py`
-  (сырые ответы в `examples/live_runs/`, gitignore). `TimeoutError` от
-  `urlopen` — повтор попытки, не traceback в UI.
+  (сырые ответы в `examples/live_runs/`, gitignore). `TimeoutError` и
+  `HTTPError`/`URLError` от `urlopen` — повтор попытки (`brief_transport_messages`),
+  не traceback в UI.
   `examples/cursor_brief_probe.py` — ручной эталон схемы, не live-вызов модели.
+- **Узкие места конвейера замысла (не дыры «модели»):**
+  1. Четыре слоя расходятся: SYS_BRIEF просит больше, чем schema/form
+     требуют; `validate` не проверяет полноту сценария. Пустой `clocks: []`
+     и NPC без `disposition` проходят.
+  2. `additionalProperties: true` — свободный текст; без обхода ключей
+     слитый JSON проходит форму.
+  3. JSON Schema (`response_format`) только у openai-совместимых
+     провайдеров; Ollama/Anthropic схему не получают.
+  4. Выход на площадку вне `sites` — граница известного, отказ при `--to`,
+     не при генерации.
+  5. `llm()` не потоковый: цикл до `max_tokens` или таймаут 400 с, потом
+     следующий вызов может пройти за 15 с. Ранняя остановка — SSE, отдельная
+     работа.
 - **Формы `skills` в `normalize_brief` исчерпывающие:** объект `{имя: число}`;
   список `{name, value|level|score}`; список одноключевых. `rating` — отказ.
   Список ключей — `SKILL_LIST_VALUE_KEYS`, не догадка в `.get()` цепочке.

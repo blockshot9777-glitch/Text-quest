@@ -1630,12 +1630,18 @@ good = (_sch_b.get("additionalProperties") is True
         and "Поле в твоём ответе называется sites, не sites_canon" in _src_pl2
         and "Не travel_min_min" in _src_pl2
         and "Не | как разделитель" in _src_pl2
-        and "Не пиши parts" in _play.SYS_BRIEF
-        and "не пиши on_complete" in _play.SYS_BRIEF
+        and "Не пиши parts" not in _play.SYS_BRIEF
+        and "не пиши on_complete" not in _play.SYS_BRIEF
+        and "Замысел полный" in _play.SYS_BRIEF
+        and "без двоеточий" in _play.SYS_BRIEF
+        and "on_complete" in _play.SYS_BRIEF
+        and "knows_about_pc" in _play.SYS_BRIEF
         and "pc|world" not in _play.SYS_BRIEF
         and "дерево" in _play.SYS_BRIEF
         and "пластина" in _play.SYS_BRIEF
         and "__BRIEF_MATERIALS__" not in _play.SYS_BRIEF
+        and "_fused_brief_key" in _src_pl2
+        and "brief_transport_messages" in _src_pl2
         and "format_brief_error" in _src_pl2
         and "str(e)[:500]" not in _src_pl2)
 ok, fail = ok+good, fail+(not good)
@@ -1646,6 +1652,12 @@ good = ("обязательного поля sites" in _msg_ke and "sites_canon"
         and "Traceback" not in _msg_ke and "KeyError" not in _msg_ke)
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'KeyError sites — поле и формат, не traceback':<40}{'да' if good else 'нет'}")
+
+_msg_js = _play.format_brief_error(_json.JSONDecodeError("Invalid control character", "x", 0))
+good = ("JSON не разбирается" in _msg_js and "управляющие" in _msg_js
+        and "Traceback" not in _msg_js)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'JSONDecodeError — форма, не traceback':<40}{'да' if good else 'нет'}")
 
 def _gaps(name):
     return _play.brief_form_errors(_json.load(open(os.path.join(HERE, "examples", name), encoding="utf-8")))
@@ -1847,6 +1859,16 @@ good = _form_then_validate(
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'on_complete.env строка — отказ формы':<40}{'да' if good else 'нет'}")
 
+_g_fuse = _gaps("qwen35_9b_garbled_key.json")
+_fuse_b = _json.load(open(os.path.join(HERE, "examples", "qwen35_9b_garbled_key.json"), encoding="utf-8"))
+_fuse_S = _wg_expand(_fuse_b)
+_fuse_err, _ = _wg_validate(_fuse_S)
+good = (any("слитый JSON" in x and "disposition" in x for x in _g_fuse)
+        and any("power" in x and "слитый JSON" in x for x in _g_fuse)
+        and not any("слитый JSON" in e for e in _fuse_err))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'слитый ключ disposition:-20 — отказ формы':<40}{'да' if good else 'нет'}")
+
 good = (set(_play.CLOCK_PATH_ROOTS)
         == {"pc", "world", "time", "envelope", "meta", "position", "profile", "calendar"}
         and "CLOCK_PATH_ROOTS = " in _src_wg)
@@ -1858,6 +1880,22 @@ _ok_brief["start_local"] = "у остывшей печи"
 good = _play.brief_form_errors(_ok_brief) == []
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'канонический замысел — форма пустая':<40}{'да' if good else 'нет'}")
+
+_bare = _json.loads(_json.dumps(_ok_brief))
+for _n in _bare["npcs"]:
+    _n.pop("knows_about_pc", None)
+    _n.pop("alive", None)
+    _n.pop("resources", None)
+_bare_S = _wg_expand(_bare)
+_n0 = _bare_S["world"]["npcs"][0]
+good = (_n0.get("knows_about_pc") == []
+        and _n0.get("alive") is True
+        and isinstance(_n0.get("resources"), list))
+_nlog = []
+_eng.npc_step(_bare_S, _nlog, 10)
+good = good and isinstance(_n0.get("knows_about_pc"), list)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'expand дописывает knows_about_pc, не KeyError':<40}{'да' if good else 'нет'}")
 
 _missp = _json.loads(_json.dumps(_ok_brief))
 _missp["start_path"] = "gory/hrebet/stanciya/нет_такой"
@@ -1967,6 +2005,9 @@ good = (_play.detect_degenerate_loop(_cap["content"])
         and "JSONDecode" not in _play.BRIEF_LOOP_USER
         and "TimeoutError" in _src_pl2
         and "вовремя" in _play.BRIEF_TIMEOUT_USER
+        and "HTTPError" in _src_pl2
+        and "BRIEF_HTTP_USER" in _src_pl2
+        and "brief_transport_messages" in open(os.path.join(HERE, "examples", "live_brief_probe.py"), encoding="utf-8").read()
         and "TimeoutError" in open(os.path.join(HERE, "examples", "live_brief_probe.py"), encoding="utf-8").read()
         and '"stream": False' in open(os.path.join(HERE, "play.py"), encoding="utf-8").read()
         and "не потоковый" in open(os.path.join(HERE, "HANDOFF.md"), encoding="utf-8").read())

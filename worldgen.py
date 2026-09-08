@@ -266,9 +266,34 @@ def normalize_brief(brief):
     return b
 
 
+def _complete_actor_records(b):
+    """Поля, которые ядро читает прямо. Модель их не обязана писать — expand дописывает канон, не угадывает синонимы."""
+    npcs = []
+    for n in b.get("npcs") or []:
+        if not isinstance(n, dict):
+            npcs.append(n)
+            continue
+        x = dict(n)
+        x.setdefault("knows_about_pc", [])
+        x.setdefault("alive", True)
+        x.setdefault("resources", [])
+        npcs.append(x)
+    b["npcs"] = npcs
+    facs = []
+    for f in b.get("factions") or []:
+        if not isinstance(f, dict):
+            facs.append(f)
+            continue
+        x = dict(f)
+        x.setdefault("relations", {})
+        facs.append(x)
+    b["factions"] = facs
+    return b
+
+
 def expand(brief):
     """Разворачивает краткий замысел в полное состояние по схеме."""
-    b = normalize_brief(brief)
+    b = _complete_actor_records(normalize_brief(brief))
     S = {
      "meta": {"seed": b["seed"], "turn": 0, "setting": b["setting"],
               "tech_ceiling": b.get("tech_ceiling","preindustrial"), "tone":"безжалостный реализм"},

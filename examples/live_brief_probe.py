@@ -5,7 +5,7 @@
 Не часть бандла. Сырые ответы в examples/live_runs/ (gitignore).
 Запуск: python examples/live_brief_probe.py
 """
-import json, os, sys, time, traceback
+import json, os, sys, time, traceback, urllib.error
 from datetime import datetime
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -51,15 +51,17 @@ def probe_one(out_dir, sid, scenario, cfg):
                 + (f"\n\nПрошлая попытка не прошла проверку:\n{errors}\nИсправь." if errors else ""),
                 temperature=0.7, max_tokens=play.brief_max_tokens(cfg),
                 response_format=play.brief_response_format())
-        except TimeoutError:
+        except (TimeoutError, urllib.error.URLError) as e:
             elapsed = round(time.time() - t0, 1)
+            pair = play.brief_transport_messages(e)
+            if not pair:
+                raise
+            errors, user_error, kind = pair
             rec = {"attempt": n + 1, "elapsed_s": elapsed, "finish_reason": None,
-                   "raw_chars": 0, "fault": "timeout", "stage": "timeout",
-                   "error": play.BRIEF_TIMEOUT_USER}
+                   "raw_chars": 0, "fault": kind, "stage": kind,
+                   "error": user_error}
             attempts.append(rec)
-            errors = play.BRIEF_TIMEOUT_RETRY
-            user_error = play.BRIEF_TIMEOUT_USER
-            print(f"    timeout, {elapsed}s", flush=True)
+            print(f"    {kind}, {elapsed}s", flush=True)
             continue
         elapsed = round(time.time() - t0, 1)
         rec = {"attempt": n + 1, "elapsed_s": elapsed, "finish_reason": reason,
