@@ -36,9 +36,20 @@ PROVIDERS = {
 
 # JSON Schema замысла. required заставляет LM Studio требовать ключи, не только типы.
 # additionalProperties: true — свободный текст (desc_true, truths, chain[].canon) не в схеме.
+#
+# expand() читает часть ключей как b["x"], не .get(): дыра в required → KeyError
+# после синтаксически верного JSON (живой прогон: нет start_local). Класс закрыт
+# списком BRIEF_EXPAND_DIRECT; selftest сверяет его с AST expand(), не по одному полю.
+# carryover/loadout — b["x"] только после .get / `in`, в required не входят.
+BRIEF_EXPAND_DIRECT = (
+    "seed", "setting", "ladder", "ladder_root", "physics_on",
+    "start_path", "start_local", "chain", "sites",
+)
+BRIEF_EXPAND_GUARDED = ("carryover", "loadout")
 BRIEF_REQUIRED = (
     "seed", "setting", "tech_ceiling", "ladder", "ladder_root", "physics_on",
-    "start_path", "skills", "sites", "npcs", "factions", "clocks", "truths",
+    "start_path", "start_local", "chain", "skills", "sites", "npcs",
+    "factions", "clocks", "truths",
 )
 SITE_REQUIRED = ("path", "name")
 NPC_REQUIRED = ("id", "path")
@@ -51,6 +62,8 @@ BRIEF_FIELD_HINTS = {
     "ladder_root": "строка, корень пути",
     "physics_on": "список строк из фиксированного enum (холод, голод, …)",
     "start_path": "полный путь стартовой площадки",
+    "start_local": "строка — где именно стоит персонаж",
+    "chain": "список узлов [{path, scale, canon, ...}] от корня до региона",
     "skills": "объект {имя: число}, например {\"survival\": 45} — не список",
     "sites": "массив [{path, name, ...}]. Не sites_canon.",
     "npcs": "массив [{id, path, name, ...}]",
@@ -70,6 +83,8 @@ BRIEF_SCHEMA = {
         "ladder": {"type": "array", "items": {"type": "string"}},
         "ladder_root": {"type": "string"},
         "start_path": {"type": "string"},
+        "start_local": {"type": "string"},
+        "chain": {"type": "array"},
         "physics_on": {
             "type": "array",
             "items": {"type": "string", "enum": list(sim.PHYSICS_ON)},  # публичное имя бандла; не переименовывать в сборке
