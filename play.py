@@ -366,7 +366,23 @@ def brief_generation_fault(text, finish_reason=None):
     return None
 
 
-BRIEF_MAX_TOKENS = 8000
+BRIEF_MAX_TOKENS_LOCAL = 65000
+BRIEF_MAX_TOKENS_CLOUD = 8000
+BRIEF_MAX_TOKENS = BRIEF_MAX_TOKENS_LOCAL
+
+
+def brief_max_tokens(cfg):
+    """Локальный хост — 65000; облако — 8000 (деньги и потолок ответа API).
+
+    Детект цикла не читает этот лимит: сработает на любом max_tokens.
+    """
+    cfg = cfg or {}
+    prov = cfg.get("provider", "ollama")
+    url = cfg.get("url") or (PROVIDERS.get(prov) or {}).get("url") or ""
+    host = url.lower()
+    if "127.0.0.1" in host or "localhost" in host:
+        return BRIEF_MAX_TOKENS_LOCAL
+    return BRIEF_MAX_TOKENS_CLOUD
 BRIEF_TRUNCATED_USER = "мир получился слишком подробным, пробую снова компактнее"
 BRIEF_TRUNCATED_RETRY = (
     "твой прошлый ответ был обрублен по лимиту длины — "
@@ -882,7 +898,7 @@ def new_game(cfg, scenario):
         raw, reason = llm(cfg, SYS_BRIEF,
                   f"Вводная игрока: {scenario}\nseed = {int(time.time()) % 10**7}" +
                   (f"\n\nПрошлая попытка не прошла проверку:\n{errors}\nИсправь." if errors else ""),
-                  temperature=0.7, max_tokens=BRIEF_MAX_TOKENS,
+                  temperature=0.7, max_tokens=brief_max_tokens(cfg),
                   response_format=brief_response_format())
         fault = brief_generation_fault(raw, reason)
         if fault == "loop":

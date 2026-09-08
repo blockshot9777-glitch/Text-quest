@@ -1781,12 +1781,22 @@ ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'часы без name — вложенный required':<40}{'да' if good else 'нет'}")
 
 print("\n── замысел: обрыв по length, не JSONDecodeError ──")
-good = (_play.BRIEF_MAX_TOKENS >= 6000
+good = (_play.BRIEF_MAX_TOKENS >= 65000
+        and _play.brief_max_tokens({"provider": "local"}) == 65000
+        and _play.brief_max_tokens({"provider": "ollama"}) == 65000
+        and _play.brief_max_tokens({"provider": "openai"}) == 8000
+        and _play.brief_max_tokens({"provider": "anthropic"}) == 8000
+        and _play.brief_max_tokens({"provider": "openai",
+                                    "url": "http://127.0.0.1:1234/v1/chat/completions"}) == 65000
+        and "65000" not in inspect.getsource(_play.detect_degenerate_loop)
+        and "8000" not in inspect.getsource(_play.detect_degenerate_loop)
+        and "65000" not in inspect.getsource(_play.brief_generation_fault)
+        and "max_tokens=brief_max_tokens(cfg)" in open(os.path.join(HERE, "play.py"), encoding="utf-8").read()
         and "max_tokens=4000" not in open(os.path.join(HERE, "play.py"), encoding="utf-8").read()
         and "не более 4 объектов" in open(os.path.join(HERE, "play.py"), encoding="utf-8").read()
         and "json_looks_truncated" in open(os.path.join(HERE, "play.py"), encoding="utf-8").read())
 ok, fail = ok+good, fail+(not good)
-print(f"  {'ok ' if good else 'MISS'} {'потолок brief ≥6000, лимит сущностей':<40}{'да' if good else 'нет'}")
+print(f"  {'ok ' if good else 'MISS'} {'потолок 65000 локально, 8000 облако':<40}{'да' if good else 'нет'}")
 
 _kyiv = _json.load(open(os.path.join(HERE, "examples", "qwen35_9b_kyiv_truncated.json"), encoding="utf-8"))
 good = _play.json_looks_truncated(_kyiv["content"], _kyiv["finish_reason"])
