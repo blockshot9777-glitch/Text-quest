@@ -69,6 +69,10 @@ EXIT_FIELD_ALIASES = {
 }
 CLOCK_REQUIRED = ("name", "filled", "max", "period_h", "payoff")
 CLOCK_GUARDED = ("on_complete",)
+# Как в worldgen.validate; путь площадки сюда не кладут — для площадки site+env.
+CLOCK_PATH_ROOTS = (
+    "pc", "world", "time", "envelope", "meta", "position", "profile", "calendar",
+)
 NPC_REQUIRED = ("id", "path")
 FACTION_REQUIRED = ("id", "name")
 BRIEF_FIELD_HINTS = {
@@ -78,7 +82,7 @@ BRIEF_FIELD_HINTS = {
     "ladder": "список строк уровней от корня к мелкому",
     "ladder_root": "строка, корень пути",
     "physics_on": "список строк из фиксированного enum (холод, голод, …)",
-    "start_path": "полный путь стартовой площадки; первый сегмент = ladder_root",
+    "start_path": "полный путь через /, первый сегмент = ladder_root, равен path одной площадки. Не |",
     "start_local": "строка — где именно стоит персонаж",
     "chain": "список узлов [{path, scale, canon, ...}] от корня до региона",
     "skills": "объект {имя: число}, например {\"survival\": 45} — не список",
@@ -212,17 +216,86 @@ def leaked_key(obj, canon, aliases=()):
     return None
 
 
-def _on_complete_form(fx):
+def _slash_path(p, where):
+    """Иерархия площадок — через /. | не разделитель и не список корней счётчика."""
+    if not isinstance(p, str) or not p:
+        return None
+    if "|" in p:
+        return (f"{where} — сегменты пути через /, не |. "
+                "Пример: gory/hrebet/stanciya. | не разделитель площадок.")
+    return None
+
+
+def _parts_form(parts, where):
+    """Часть — список из 5–6 полей, размеры числа. Строка «доски» — отказ, не материал."""
+    if not parts:
+        return None
+    if not isinstance(parts, list):
+        return (f"{where}.parts — список кортежей [материал, форма, Д_см, Ш_см, В_см], "
+                "не строка")
+    for j, part in enumerate(parts):
+        if isinstance(part, str):
+            return (f"{where}.parts[{j}] — кортеж [материал, форма, Д_см, Ш_см, В_см], "
+                    f"не строка «{part}»")
+        if not isinstance(part, (list, tuple)):
+            return f"{where}.parts[{j}] должен быть списком из 5 или 6 полей"
+        if len(part) not in (5, 6):
+            return f"{where}.parts[{j}]: нужно 5 или 6 полей, не {len(part)}"
+        mat, form = part[0], part[1]
+        if mat not in sim.MATERIALS:
+            return (f"{where}.parts[{j}] материал «{mat}» не в таблице "
+                    "(не синоним; имя должно совпасть с MATERIALS)")
+        if form not in sim.FORMS:
+            return (f"{where}.parts[{j}] форма «{form}» не в таблице "
+                    "(не синоним; имя должно совпасть с FORMS)")
+        for k, dim in enumerate(part[2:5], start=2):
+            if isinstance(dim, bool) or not isinstance(dim, (int, float)):
+                return f"{where}.parts[{j}][{k}] — число (см), не {dim!r}"
+    return None
+
+
+def _on_complete_form(fx, site_paths):
     """Две законные формы validate: site/sites+env или path+set/add. Иначе отказ."""
     if not isinstance(fx, dict):
-        return ("должен быть объектом {site|sites, env:{...}} или {path, set|add}, "
+        return ("должен быть объектом {site, env} / {sites, env} или {path, set} / {path, add}, "
                 "не строкой")
+    if fx.get("site") == "*":
+        return "для всех площадок поле sites: \"*\", не site: \"*\""
     env_op = "env" in fx and ("site" in fx or "sites" in fx)
     has_set, has_add = "set" in fx, "add" in fx
     path_op = "path" in fx and (has_set or has_add) and not (has_set and has_add)
+    mixed = ("path" in fx or has_set or has_add) and env_op
+    if mixed or (path_op and ("site" in fx or "sites" in fx or "env" in fx)):
+        return "не смешивай site/sites+env с path/set/add"
+    roots = ", ".join(CLOCK_PATH_ROOTS)
     if env_op and not path_op:
+        if not isinstance(fx.get("env"), dict):
+            return "env должен быть объектом {поле: значение}, не строкой"
+        canon = {p for p in site_paths if isinstance(p, str) and p}
+        if "site" in fx:
+            site = fx.get("site")
+            if site != "*" and canon and site not in canon:
+                return (f"площадка «{site}» нет в sites "
+                        "(on_complete.site — path из замысла, не новое имя)")
+        if "sites" in fx:
+            sel = fx.get("sites")
+            if sel != "*" and isinstance(sel, list) and canon:
+                for pth in sel:
+                    if pth not in canon:
+                        return (f"площадка «{pth}» нет в sites "
+                                "(on_complete.sites — path из замысла)")
+            elif sel != "*" and not isinstance(sel, list):
+                return "sites — \"*\" или список путей"
         return None
     if path_op and not env_op:
+        pth = str(fx.get("path") or "")
+        if "|" in pth:
+            return ("path счётчика — корень.поле через точку "
+                    f"(одно из: {roots}), не путь площадки и не |")
+        root = pth.split(".")[0]
+        if root not in CLOCK_PATH_ROOTS:
+            return (f"path должен начинаться с одного из: {roots} "
+                    "(точка: envelope.wind_ms; не путь площадки — для площадки site/sites+env)")
         return None
     return ("неизвестная операция — нужен site/sites+env или path+set/add "
             "(add на path — число, не {site, add:...})")
@@ -246,15 +319,26 @@ def brief_form_errors(brief):
             hint = BRIEF_FIELD_HINTS.get(k, "см. обязательные поля в инструкции")
             msgs.append(f"в твоём JSON нет обязательного поля {k}, добавь его в формате: {hint}")
     root, path = brief.get("ladder_root"), brief.get("start_path")
-    if isinstance(root, str) and isinstance(path, str) and root and path:
+    bad = _slash_path(path, "start_path")
+    if bad:
+        msgs.append(bad)
+    if isinstance(root, str) and isinstance(path, str) and root and path and "|" not in path:
         first = path.split("/")[0]
         if first != root:
             msgs.append(
                 f"start_path должен начинаться с ladder_root «{root}», "
                 f"сейчас первый сегмент «{first}»")
+    site_paths = [s.get("path") for s in (brief.get("sites") or [])
+                  if isinstance(s, dict)]
+    if isinstance(path, str) and path and site_paths and path not in site_paths:
+        msgs.append(
+            f"start_path «{path}» должен совпадать с path одной площадки в sites")
     for i, s in enumerate(brief.get("sites") or []):
         if not isinstance(s, dict):
             continue
+        bad = _slash_path(s.get("path"), f"sites[{i}].path")
+        if bad:
+            msgs.append(bad)
         leaked_exits = [a for a in SITE_EXIT_ALIASES if a in s]
         if leaked_exits and "exits" not in s:
             msgs.append(
@@ -282,11 +366,19 @@ def brief_form_errors(brief):
                 else:
                     msgs.append(f"sites[{i}].exits[{j}] нет поля {k} (нужны {need})")
             dest, here = e.get("to"), s.get("path")
+            bad = _slash_path(dest, f"sites[{i}].exits[{j}].to")
+            if bad:
+                msgs.append(bad)
             if isinstance(dest, str) and isinstance(here, str) and dest and here:
                 if dest.split("/")[-1] == here.split("/")[-1]:
                     msgs.append(
                         f"sites[{i}].exits[{j}] ведёт сам в себя "
                         "(to совпадает с path площадки)")
+        for j, o in enumerate(s.get("objects") or []):
+            if isinstance(o, dict) and o.get("parts"):
+                bad = _parts_form(o.get("parts"), f"sites[{i}].objects[{j}]")
+                if bad:
+                    msgs.append(bad)
         for j, stc in enumerate(s.get("structures") or []):
             if isinstance(stc, str):
                 msgs.append(
@@ -295,6 +387,10 @@ def brief_form_errors(brief):
                 continue
             if not isinstance(stc, dict) or not stc.get("name"):
                 msgs.append(f"sites[{i}].structures[{j}] нет поля name")
+                continue
+            bad = _parts_form(stc.get("parts"), f"sites[{i}].structures[{j}]")
+            if bad:
+                msgs.append(bad)
     for i, n in enumerate(brief.get("npcs") or []):
         if not isinstance(n, dict):
             continue
@@ -321,7 +417,7 @@ def brief_form_errors(brief):
             msgs.append(f"clocks[{i}].on_complete должен быть списком объектов")
             continue
         for j, fx in enumerate(oc):
-            bad = _on_complete_form(fx)
+            bad = _on_complete_form(fx, site_paths)
             if bad:
                 msgs.append(f"clocks[{i}].on_complete[{j}] {bad}")
     return msgs
@@ -472,6 +568,12 @@ BRIEF_LOOP_USER = "генерация зациклилась на битом JSO
 BRIEF_LOOP_RETRY = (
     "предыдущий ответ содержал повреждённый JSON-ключ и зациклился на повторении — "
     "начни заново, внимательно проверяя кавычки и скобки"
+)
+BRIEF_TIMEOUT_USER = "модель не ответила вовремя, пробую снова"
+BRIEF_TIMEOUT_RETRY = (
+    "предыдущий вызов оборвался по времени — верни компактный JSON: "
+    "1–3 площадки, короткие path; ladder_root равен первому сегменту start_path "
+    "теми же символами"
 )
 
 
@@ -718,10 +820,12 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
 
 Обязательные поля:
  seed (число), setting (строка), tech_ceiling (primitive|preindustrial|industrial|spacefaring),
- ladder (список уровней от корня к мелкому), ladder_root (строка, корень пути),
+ ladder (список уровней от корня к мелкому), ladder_root (строго первый сегмент start_path, те же символы, не «лес» vs «les»),
  physics_on (список из: холод, жара, голод, жажда, сон, раны, болезни, гипоксия,
    давление, радиация, вакуум, углекислота, невесомость, нагрузка, погода),
- start_path (полный путь; первый сегмент = ladder_root), start_local (описание позиции), start_z (число),
+ start_path (путь через /; первый сегмент = ladder_root; равен path одной площадки в sites).
+   Пример: "gory/hrebet/stanciya/apparatnaya". Не | как разделитель площадок.
+   start_local (описание позиции), start_z (число),
  start_hour (число), weather, ambient_c, wind_ms,
  climate {t_min,t_max,sunrise,sunset,note}, epoch, start_date, seasons,
  needs {hunger,thirst,fatigue,cold_stress,stress} — числа 0..100,
@@ -742,7 +846,11 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
    не difficulty_hard, не diff, не «легко», не ключ с пробелом.
    to не совпадает с path этой же площадки.
    objects — строки (проза, не ломается) или {name, parts?, tags?}.
-   parts — как make_item: [материал, форма, Д, Ш, В]. Без parts объект неразрушим.
+   parts — список кортежей, каждый [материал, форма, Д_см, Ш_см, В_см].
+   материал строго из: __BRIEF_MATERIALS__.
+   форма строго из: __BRIEF_FORMS__.
+   Не список имён («доски», «солома»). Не «ветка»/«брус»/«плита»/«куб»/«металл»: нет в таблице, не синоним.
+   Пример: [["дерево", "пластина", 140, 70, 3]]. Без parts объект неразрушим.
    structures — объекты {name, parts?, tags?}, не строки; теги роли из structure_use,
    не имена «дом»/«сарай». player_made:true защищает площадку от compact.
    tags ресурса обязательны, если его можно взять и использовать.
@@ -761,8 +869,13 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
  npcs — 4-6 [{id,name,path,goal,long_goal,resources,disposition,knows_about_pc:[],alive:true,schedule,faction}],
  factions — 2-4 [{id,name,goal,power,stance_to_pc,relations:{}}],
  clocks — 3-5 [{name,filled,max,period_h,hidden,payoff, on_complete?, fired?}],
-   on_complete — список объектов {site|sites, env:{...}} или {path, set|add};
-   add на path — число. Не строка и не {site, add:...};
+   on_complete — список объектов {site, env} / {sites, env} или {path, set} / {path, add};
+   add на path — число. Не строка и не {site, add:...}. Не смешивай site+env с path+set/add.
+   env — объект полей среды, не строка «time».
+   site — path из sites этого JSON, не новое имя.
+   path счётчика — одно из: pc, world, time, envelope, meta, position, profile, calendar
+   и поле через точку (envelope.wind_ms). Не перечисляй корни через |.
+   не путь площадки; для площадки — site/sites+env. sites:"*", не site:"*";
    sites:"*" в on_complete — площадки уже порождённые движком (внутреннее имя
    sites_canon); в замысле массив по-прежнему называется sites;
    add на одно поле у двух счётчиков складывается (не идемпотентен и не обязан быть);
@@ -779,6 +892,12 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
 Числа среды реальные. Лестница ровно нужной глубины — не тащи космос в осаду города.
 Стартовый замысел компактный: 1–3 площадки, на площадку ≤4 объектов и ≤2 структур.
 Богатая вводная (Киев, мировая война) — не повод отдать весь город сразу."""
+
+SYS_BRIEF = SYS_BRIEF.replace(
+    "__BRIEF_MATERIALS__", ", ".join(sim.MATERIALS)
+).replace(
+    "__BRIEF_FORMS__", ", ".join(sim.FORMS)
+)
 
 SYS_MECH = """Ты — разборщик намерений для симулятора. Верни ТОЛЬКО JSON, без пояснений.
 
@@ -980,11 +1099,16 @@ def new_game(cfg, scenario):
     errors = ""
     user_error = ""
     for attempt in range(3):
-        raw, reason = llm(cfg, SYS_BRIEF,
-                  f"Вводная игрока: {scenario}\nseed = {int(time.time()) % 10**7}" +
-                  (f"\n\nПрошлая попытка не прошла проверку:\n{errors}\nИсправь." if errors else ""),
-                  temperature=0.7, max_tokens=brief_max_tokens(cfg),
-                  response_format=brief_response_format())
+        try:
+            raw, reason = llm(cfg, SYS_BRIEF,
+                      f"Вводная игрока: {scenario}\nseed = {int(time.time()) % 10**7}" +
+                      (f"\n\nПрошлая попытка не прошла проверку:\n{errors}\nИсправь." if errors else ""),
+                      temperature=0.7, max_tokens=brief_max_tokens(cfg),
+                      response_format=brief_response_format())
+        except TimeoutError:
+            errors = BRIEF_TIMEOUT_RETRY
+            user_error = BRIEF_TIMEOUT_USER
+            continue
         fault = brief_generation_fault(raw, reason)
         if fault == "loop":
             errors = BRIEF_LOOP_RETRY

@@ -1615,6 +1615,11 @@ good = (_sch_b.get("additionalProperties") is True
         and "exits, не exits_list" in _src_pl2
         and "Поле в твоём ответе называется sites, не sites_canon" in _src_pl2
         and "Не travel_min_min" in _src_pl2
+        and "Не | как разделитель" in _src_pl2
+        and "pc|world" not in _play.SYS_BRIEF
+        and "дерево" in _play.SYS_BRIEF
+        and "пластина" in _play.SYS_BRIEF
+        and "__BRIEF_MATERIALS__" not in _play.SYS_BRIEF
         and "format_brief_error" in _src_pl2
         and "str(e)[:500]" not in _src_pl2)
 ok, fail = ok+good, fail+(not good)
@@ -1781,11 +1786,84 @@ good = _form_then_validate(
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'on_complete site+add — отказ, не новая операция':<40}{'да' if good else 'нет'}")
 
+good = _form_then_validate(
+    "qwen35_9b_parts_strings.json",
+    lambda g: any("parts" in x and "доски" in x for x in g),
+    lambda err: any("could not convert string to float" in e for e in err))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'parts-имена — отказ формы, validate тоже':<40}{'да' if good else 'нет'}")
+
+good = _form_then_validate(
+    "qwen35_9b_clock_path_site.json",
+    lambda g: any("on_complete" in x and "не путь площадки" in x for x in g),
+    lambda err: any("известного корня" in e for e in err))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'on_complete.path площадки — отказ формы':<40}{'да' if good else 'нет'}")
+
+_pipe_b = _json.load(open(os.path.join(HERE, "examples", "qwen35_9b_path_pipe.json"), encoding="utf-8"))
+_g_pipe = _play.brief_form_errors(_pipe_b)
+_pipe_S = _wg_expand(_pipe_b)
+_pipe_err, _ = _wg_validate(_pipe_S)
+good = (any("не |" in x or "через /" in x for x in _g_pipe)
+        and not any("не |" in e or "через /" in e for e in _pipe_err))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'пути через | — отказ формы, не синоним /':<40}{'да' if good else 'нет'}")
+
+good = _form_then_validate(
+    "qwen35_9b_parts_unknown_mat.json",
+    lambda g: (any("ветка" in x and "не синоним" in x for x in g)
+               and any("брус" in x and "не синоним" in x for x in g)),
+    lambda err: any("нет материала: ветка" in e for e in err))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'ветка/брус — отказ формы, не синоним':<40}{'да' if good else 'нет'}")
+
+good = _form_then_validate(
+    "qwen35_9b_on_complete_site_missing.json",
+    lambda g: any("trench_system" in x and "нет в sites" in x for x in g),
+    lambda err: any("trench_system" in e and "не в каноне" in e for e in err))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'on_complete.site вне sites — отказ формы':<40}{'да' if good else 'нет'}")
+
+good = _form_then_validate(
+    "qwen35_9b_on_complete_env_string.json",
+    lambda g: any("env должен быть объектом" in x for x in g),
+    lambda err: any("env должен быть объектом" in e for e in err))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'on_complete.env строка — отказ формы':<40}{'да' if good else 'нет'}")
+
+good = (set(_play.CLOCK_PATH_ROOTS)
+        == {"pc", "world", "time", "envelope", "meta", "position", "profile", "calendar"}
+        and "CLOCK_PATH_ROOTS = " in _src_wg)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'CLOCK_PATH_ROOTS play = worldgen':<40}{'да' if good else 'нет'}")
+
 _ok_brief = _json.loads(_json.dumps(_sl_brief))
 _ok_brief["start_local"] = "у остывшей печи"
 good = _play.brief_form_errors(_ok_brief) == []
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'канонический замысел — форма пустая':<40}{'да' if good else 'нет'}")
+
+_missp = _json.loads(_json.dumps(_ok_brief))
+_missp["start_path"] = "gory/hrebet/stanciya/нет_такой"
+_g_missp = _play.brief_form_errors(_missp)
+good = any("start_path" in x and "sites" in x for x in _g_missp)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'start_path не в sites — отказ формы':<40}{'да' if good else 'нет'}")
+
+_mix = _json.loads(_json.dumps(_ok_brief))
+_mix["clocks"] = [{
+    "name": "x", "filled": 0, "max": 1, "period_h": 1, "payoff": "x",
+    "on_complete": [{
+        "path": "gory/hrebet/stanciya/apparatnaya",
+        "site": "gory/hrebet/stanciya/apparatnaya",
+        "env": {"wind_ms": 1}}]}]
+_g_mix = _play.brief_form_errors(_mix)
+_mix_S = _wg_expand(_mix)
+_mix_err, _ = _wg_validate(_mix_S)
+good = (any("не смешивай" in x for x in _g_mix)
+        and not any("неизвестная операция" in e for e in _mix_err))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'on_complete mix path+site — отказ формы':<40}{'да' if good else 'нет'}")
 
 _ws = _json.loads(_json.dumps(_ok_brief))
 _ws["sites"][0]["exits"] = [{
@@ -1871,6 +1949,9 @@ good = (_play.detect_degenerate_loop(_cap["content"])
         and "зациклилась" in _play.BRIEF_LOOP_USER
         and "Expecting" not in _play.BRIEF_LOOP_USER
         and "JSONDecode" not in _play.BRIEF_LOOP_USER
+        and "TimeoutError" in _src_pl2
+        and "вовремя" in _play.BRIEF_TIMEOUT_USER
+        and "TimeoutError" in open(os.path.join(HERE, "examples", "live_brief_probe.py"), encoding="utf-8").read()
         and '"stream": False' in open(os.path.join(HERE, "play.py"), encoding="utf-8").read()
         and "не потоковый" in open(os.path.join(HERE, "HANDOFF.md"), encoding="utf-8").read())
 ok, fail = ok+good, fail+(not good)

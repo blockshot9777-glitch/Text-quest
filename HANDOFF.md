@@ -154,8 +154,18 @@ done
   `EXIT_REQUIRED` руками. Лишний required не дыра `--check`. Не
   `.get("travel_min_min")`: закрытый список псевдонимов в
   `brief_form_errors` — отказ, не синоним. `structures` — объекты с
-  `name`, не строки. `on_complete` — только `site`/`sites`+`env` или
-  `path`+`set`/`add`; `{site, add}` — неизвестная операция.
+  `name`, не строки. `parts` — кортежи `[материал, форма, Д, Ш, В]`, не
+  имена («доски»): строка в `unpack_part` идёт по буквам. Материал/форма —
+  ключи `sim.MATERIALS`/`FORMS`, не «ветка»/«брус» (отказ, не синоним).
+  Пути площадок через `/`; `|` — отказ формы (движок принял бы как один
+  сегмент; не `.replace("|","/")`). `on_complete` — только `site`/`sites`+`env`
+  или `path`+`set`/`add`; `{site, add}` — неизвестная операция; `path` —
+  корень из `CLOCK_PATH_ROOTS` через точку, не путь площадки и не перечень
+  через `|`; `sites:"*"`, не `site:"*"`; `site` есть в `sites[].path`;
+  `env` — объект, не строка «time». `start_path` есть в `sites[].path`.
+  Живой прогон против LM Studio: `python examples/live_brief_probe.py`
+  (сырые ответы в `examples/live_runs/`, gitignore). `TimeoutError` от
+  `urlopen` — повтор попытки, не traceback в UI.
 - **Формы `skills` в `normalize_brief` исчерпывающие:** объект `{имя: число}`;
   список `{name, value|level|score}`; список одноключевых. `rating` — отказ.
   Список ключей — `SKILL_LIST_VALUE_KEYS`, не догадка в `.get()` цепочке.

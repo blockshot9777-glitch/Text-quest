@@ -1,0 +1,51 @@
+{
+ "seed": 3509113,
+ "setting": "Qwen3.5 9B, живой прогон: on_complete.env — строка «time», не объект.",
+ "tech_ceiling": "industrial",
+ "ladder": ["мир", "хребет", "станция", "помещение"],
+ "ladder_root": "gory",
+ "physics_on": ["холод", "голод", "жажда", "сон", "раны", "гипоксия", "нагрузка", "погода"],
+ "start_path": "gory/hrebet/stanciya/apparatnaya",
+ "start_local": "у остывшей печи",
+ "start_z": 2400,
+ "start_hour": 15.5,
+ "weather": "низовая метель",
+ "ambient_c": -14,
+ "wind_ms": 12,
+ "climate": {"t_min": -22, "t_max": -8, "sunrise": 8.2, "sunset": 16.4, "note": "поздняя осень"},
+ "epoch": "конец октября",
+ "start_date": "1979-10-28",
+ "seasons": ["осень"],
+ "needs": {"hunger": 25, "thirst": 30, "fatigue": 55, "cold_stress": 38, "stress": 50},
+ "skills": {"survival": 45, "craft": 50, "medicine": 25},
+ "chain": [
+  {"path": "gory", "scale": "мир", "laws": "обычная физика", "canon": "Горный хребет."}
+ ],
+ "sites": [
+  {
+   "path": "gory/hrebet/stanciya/apparatnaya",
+   "name": "Аппаратная",
+   "z_m": 2400,
+   "desc_true": "Печь остыла.",
+   "exits": [{"to": "gory/hrebet/tropa", "mode": "пешком", "travel_min": 35, "dz_m": -180, "difficulty": 40, "gate": "обвал"}],
+   "resources": [],
+   "hazards": [],
+   "objects": [],
+   "touched": true
+  }
+ ],
+ "npcs": [
+  {"id": "npc_01", "name": "Сергеев", "path": "gory/hrebet/stanciya/apparatnaya",
+   "goal": "дождаться вертолёта", "long_goal": "молчать", "resources": ["ключи"],
+   "disposition": -20, "knows_about_pc": [], "alive": true, "schedule": "на складе"}
+ ],
+ "factions": [
+  {"id": "fac_01", "name": "зимовщики", "goal": "дотянуть до весны", "power": 40, "stance_to_pc": -10, "relations": {}}
+ ],
+ "clocks": [
+  {"name": "день", "filled": 0, "max": 12, "period_h": 12, "payoff": "утро",
+   "on_complete": [{"site": "gory/hrebet/stanciya/apparatnaya", "env": "time"}]}
+ ],
+ "truths": ["Топлива мало."],
+ "opening_fact": "on_complete.env строка."
+}

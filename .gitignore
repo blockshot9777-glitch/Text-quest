@@ -6,6 +6,7 @@ __pycache__/
 *.pyc
 .DS_Store
 /tmp/
+examples/live_runs/
 
 # окружение контейнера, не часть проекта
 .cache/
