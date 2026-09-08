@@ -148,6 +148,10 @@ done
 - **`PHYSICS_ON` — публичное имя бандла.** `play.py` читает `sim.PHYSICS_ON`.
   Минификация/переименование глобалей в `build_bundle.py` сломает схему
   так же тихо, как когда-то `matter.make_item`.
+- **`tech_ceiling` замысла живёт в `profile`, не только в `meta`.**
+  `validate` и `--build` читают `S["profile"]["tech_ceiling"]` (иначе
+  default industrial режет титан/композит в космосе). `expand` копирует
+  поле из brief. Не `.get` в validate как синоним `meta`.
 - **Схема brief: required = KeyError AST ∪ то, без чего validate падает.**
   `schema_required.py --check` ловит только прямые `x["k"]`. `validate` с
   `if f not in e` (`travel_min`, `difficulty`) AST не видит — в
@@ -166,6 +170,7 @@ done
   Живой прогон против LM Studio: `python examples/live_brief_probe.py`
   (сырые ответы в `examples/live_runs/`, gitignore). `TimeoutError` от
   `urlopen` — повтор попытки, не traceback в UI.
+  Те же пять вводных от модели в Cursor: `python examples/cursor_brief_probe.py`.
 - **Формы `skills` в `normalize_brief` исчерпывающие:** объект `{имя: число}`;
   список `{name, value|level|score}`; список одноключевых. `rating` — отказ.
   Список ключей — `SKILL_LIST_VALUE_KEYS`, не догадка в `.get()` цепочке.

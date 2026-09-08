@@ -1491,6 +1491,20 @@ except NameError as _ne:
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'structures: expand/validate без TypeError':<40}{'да' if good else 'нет'}")
 
+_tc_brief = _json.load(open(os.path.join(HERE, "examples", "qwen35_9b_structures.json"), encoding="utf-8"))
+_tc_brief["tech_ceiling"] = "spacefaring"
+_tc_brief["sites"][0]["structures"] = list(_tc_brief["sites"][0].get("structures") or []) + [{
+    "name": "щиток",
+    "parts": [["композит", "пластина", 40, 20, 2]],
+}]
+_Stc = _wg_expand(_tc_brief)
+_err_tc, _ = _wg_validate(_Stc)
+good = (_Stc["profile"].get("tech_ceiling") == "spacefaring"
+        and _Stc["meta"].get("tech_ceiling") == "spacefaring"
+        and not any("композит" in e for e in _err_tc))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'tech_ceiling brief → profile, не default industrial':<40}{'да' if good else 'нет'}")
+
 # чистый процесс: в sim.py нет модуля matter — префикс matter. даёт NameError
 _src_sim = open(os.path.join(HERE, "sim.py"), encoding="utf-8").read()
 _r3 = _run(["-c",

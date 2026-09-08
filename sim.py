@@ -1581,6 +1581,7 @@ def expand(brief):
      "meta": {"seed": b["seed"], "turn": 0, "setting": b["setting"],
               "tech_ceiling": b.get("tech_ceiling","preindustrial"), "tone":"безжалостный реализм"},
      "profile": {"ladder": b["ladder"], "root": b["ladder_root"],
+                 "tech_ceiling": b.get("tech_ceiling","preindustrial"),
                  "z_ref": b.get("z_ref","уровень моря"), "z_unit": b.get("z_unit","м"),
                  "physics_on": b["physics_on"],
                  "physics_off": [x for x in ["холод","жара","голод","жажда","сон","раны","болезни",
