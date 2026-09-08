@@ -1,0 +1,7 @@
+{
+  "note": "Qwen3.5 9B, Киев 1141: finish_reason=length, completion_tokens≈3991 из 4000. Реконструкция обрыва: ladder зациклился, строка не закрыта. Сырого дампа в репо не было.",
+  "finish_reason": "length",
+  "completion_tokens": 3991,
+  "max_tokens": 4000,
+  "content": "{\n \"seed\": 1141,\n \"setting\": \"Киев, 1141 год.\",\n \"tech_ceiling\": \"preindustrial\",\n \"ladder\": [\n  \"Kyiv St. Sophia Golden Dome\",\n  \"Kyiv St. Sophia Golden Dome\",\n  \"Kyiv St. Sophia Golden Dome\",\n  \"Kyiv St. Sophia Golden Dome\",\n  \"Kyiv St. Sophia Golden Dome\",\n  \"Kyiv St. Sophia Golden Dome\",\n  \"Kyiv St. Sophia Golden Dome\",\n  \"Kyiv St. Sophia Golden Dome\"\n ],\n \"ladder_root\": \"kyiv\",\n \"physics_on\": [\"холод\", \"голод\", \"жажда\", \"сон\", \"раны\", \"нагрузка\", \"погода\"],\n \"start_path\": \"kyiv/podol/rynok\",\n \"sites\": [\n  {\n   \"path\": \"kyiv/podol/rynok\",\n   \"name\": \"Торговый рынок\",\n   \"objects\": [\"лавка\", \"весы\", \"бочка\"],\n   \"exits\": [ { \"to\": \"kyiv/detinets/zal\",\n   \"desc_true\": \"Княжий зал, золотые купола видны с"
+}

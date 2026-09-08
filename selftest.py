@@ -1644,5 +1644,29 @@ good = any("npcs[0]" in x and "id" in x for x in _g3)
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'NPC без id — дыра элемента массива':<40}{'да' if good else 'нет'}")
 
+print("\n── замысел: обрыв по length, не JSONDecodeError ──")
+good = (_play.BRIEF_MAX_TOKENS >= 6000
+        and "max_tokens=4000" not in open(os.path.join(HERE, "play.py"), encoding="utf-8").read()
+        and "не более 4 объектов" in open(os.path.join(HERE, "play.py"), encoding="utf-8").read()
+        and "json_looks_truncated" in open(os.path.join(HERE, "play.py"), encoding="utf-8").read())
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'потолок brief ≥6000, лимит сущностей':<40}{'да' if good else 'нет'}")
+
+_kyiv = _json.load(open(os.path.join(HERE, "examples", "qwen35_9b_kyiv_truncated.json"), encoding="utf-8"))
+good = _play.json_looks_truncated(_kyiv["content"], _kyiv["finish_reason"])
+good = good and not _play.json_looks_truncated('{"seed": 1}', "stop")
+good = good and _play.json_looks_truncated('{"seed": 1}', "length")
+_fr = _play._llm_finish_reason("local", {"choices": [{"finish_reason": "length", "message": {"content": "{"}}]})
+good = good and _fr == "length"
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'Kyiv truncated: length, не json.loads':<40}{'да' if good else 'нет'}")
+
+good = ("подробным" in _play.BRIEF_TRUNCATED_USER
+        and "обрублен" in _play.BRIEF_TRUNCATED_RETRY
+        and "Expecting" not in _play.BRIEF_TRUNCATED_USER
+        and "JSONDecode" not in _play.BRIEF_TRUNCATED_USER)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'UI: слишком подробный мир, не Expecting':<40}{'да' if good else 'нет'}")
+
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)

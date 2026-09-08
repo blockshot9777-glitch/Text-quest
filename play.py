@@ -195,8 +195,29 @@ def format_brief_error(exc):
     return str(exc)[:500]
 
 
+def _llm_text(prov, data):
+    if prov == "anthropic":
+        return "".join(b.get("text", "") for b in data.get("content", []))
+    if prov == "ollama":
+        return data.get("message", {}).get("content", "") or ""
+    msg = ((data.get("choices") or [{}])[0].get("message") or {})
+    return msg.get("content") or ""
+
+
+def _llm_finish_reason(prov, data):
+    """stop / length / …  length и max_tokens — обрыв по потолку, не ошибка формата."""
+    if prov == "anthropic":
+        r = data.get("stop_reason") or ""
+        return "length" if r == "max_tokens" else r
+    if prov == "ollama":
+        r = data.get("done_reason") or ""
+        return "length" if r in ("length", "max_tokens") else r
+    r = ((data.get("choices") or [{}])[0].get("finish_reason") or "")
+    return "length" if r == "max_tokens" else r
+
+
 def llm(cfg, system, user, temperature=0.2, max_tokens=1400, response_format=None):
-    """Единый вызов для всех провайдеров. Возвращает строку ответа."""
+    """Единый вызов. Возвращает (текст, finish_reason). reason «length» — обрыв."""
     prov = cfg.get("provider", "ollama")
     url = cfg.get("url") or PROVIDERS[prov]["url"]
     model = cfg.get("model", "llama3.1")
@@ -208,7 +229,8 @@ def llm(cfg, system, user, temperature=0.2, max_tokens=1400, response_format=Non
         body = {"model": model, "max_tokens": max_tokens, "temperature": temperature,
                 "system": system, "messages": [{"role": "user", "content": user}]}
     elif prov == "ollama":
-        body = {"model": model, "stream": False, "options": {"temperature": temperature},
+        body = {"model": model, "stream": False,
+                "options": {"temperature": temperature, "num_predict": max_tokens},
                 "messages": [{"role": "system", "content": system},
                              {"role": "user", "content": user}]}
     else:  # openai-совместимые: OpenAI, LM Studio, llama.cpp, vLLM
@@ -223,12 +245,23 @@ def llm(cfg, system, user, temperature=0.2, max_tokens=1400, response_format=Non
                                  headers=headers, method="POST")
     with urllib.request.urlopen(req, timeout=cfg.get("timeout", 180)) as r:
         data = json.loads(r.read().decode("utf-8"))
+    return _llm_text(prov, data), _llm_finish_reason(prov, data)
 
-    if prov == "anthropic":
-        return "".join(b.get("text", "") for b in data.get("content", []))
-    if prov == "ollama":
-        return data.get("message", {}).get("content", "")
-    return data["choices"][0]["message"]["content"]
+
+def json_looks_truncated(text, finish_reason=None):
+    """Обрыв по лимиту токенов — не JSONDecodeError. Схема тут ни при чём."""
+    if (finish_reason or "") in ("length", "max_tokens"):
+        return True
+    t = re.sub(r"```(?:json)?", "", text or "").strip()
+    return not t.endswith("}")
+
+
+BRIEF_MAX_TOKENS = 8000
+BRIEF_TRUNCATED_USER = "мир получился слишком подробным, пробую снова компактнее"
+BRIEF_TRUNCATED_RETRY = (
+    "твой прошлый ответ был обрублен по лимиту длины — "
+    "сократи количество сайтов до 1-2 и меньше объектов на каждый"
+)
 
 
 def json_from(text):
@@ -487,7 +520,8 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
  conditions (список),
  chain — список узлов [{path, scale, canon, ...}] от корня до региона.
    У узла chain поле canon — текст этого уровня лестницы, не имя массива площадок.
- sites — 1-3 площадки [{path,name,z_m,desc_true,exits[{to,mode,travel_min,dz_m,difficulty,gate}],
+ sites — от 1 до 3 площадок, не больше. На каждую: не более 4 объектов и 2 структур.
+   [{path,name,z_m,desc_true,exits[{to,mode,travel_min,dz_m,difficulty,gate}],
    resources:[{name,amount,tags?}], hazards, objects, structures?, shelter?, hearth?, touched:true}].
    Поле в твоём ответе называется sites, не sites_canon — второе имя используется
    только внутри движка после генерации.
@@ -525,7 +559,9 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
 Иначе укажи worn (список), containers (список), items (список пар [предмет, контейнер]).
 
 ЖЁСТКО: никакого баланса под игрока. Минимум 1 площадка смертельна без подготовки.
-Числа среды реальные. Лестница ровно нужной глубины — не тащи космос в осаду города."""
+Числа среды реальные. Лестница ровно нужной глубины — не тащи космос в осаду города.
+Стартовый замысел компактный: 1–3 площадки, на площадку ≤4 объектов и ≤2 структур.
+Богатая вводная (Киев, мировая война) — не повод отдать весь город сразу."""
 
 SYS_MECH = """Ты — разборщик намерений для симулятора. Верни ТОЛЬКО JSON, без пояснений.
 
@@ -639,7 +675,7 @@ def play_turn(cfg, intent):
         return {"prose": "Игра окончена.", "options": [], "dead": True}
 
     ctx = scene_context(S)
-    mech_raw = llm(cfg, SYS_MECH,
+    mech_raw, _ = llm(cfg, SYS_MECH,
                    "Обстановка:\n" + json.dumps(ctx, ensure_ascii=False, indent=1) +
                    f"\n\nИгрок хочет: {intent}", temperature=0.15, max_tokens=600,
                    response_format=mech_response_format(S))
@@ -701,7 +737,7 @@ def play_turn(cfg, intent):
         "мёртв": S.get("status") == "dead",
         "без_сознания": S.get("status") == "unconscious",
     }
-    prose_raw = llm(cfg, SYS_PROSE, json.dumps(payload, ensure_ascii=False, indent=1),
+    prose_raw, _ = llm(cfg, SYS_PROSE, json.dumps(payload, ensure_ascii=False, indent=1),
                     temperature=0.9, max_tokens=1200)
     out = json_from(prose_raw)
     out["dead"] = payload["мёртв"]
@@ -725,28 +761,34 @@ def run_engine(argv):
 def new_game(cfg, scenario):
     """Свободный текст сценария -> замысел -> валидация -> мир. С самопочинкой."""
     errors = ""
+    user_error = ""
     for attempt in range(3):
-        raw = llm(cfg, SYS_BRIEF,
+        raw, reason = llm(cfg, SYS_BRIEF,
                   f"Вводная игрока: {scenario}\nseed = {int(time.time()) % 10**7}" +
                   (f"\n\nПрошлая попытка не прошла проверку:\n{errors}\nИсправь." if errors else ""),
-                  temperature=0.7, max_tokens=4000,
+                  temperature=0.7, max_tokens=BRIEF_MAX_TOKENS,
                   response_format=brief_response_format())
+        if json_looks_truncated(raw, reason):
+            errors = BRIEF_TRUNCATED_RETRY
+            user_error = BRIEF_TRUNCATED_USER
+            continue
         try:
             brief = json_from(raw)
             gaps = brief_form_errors(brief)
             if gaps:
-                errors = "\n".join(gaps); continue
+                errors = "\n".join(gaps); user_error = errors; continue
             S = sim.expand(brief)
             err, warn = sim.validate(S)
             if err:
-                errors = "\n".join(err); continue
+                errors = "\n".join(err); user_error = errors; continue
             notes = S.pop("_gen_notes", [])
             json.dump(S, open(STATE_PATH, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
             return {"ok": True, "notes": notes, "warn": warn,
                     "setting": S["meta"]["setting"], "attempt": attempt + 1}
         except Exception as e:
             errors = format_brief_error(e)
-    return {"ok": False, "error": errors}
+            user_error = errors
+    return {"ok": False, "error": user_error or errors}
 
 
 # ─────────────────────────── ОКНО ───────────────────────────
