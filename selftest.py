@@ -1751,5 +1751,40 @@ good = ("подробным" in _play.BRIEF_TRUNCATED_USER
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'UI: слишком подробный мир, не Expecting':<40}{'да' if good else 'нет'}")
 
+print("\n── замысел: зацикливание JSON, не нехватка места ──")
+_cap = _json.load(open(os.path.join(HERE, "examples", "qwen35_9b_capsule_loop.json"), encoding="utf-8"))
+_unit = '" :", " ,"'
+good = (_play.detect_degenerate_loop(_cap["content"])
+        and _play.brief_generation_fault(_cap["content"], _cap["finish_reason"]) == "loop"
+        and _play.brief_generation_fault(_kyiv["content"], _kyiv["finish_reason"]) == "truncated"
+        and not _play.detect_degenerate_loop(_kyiv["content"])
+        and _play.detect_degenerate_loop(_unit * 30)
+        and not _play.detect_degenerate_loop(_unit * 29)
+        and "сократи" not in _play.BRIEF_LOOP_RETRY
+        and "кавычки" in _play.BRIEF_LOOP_RETRY
+        and "зациклилась" in _play.BRIEF_LOOP_USER
+        and "Expecting" not in _play.BRIEF_LOOP_USER
+        and "JSONDecode" not in _play.BRIEF_LOOP_USER
+        and '"stream": False' in open(os.path.join(HERE, "play.py"), encoding="utf-8").read()
+        and "не потоковый" in open(os.path.join(HERE, "HANDOFF.md"), encoding="utf-8").read())
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'капсула: loop, не «сократи сайты»':<40}{'да' if good else 'нет'}")
+
+_npcs = []
+for _i in range(8):
+    _npcs.append({
+        "id": f"npc_{_i:02d}", "name": f"Kyiv guard {_i}",
+        "path": "kyiv/podol/rynok", "goal": "торговать",
+        "disposition": 10, "alive": True,
+    })
+_similar = _json.dumps({
+    "seed": 1, "setting": "Киев", "ladder": ["Kyiv", "Podil", "Rynok"],
+    "npcs": _npcs, "truths": ["Kyiv стоит.", "Подол торгует."],
+}, ensure_ascii=False, indent=1)
+good = (not _play.detect_degenerate_loop(_similar)
+        and _play.brief_generation_fault(_similar, "stop") is None)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'похожие NPC — не ложный цикл':<40}{'да' if good else 'нет'}")
+
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)

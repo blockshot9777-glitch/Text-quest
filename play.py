@@ -251,11 +251,14 @@ def llm(cfg, system, user, temperature=0.2, max_tokens=1400, response_format=Non
     else:  # openai-совместимые: OpenAI, LM Studio, llama.cpp, vLLM
         if key: headers["Authorization"] = f"Bearer {key}"
         body = {"model": model, "temperature": temperature, "max_tokens": max_tokens,
+                "stream": False,
                 "messages": [{"role": "system", "content": system},
                              {"role": "user", "content": user}]}
         if response_format:
             body["response_format"] = response_format
 
+    # Не stream: urlopen читает тело целиком. Зацикленную генерацию нельзя
+    # оборвать раньше max_tokens — только распознать постфактум.
     req = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"),
                                  headers=headers, method="POST")
     with urllib.request.urlopen(req, timeout=cfg.get("timeout", 180)) as r:
@@ -271,11 +274,60 @@ def json_looks_truncated(text, finish_reason=None):
     return not t.endswith("}")
 
 
+# Живой прогон (капсула, 8000 токенов): единица «" :", " ,"» ≈ 10 символов.
+# Потолок 6 из постановки эту единицу не ловит — эмпирика с лога, не впрок.
+DEGENERATE_LOOP_MIN_UNIT = 2
+DEGENERATE_LOOP_MAX_UNIT = 12
+DEGENERATE_LOOP_REPEAT = 30
+DEGENERATE_LOOP_TAIL = 1500
+
+
+def detect_degenerate_loop(text):
+    """Хвост из одного короткого куска ≥N раз подряд — не нехватка места."""
+    s = text or ""
+    if len(s) > DEGENERATE_LOOP_TAIL:
+        s = s[-DEGENERATE_LOOP_TAIL:]
+    min_n = DEGENERATE_LOOP_MIN_UNIT
+    max_n = DEGENERATE_LOOP_MAX_UNIT
+    thr = DEGENERATE_LOOP_REPEAT
+    if len(s) < min_n * thr:
+        return False
+    for n in range(min_n, max_n + 1):
+        need = n * thr
+        if len(s) < need:
+            continue
+        limit = len(s) - need + 1
+        i = 0
+        while i < limit:
+            unit = s[i:i + n]
+            if not unit.strip():
+                i += 1
+                continue
+            if s[i:i + need] == unit * thr:
+                return True
+            i += 1
+    return False
+
+
+def brief_generation_fault(text, finish_reason=None):
+    """loop важнее length: потолок токенов цикл не лечит."""
+    if detect_degenerate_loop(text):
+        return "loop"
+    if json_looks_truncated(text, finish_reason):
+        return "truncated"
+    return None
+
+
 BRIEF_MAX_TOKENS = 8000
 BRIEF_TRUNCATED_USER = "мир получился слишком подробным, пробую снова компактнее"
 BRIEF_TRUNCATED_RETRY = (
     "твой прошлый ответ был обрублен по лимиту длины — "
     "сократи количество сайтов до 1-2 и меньше объектов на каждый"
+)
+BRIEF_LOOP_USER = "генерация зациклилась на битом JSON, пробую снова"
+BRIEF_LOOP_RETRY = (
+    "предыдущий ответ содержал повреждённый JSON-ключ и зациклился на повторении — "
+    "начни заново, внимательно проверяя кавычки и скобки"
 )
 
 
@@ -783,7 +835,12 @@ def new_game(cfg, scenario):
                   (f"\n\nПрошлая попытка не прошла проверку:\n{errors}\nИсправь." if errors else ""),
                   temperature=0.7, max_tokens=BRIEF_MAX_TOKENS,
                   response_format=brief_response_format())
-        if json_looks_truncated(raw, reason):
+        fault = brief_generation_fault(raw, reason)
+        if fault == "loop":
+            errors = BRIEF_LOOP_RETRY
+            user_error = BRIEF_LOOP_USER
+            continue
+        if fault == "truncated":
             errors = BRIEF_TRUNCATED_RETRY
             user_error = BRIEF_TRUNCATED_USER
             continue
