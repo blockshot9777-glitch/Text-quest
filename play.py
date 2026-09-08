@@ -818,86 +818,67 @@ def normalize_intent(mech, S):
 SYS_BRIEF = """Ты — генератор миров для безжалостного симулятора выживания.
 По вводной игрока верни ТОЛЬКО JSON-замысел мира, без пояснений и заборчиков.
 
+Стартовый замысел КОМПАКТНЫЙ. Не пиши parts и не пиши on_complete: без них мир принимается.
+objects — только строки (проза). clocks — name,filled,max,period_h,payoff, без on_complete.
+
 Обязательные поля:
  seed (число), setting (строка), tech_ceiling (primitive|preindustrial|industrial|spacefaring),
  ladder (список уровней от корня к мелкому), ladder_root (строго первый сегмент start_path, те же символы, не «лес» vs «les»),
  physics_on (список из: холод, жара, голод, жажда, сон, раны, болезни, гипоксия,
    давление, радиация, вакуум, углекислота, невесомость, нагрузка, погода),
- start_path (путь через /; первый сегмент = ladder_root; равен path одной площадки в sites).
+ start_path (путь через /; первый сегмент = ladder_root; равен path ОДНОЙ площадки в sites).
    Пример: "gory/hrebet/stanciya/apparatnaya". Не | как разделитель площадок.
-   start_local (описание позиции), start_z (число),
- start_hour (число), weather, ambient_c, wind_ms,
+ start_local, start_z, start_hour, weather, ambient_c, wind_ms,
  climate {t_min,t_max,sunrise,sunset,note}, epoch, start_date, seasons,
  needs {hunger,thirst,fatigue,cold_stress,stress} — числа 0..100,
- skills — объект {имя: число} (athletics, stealth, …). Не список и не строки.
-   Нормализатор ещё принимает список {name, value|level|score} или [{имя: число}];
-   rating/skill_level — отказ.
- conditions (список),
- chain — список узлов [{path, scale, canon, ...}] от корня до региона.
-   У узла chain поле canon — текст этого уровня лестницы, не имя массива площадок.
- sites — от 1 до 3 площадок, не больше. На каждую: не более 4 объектов и 2 структур.
+ skills — объект {имя: число} (athletics, stealth, survival, …). Не список.
+   Нормализатор ещё принимает список {name, value|level|score}; rating — отказ.
+ conditions (список, можно пустой),
+ chain — [{path, scale, canon}] от корня. canon — текст уровня, не имя массива площадок.
+ sites — 1–3 площадки. Поле в твоём ответе называется sites, не sites_canon.
    [{path,name,z_m,desc_true,exits[{to,mode,travel_min,dz_m,difficulty,gate}],
-   resources:[{name,amount,tags?}], hazards, objects, structures?, shelter?, hearth?, touched:true}].
-   Поле в твоём ответе называется sites, не sites_canon — второе имя используется
-   только внутри движка после генерации.
+   resources:[{name,amount,tags}], hazards, objects, touched:true}].
    Выходы площадки — поле exits, не exits_list и не exits_from_here.
    Не exits_to, не exits_from, не exits_from_site.
-   У каждого выхода ключи to, travel_min, difficulty — числа. Не travel_min_min,
+   У выхода ключи to, travel_min, difficulty — числа. Не travel_min_min,
    не difficulty_hard, не diff, не «легко», не ключ с пробелом.
    to не совпадает с path этой же площадки.
-   objects — строки (проза, не ломается) или {name, parts?, tags?}.
-   parts — список кортежей, каждый [материал, форма, Д_см, Ш_см, В_см].
-   материал строго из: __BRIEF_MATERIALS__.
-   форма строго из: __BRIEF_FORMS__.
-   Не список имён («доски», «солома»). Не «ветка»/«брус»/«плита»/«куб»/«металл»: нет в таблице, не синоним.
-   Пример: [["дерево", "пластина", 140, 70, 3]]. Без parts объект неразрушим.
-   structures — объекты {name, parts?, tags?}, не строки; теги роли из structure_use,
-   не имена «дом»/«сарай». player_made:true защищает площадку от compact.
-   tags ресурса обязательны, если его можно взять и использовать.
-   Имя само по себе ничего не значит: «кипяток» без тега — просто ресурс.
-   Пример (подсказка автору, не словарь ядра; теги должны совпасть с item_use
-   правил существа):
-     resources: [
-       {"name": "кипяток", "amount": 8, "tags": ["вода"]},
-       {"name": "чёрный хлеб", "amount": 6, "tags": ["еда"]},
-       {"name": "дрова у печи", "amount": 4, "tags": ["топливо"]}
-     ]
-     item_use человека: water_tags ["вода"], food_tags ["еда"],
-       fuel_tags ["топливо"], igniter_tags ["огонь"], fuel_per_h 0.25
-   Другое существо — другие теги. shelter:true — помещение (штиль без флага).
-   hearth:true — очаг уже есть.
- npcs — 4-6 [{id,name,path,goal,long_goal,resources,disposition,knows_about_pc:[],alive:true,schedule,faction}],
- factions — 2-4 [{id,name,goal,power,stance_to_pc,relations:{}}],
- clocks — 3-5 [{name,filled,max,period_h,hidden,payoff, on_complete?, fired?}],
-   on_complete — список объектов {site, env} / {sites, env} или {path, set} / {path, add};
-   add на path — число. Не строка и не {site, add:...}. Не смешивай site+env с path+set/add.
-   env — объект полей среды, не строка «time».
-   site — path из sites этого JSON, не новое имя.
-   path счётчика — одно из: pc, world, time, envelope, meta, position, profile, calendar
-   и поле через точку (envelope.wind_ms). Не перечисляй корни через |.
-   не путь площадки; для площадки — site/sites+env. sites:"*", не site:"*";
-   sites:"*" в on_complete — площадки уже порождённые движком (внутреннее имя
-   sites_canon); в замысле массив по-прежнему называется sites;
-   add на одно поле у двух счётчиков складывается (не идемпотентен и не обязан быть);
-   без on_complete payoff остаётся только строкой в журнале;
- truths — 4-6 строк (то, что верно, но игрок не знает),
- opening_fact (строка).
+   objects — строки. Не объекты с parts в стартовом замысле.
+   Если всё же пишешь parts — только [["дерево","пластина",140,70,3]], не «земля»/«песок»/«брус»/«плита».
+   resources с тегами, если взять можно: вода/еда/топливо (подсказка автору, не словарь ядра).
+   shelter:true — помещение. hearth:true — очаг уже есть.
+ npcs — 2–4 [{id,name,path,goal,disposition,alive:true}],
+ factions — 2–3 [{id,name,goal,power,stance_to_pc,relations:{}}],
+ clocks — 1–3 [{name,filled,max,period_h,payoff}] без on_complete,
+ truths — 3–5 строк,
+ opening_fact (строка),
+ carryover: {"context":"auto"} если человек нашего времени попал в другой мир
+   (тогда НЕ указывай worn/containers/items).
 
-Если персонаж — человек нашего времени, попавший в другой мир, добавь
- "carryover": {"context": "auto"} и НЕ указывай worn/containers/items:
-снаряжение сгенерируется само по моменту переноса.
-Иначе укажи worn (список), containers (список), items (список пар [предмет, контейнер]).
+Каркас (скопируй структуру, смени текст; ladder_root = первый сегмент start_path = path стартовой площадки):
+{"seed":1,"setting":"окоп, 1916","tech_ceiling":"industrial",
+ "ladder":["ww1","front","okop"],"ladder_root":"ww1",
+ "physics_on":["холод","голод","жажда","сон","раны","нагрузка","погода"],
+ "start_path":"ww1/front/okop","start_local":"на ступени окопа","start_z":180,"start_hour":6,
+ "weather":"мокрый снег","ambient_c":1,"wind_ms":7,
+ "climate":{"t_min":-4,"t_max":6,"sunrise":8,"sunset":16,"note":"ноябрь"},
+ "epoch":"1916","start_date":"1916-11-12","seasons":["осень"],
+ "needs":{"hunger":30,"thirst":35,"fatigue":50,"cold_stress":40,"stress":60},
+ "skills":{"survival":40,"stealth":35,"perception":40},
+ "conditions":[],
+ "chain":[{"path":"ww1","scale":"театр","canon":"Западный фронт."}],
+ "sites":[{"path":"ww1/front/okop","name":"Окоп","z_m":180,"desc_true":"Вода по щиколотку.",
+   "exits":[{"to":"ww1/front/noman","mode":"пешком","travel_min":8,"dz_m":4,"difficulty":50,"gate":"проволока"}],
+   "resources":[{"name":"кипяток","amount":2,"tags":["вода"]},{"name":"сухари","amount":3,"tags":["еда"]}],
+   "hazards":["сырость"],"objects":["накатник","лужа"],"touched":true}],
+ "npcs":[{"id":"npc_01","name":"ефрейтор","path":"ww1/front/okop","goal":"не высовываться","disposition":-10,"alive":true}],
+ "factions":[{"id":"fac_01","name":"рота","goal":"удержать участок","power":45,"stance_to_pc":-5,"relations":{}}],
+ "clocks":[{"name":"ночь","filled":0,"max":12,"period_h":12,"payoff":"темнеет"}],
+ "truths":["Следующий залп ляжет мимо окопа.","В воде дизентерия.","Ротация отменена."],
+ "opening_fact":"Лес кончился чужим окопом.","carryover":{"context":"auto"}}
 
-ЖЁСТКО: никакого баланса под игрока. Минимум 1 площадка смертельна без подготовки.
-Числа среды реальные. Лестница ровно нужной глубины — не тащи космос в осаду города.
-Стартовый замысел компактный: 1–3 площадки, на площадку ≤4 объектов и ≤2 структур.
-Богатая вводная (Киев, мировая война) — не повод отдать весь город сразу."""
-
-SYS_BRIEF = SYS_BRIEF.replace(
-    "__BRIEF_MATERIALS__", ", ".join(sim.MATERIALS)
-).replace(
-    "__BRIEF_FORMS__", ", ".join(sim.FORMS)
-)
+ЖЁСТКО: никакого баланса под игрока. Минимум 1 выход ведёт туда, где без подготовки плохо.
+Числа среды реальные. 1–3 площадки, на площадку не более 4 объектов. Богатая вводная — не весь город сразу."""
 
 SYS_MECH = """Ты — разборщик намерений для симулятора. Верни ТОЛЬКО JSON, без пояснений.
 

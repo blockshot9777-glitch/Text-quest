@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Замыслы от модели в Cursor — тот же конвейер, что play.new_game, без LM Studio.
+"""Замыслы, написанные вручную знанием схемы — не live-вызов модели.
 
+Не сравнивать с Qwen: это эталон «мир принимается», не прогон SYS_BRIEF.
 Запуск: python examples/cursor_brief_probe.py
 """
 import json, os, sys, traceback

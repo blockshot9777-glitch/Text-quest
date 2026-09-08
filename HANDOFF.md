@@ -167,10 +167,13 @@ done
   корень из `CLOCK_PATH_ROOTS` через точку, не путь площадки и не перечень
   через `|`; `sites:"*"`, не `site:"*"`; `site` есть в `sites[].path`;
   `env` — объект, не строка «time». `start_path` есть в `sites[].path`.
+  В стартовом замысле `parts` и `on_complete` не проси: без них мир
+  принимается. Не сыпь полный словарь MATERIALS в промпт — 9B начинает
+  сочинять «песок»/«древесина».
   Живой прогон против LM Studio: `python examples/live_brief_probe.py`
   (сырые ответы в `examples/live_runs/`, gitignore). `TimeoutError` от
   `urlopen` — повтор попытки, не traceback в UI.
-  Те же пять вводных от модели в Cursor: `python examples/cursor_brief_probe.py`.
+  `examples/cursor_brief_probe.py` — ручной эталон схемы, не live-вызов модели.
 - **Формы `skills` в `normalize_brief` исчерпывающие:** объект `{имя: число}`;
   список `{name, value|level|score}`; список одноключевых. `rating` — отказ.
   Список ключей — `SKILL_LIST_VALUE_KEYS`, не догадка в `.get()` цепочке.

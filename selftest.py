@@ -1630,6 +1630,8 @@ good = (_sch_b.get("additionalProperties") is True
         and "Поле в твоём ответе называется sites, не sites_canon" in _src_pl2
         and "Не travel_min_min" in _src_pl2
         and "Не | как разделитель" in _src_pl2
+        and "Не пиши parts" in _play.SYS_BRIEF
+        and "не пиши on_complete" in _play.SYS_BRIEF
         and "pc|world" not in _play.SYS_BRIEF
         and "дерево" in _play.SYS_BRIEF
         and "пластина" in _play.SYS_BRIEF
