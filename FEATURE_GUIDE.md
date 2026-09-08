@@ -85,6 +85,12 @@ grep -rn "имя_из_твоего_сеттинга" engine.py play.py worldgen.
    (`response_format`, openai/local). Это форма JSON, не физика:
    `validate()` не убирать. В `BRIEF_SCHEMA` нужен `required` — без него
    строгий режим проверяет только типы уже присутствующих полей.
+   Вложенный required (sites[].exits, exits[].to, clocks[]) сверяет
+   `schema_required.py` с AST `worldgen.py`: ключ, который код читает
+   как x["k"] без охраны, обязан быть в схеме. Не дописывать по одному
+   полю после каждого живого прогона. `python schema_required.py --check`.
+   Второй класс (skills через .get, но без него игра пустая) — ручной
+   `SEMANTIC_REQUIRED`, автоматически не выводится.
    `additionalProperties: false` глобально не ставить: свободный текст
    (desc_true, truths, chain[].canon) намеренно вне схемы.
    не словарь синонимов в ядре. Формы `skills` сверх канона `{имя: число}`

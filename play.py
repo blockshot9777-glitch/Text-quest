@@ -38,12 +38,11 @@ PROVIDERS = {
 # additionalProperties: true — свободный текст (desc_true, truths, chain[].canon) не в схеме.
 #
 # Прямые x["k"] без .get() — дыра в required → KeyError после валидного JSON.
-# Корень: BRIEF_EXPAND_DIRECT ↔ AST expand(b). Вложенное: SITE/EXIT/CLOCK ↔
-# AST validate(s,e) и expand(c). Не по одному полю за живой прогон.
+# Живой список уровней: python schema_required.py [--check]. Кортежи ниже —
+# то, что схема реально шлёт в LM Studio; сверка с AST не даёт им разойтись.
 # carryover/loadout — после .get / `in`.
-# disposition/power/stance_to_pc — `if k in` / .get, не KeyError: переименование
-# (disposition_to_pc) тихо теряется, это другой класс, не класть в required «заодно».
-# resources/structures — .get, пустой список законен.
+# disposition/power/stance_to_pc — `if k in` / .get, не KeyError.
+# resources/structures/objects — .get; объекты ещё и строки без name.
 BRIEF_EXPAND_DIRECT = (
     "seed", "setting", "ladder", "ladder_root", "physics_on",
     "start_path", "start_local", "chain", "sites",

@@ -130,6 +130,13 @@ for f in FILES:
         if re.search(r"except\s*:", line) or "except Exception: pass" in line:
             W(f"{f}:{i} голый except — скроет настоящую ошибку")
 
+# ─────────── 7. BRIEF_SCHEMA required vs прямые чтения worldgen ───────────
+sys.path.insert(0, HERE)
+import schema_required, play as _play_schema
+for loc, miss in schema_required.check_against(_play_schema.BRIEF_SCHEMA):
+    E(f"BRIEF_SCHEMA {loc}: код читает {miss}, в required нет — "
+      f"следующий живой прогон поймает KeyError")
+
 # ─────────── ВЫВОД ───────────
 print("═" * 62)
 print("РЕВИЗИЯ КОДА")

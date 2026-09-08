@@ -1650,75 +1650,39 @@ good = any("npcs[0]" in x and "id" in x for x in _g3)
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'NPC без id — дыра элемента массива':<40}{'да' if good else 'нет'}")
 
-import ast, inspect, textwrap
-def _sub_keys(fn, var):
-    """Ключи var[\"x\"] в функции: чтения vs записи. Не .get()."""
-    tree = ast.parse(textwrap.dedent(inspect.getsource(fn)))
-    reads, writes = set(), set()
-    class V(ast.NodeVisitor):
-        def visit_Assign(self, node):
-            for t in node.targets:
-                k = self._key(t)
-                if k is not None:
-                    writes.add(k)
-                else:
-                    self.visit(t)
-            self.visit(node.value)
-        def visit_AnnAssign(self, node):
-            k = self._key(node.target)
-            if k is not None:
-                writes.add(k)
-            elif node.target:
-                self.visit(node.target)
-            if node.value:
-                self.visit(node.value)
-        def visit_AugAssign(self, node):
-            k = self._key(node.target)
-            if k is not None:
-                writes.add(k)
-            else:
-                self.visit(node.target)
-            self.visit(node.value)
-        def visit_Subscript(self, node):
-            k = self._key(node)
-            if k is not None:
-                reads.add(k)
-            self.generic_visit(node)
-        def _key(self, node):
-            if not isinstance(node, ast.Subscript):
-                return None
-            if not isinstance(node.value, ast.Name) or node.value.id != var:
-                return None
-            sl = node.slice
-            if isinstance(sl, ast.Constant) and isinstance(sl.value, str):
-                return sl.value
-            return None
-    V().visit(tree)
-    return reads, writes
-
-_reads_b, _writes_b = _sub_keys(_wg_expand, "b")
-_direct_b = (_reads_b - _writes_b) - set(_play.BRIEF_EXPAND_GUARDED)
-good = (_direct_b == set(_play.BRIEF_EXPAND_DIRECT)
-        and set(_play.BRIEF_EXPAND_DIRECT) <= set(_play.BRIEF_REQUIRED)
-        and set(_play.BRIEF_EXPAND_DIRECT) <= set(_sch_b["properties"]))
-ok, fail = ok+good, fail+(not good)
-print(f"  {'ok ' if good else 'MISS'} {'expand() b[x] ⊆ required схемы':<40}{'да' if good else f'нет {_direct_b}'}")
-
-_reads_c, _writes_c = _sub_keys(_wg_expand, "c")
-_direct_c = (_reads_c - _writes_c) - set(_play.CLOCK_GUARDED)
-_reads_s, _ = _sub_keys(_wg_validate, "s")
-_reads_e, _ = _sub_keys(_wg_validate, "e")
-good = (_direct_c == set(_play.CLOCK_REQUIRED)
-        and _reads_s <= set(_play.SITE_REQUIRED)
-        and _reads_e <= set(_play.EXIT_REQUIRED)
-        and set(_play.SITE_REQUIRED) == set(_sch_b["properties"]["sites"]["items"]["required"])
+import ast, inspect, textwrap, copy
+import schema_required as _sr
+_der = _sr.analyze(os.path.join(HERE, "worldgen.py"))
+_need = _sr.schema_required()
+_holes = _sr.check_against(_play.BRIEF_SCHEMA)
+good = (_holes == []
+        and set(_der.get((), [])) == set(_play.BRIEF_EXPAND_DIRECT)
+        and set(_der.get(("sites",), [])) == set(_play.SITE_REQUIRED)
+        and set(_der.get(("sites", "exits"), [])) == set(_play.EXIT_REQUIRED)
+        and set(_der.get(("clocks",), [])) == set(_play.CLOCK_REQUIRED)
+        and "on_complete" not in _der.get(("clocks",), [])
+        and ("items",) not in _der and ("worn",) not in _der
+        and ("containers",) not in _der
+        and ("sites", "objects") not in _der
+        and set(_need.get((), [])) == set(_play.BRIEF_REQUIRED)
         and "disposition" not in _play.NPC_REQUIRED
         and "power" not in _play.FACTION_REQUIRED
         and "stance_to_pc" not in _play.FACTION_REQUIRED
         and 'if "disposition" in n' in _src_wg
         and "f.get(\"power\"" in open(os.path.join(HERE, "society.py"), encoding="utf-8").read())
 ok, fail = ok+good, fail+(not good)
-print(f"  {'ok ' if good else 'MISS'} {'вложенный required ↔ AST validate/expand':<40}{'да' if good else f'нет s={_reads_s} e={_reads_e} c={_direct_c}'}")
+print(f"  {'ok ' if good else 'MISS'} {'schema_required ↔ BRIEF_SCHEMA, без ложных items':<40}{'да' if good else f'нет {_holes} {_der}'}")
+
+_fake = copy.deepcopy(_play.BRIEF_SCHEMA)
+_fake["properties"]["sites"]["items"]["required"] = ["path", "name"]
+_fake_h = _sr.check_against(_fake)
+good = any(loc.endswith("sites.items") and "exits" in miss for loc, miss in _fake_h)
+_fake2 = copy.deepcopy(_play.BRIEF_SCHEMA)
+_fake2["properties"]["sites"]["items"]["properties"]["exits"]["items"]["required"] = []
+_fake2_h = _sr.check_against(_fake2)
+good = good and any("exits.items" in loc and "to" in miss for loc, miss in _fake2_h)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'генератор ловит дыру exits и to без прогона':<40}{'да' if good else 'нет'}")
 
 _g4 = _gaps("qwen35_9b_missing_start_local.json")
 good = any("обязательного поля start_local" in x for x in _g4)
