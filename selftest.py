@@ -1897,6 +1897,25 @@ good = good and isinstance(_n0.get("knows_about_pc"), list)
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'expand дописывает knows_about_pc, не KeyError':<40}{'да' if good else 'нет'}")
 
+_envw = _json.loads(_json.dumps(_ok_brief))
+_envw["start_hour"] = 3
+del _envw["start_z"]
+_envS = _wg_expand(_envw)
+_e_off, _w_off = _wg_validate(_envS)
+_envw["npcs"].append({"id": "npc_xx", "name": "гость",
+                      "path": "gory/hrebet/нет_такой", "goal": "ждать"})
+_offS = _wg_expand(_envw)
+_e_npath, _w_npath = _wg_validate(_offS)
+good = (_envS["position"]["z_m"] == 2400
+        and _envS["time"]["light"] == "темнота"
+        and "_finish_generated_world" in _src_wg
+        and "_start_z_m" in _src_wg
+        and not _e_off
+        and any("path нет в sites_canon" in w for w in _w_npath)
+        and not _e_npath)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'expand: z_m площадки и свет хода 0':<40}{_envS['time']['light']} z={_envS['position']['z_m']}")
+
 _missp = _json.loads(_json.dumps(_ok_brief))
 _missp["start_path"] = "gory/hrebet/stanciya/нет_такой"
 _g_missp = _play.brief_form_errors(_missp)

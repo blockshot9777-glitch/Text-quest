@@ -172,9 +172,15 @@ done
   `required`: их нет в AST KeyError. Полный мир: промпт просит `parts` и
   `on_complete` правильной формы; без них `expand` принимает, валидатор
   предупреждает. Не сыпать полный словарь MATERIALS в промпт — любая
-  модель начинает сочинять «песок»/«древесина». `expand` дописывает
+  модель начинает сочинять «песок»/«древесина».   `expand` дописывает
   `knows_about_pc`/`alive`/`resources` у NPC — иначе `npc_step` падает
   KeyError на первом тике. Это канон состояния, не синоним ключа.
+  Нет `start_z` — высота с `z_m` стартовой площадки, не 0. После сборки
+  `expand` зовёт `recompute_env` (как `look`): свет и ветрохолод хода 0
+  из физики, не литерал «день» и не копия `ambient_c`. NPC с path вне
+  `sites_canon` — замечание validate, не ошибка (как выход в неизвестное).
+  `recompute_env` не пишет `po2_kpa`/`pressure_atm`, если гипоксия и давление
+  выключены: пустое поле при выключенной подсистеме — ложный warn validate.
   Живой прогон против LM Studio: `python examples/live_brief_probe.py`
   (сырые ответы в `examples/live_runs/`, gitignore). `TimeoutError` и
   `HTTPError`/`URLError` от `urlopen` — повтор попытки (`brief_transport_messages`),

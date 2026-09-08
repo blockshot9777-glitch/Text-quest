@@ -1599,9 +1599,34 @@ def _complete_actor_records(b):
     return b
 
 
+def _start_z_m(b):
+    """Высота игрока: start_z замысла, иначе z_m стартовой площадки. Не угадывать 0."""
+    if "start_z" in b:
+        return b["start_z"]
+    path = b.get("start_path")
+    for s in b.get("sites") or []:
+        if isinstance(s, dict) and s.get("path") == path and "z_m" in s:
+            return s["z_m"]
+    return 0
+
+
+def _finish_generated_world(S):
+    """Ход 0: та же среда, что look. Не копия ambient из замысла вместо физики."""
+    eng = sys.modules.get("engine") or sys.modules.get(__name__)
+    rec = getattr(eng, "recompute_env", None)
+    if rec is None:
+        return
+    sheltered = False
+    ish = getattr(eng, "is_sheltered", None)
+    if ish is not None:
+        sheltered = bool(ish(S, False))
+    rec(S, sheltered=sheltered, fire=False)
+
+
 def expand(brief):
     """Разворачивает краткий замысел в полное состояние по схеме."""
     b = _complete_actor_records(normalize_brief(brief))
+    z = _start_z_m(b)
     S = {
      "meta": {"seed": b["seed"], "turn": 0, "setting": b["setting"],
               "tech_ceiling": b.get("tech_ceiling","preindustrial"), "tone":"безжалостный реализм"},
@@ -1619,7 +1644,7 @@ def expand(brief):
                   "start_date": b.get("start_date","день 0"),
                   "natural_light": b.get("natural_light",True)},
      "time": {"t_h": b.get("start_hour",8.0), "weather": b.get("weather","—"), "light":"день"},
-     "position": {"path": b["start_path"], "z_m": b.get("start_z",0), "local": b["start_local"]},
+     "position": {"path": b["start_path"], "z_m": z, "local": b["start_local"]},
      "pc": {"name": b.get("pc_name","игрок"), "posture":"стоит",
             "needs": {k: b.get("needs",{}).get(k,0) for k in
                       ("hunger","thirst","fatigue","cold_stress","stress")},
@@ -1649,7 +1674,7 @@ def expand(brief):
     if {"гипоксия","давление","вакуум"} & on:
         S["envelope"]["pressure_atm"] = 1.0
         S["envelope"]["po2_kpa"] = round(b.get("atmosphere",{}).get("o2_frac",0.209)*101.3*
-                                         pressure_at(b.get("start_z",0)), 1)
+                                         pressure_at(z), 1)
     if "углекислота" in on: S["envelope"]["pco2_kpa"] = b.get("pco2_kpa", 0.04)
     if "радиация"   in on:
         S["envelope"]["dose_rate_msv_h"] = b.get("dose_rate", 0.0003)
@@ -1717,6 +1742,7 @@ def expand(brief):
             clk["on_complete"] = json.loads(json.dumps(c["on_complete"]))
         S["clocks"].append(clk)
     S["_gen_notes"] = _rand_notes
+    _finish_generated_world(S)
     return S
 
 # Порог заявленной массы конструкции vs части: 50 г или 5%, что больше.
@@ -1825,6 +1851,12 @@ def validate(S):
                     for j, fx in enumerate(oc):
                         if not isinstance(fx, dict):
                             err.append(f"{s['name']}: on_break[{j}] не объект")
+
+    for n in S["world"].get("npcs") or []:
+        pth = n.get("path")
+        if pth and pth not in paths:
+            warn.append(
+                f"NPC «{n.get('name', n.get('id', '?'))}»: path нет в sites_canon")
 
     CLOCK_PATH_ROOTS = {"pc","world","time","envelope","meta","position","profile","calendar"}
     add_hits = {}
@@ -2486,6 +2518,8 @@ def structure_has_any_tag(st, tags):
     if not want:
         return False
     for s in structures_of(st):
+        if not isinstance(s, dict):
+            continue
         if want & set(s.get("tags") or []):
             return True
     return False
@@ -2494,6 +2528,8 @@ def structure_has_any_tag(st, tags):
 def blocked_exit_paths(st):
     blocked = set()
     for s in structures_of(st):
+        if not isinstance(s, dict):
+            continue
         for p in s.get("block_exits") or []:
             if p:
                 blocked.add(p)
@@ -2585,7 +2621,7 @@ def parse_part_spec(spec):
 def next_struct_id(S):
     n = 1
     ids = {s.get("id") for st in (S.get("world") or {}).get("sites_canon") or []
-           for s in st.get("structures") or []}
+           for s in st.get("structures") or [] if isinstance(s, dict)}
     while f"str_{n:02d}" in ids:
         n += 1
     return f"str_{n:02d}"
@@ -2772,8 +2808,9 @@ def find_structure(st, name):
     q = (name or "").strip().lower()
     if not q:
         return None, "пустое имя"
-    hits = [s for s in structures_of(st) if (s.get("id") or "").lower() == q
-            or (s.get("name") or "").lower() == q]
+    hits = [s for s in structures_of(st) if isinstance(s, dict) and
+            ((s.get("id") or "").lower() == q
+             or (s.get("name") or "").lower() == q)]
     if not hits:
         return None, f"конструкции «{name}» нет"
     if len(hits) > 1:
@@ -2831,7 +2868,7 @@ def site_kept_after_compact(st, here, neigh):
     """Площадку с player_made не выбрасывать. Повторный compact не снимает флаг."""
     if st.get("touched") or st.get("path") == here or st.get("path") in neigh:
         return True
-    return any(s.get("player_made") for s in structures_of(st))
+    return any(isinstance(s, dict) and s.get("player_made") for s in structures_of(st))
 
 
 def spend_held_charge(S, hours, log):
@@ -3018,8 +3055,7 @@ def recompute_env(S, sheltered=False, fire=False):
     if "гипоксия" in S["profile"]["physics_on"] or "давление" in S["profile"]["physics_on"]:
         e["pressure_atm"] = round(pressure_atm(z, w["atmosphere"]["p0_atm"], w["atmosphere"]["scale_height_m"]), 3)
         e["po2_kpa"] = round(po2_kpa(z, w["atmosphere"]["o2_frac"], w["atmosphere"]["p0_atm"], w["atmosphere"]["scale_height_m"]), 1)
-    else:
-        e["pressure_atm"], e["po2_kpa"] = 1.0, 21.2
+    # иначе поля нет: пустое po2 при выключенной гипоксии — ложный warn validate
     return e
 
 def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,

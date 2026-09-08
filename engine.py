@@ -493,6 +493,8 @@ def structure_has_any_tag(st, tags):
     if not want:
         return False
     for s in structures_of(st):
+        if not isinstance(s, dict):
+            continue
         if want & set(s.get("tags") or []):
             return True
     return False
@@ -501,6 +503,8 @@ def structure_has_any_tag(st, tags):
 def blocked_exit_paths(st):
     blocked = set()
     for s in structures_of(st):
+        if not isinstance(s, dict):
+            continue
         for p in s.get("block_exits") or []:
             if p:
                 blocked.add(p)
@@ -592,7 +596,7 @@ def parse_part_spec(spec):
 def next_struct_id(S):
     n = 1
     ids = {s.get("id") for st in (S.get("world") or {}).get("sites_canon") or []
-           for s in st.get("structures") or []}
+           for s in st.get("structures") or [] if isinstance(s, dict)}
     while f"str_{n:02d}" in ids:
         n += 1
     return f"str_{n:02d}"
@@ -779,8 +783,9 @@ def find_structure(st, name):
     q = (name or "").strip().lower()
     if not q:
         return None, "пустое имя"
-    hits = [s for s in structures_of(st) if (s.get("id") or "").lower() == q
-            or (s.get("name") or "").lower() == q]
+    hits = [s for s in structures_of(st) if isinstance(s, dict) and
+            ((s.get("id") or "").lower() == q
+             or (s.get("name") or "").lower() == q)]
     if not hits:
         return None, f"конструкции «{name}» нет"
     if len(hits) > 1:
@@ -838,7 +843,7 @@ def site_kept_after_compact(st, here, neigh):
     """Площадку с player_made не выбрасывать. Повторный compact не снимает флаг."""
     if st.get("touched") or st.get("path") == here or st.get("path") in neigh:
         return True
-    return any(s.get("player_made") for s in structures_of(st))
+    return any(isinstance(s, dict) and s.get("player_made") for s in structures_of(st))
 
 
 def spend_held_charge(S, hours, log):
@@ -1025,8 +1030,7 @@ def recompute_env(S, sheltered=False, fire=False):
     if "гипоксия" in S["profile"]["physics_on"] or "давление" in S["profile"]["physics_on"]:
         e["pressure_atm"] = round(pressure_atm(z, w["atmosphere"]["p0_atm"], w["atmosphere"]["scale_height_m"]), 3)
         e["po2_kpa"] = round(po2_kpa(z, w["atmosphere"]["o2_frac"], w["atmosphere"]["p0_atm"], w["atmosphere"]["scale_height_m"]), 1)
-    else:
-        e["pressure_atm"], e["po2_kpa"] = 1.0, 21.2
+    # иначе поля нет: пустое po2 при выключенной гипоксии — ложный warn validate
     return e
 
 def tick(S, hours, activity=1, sheltered=False, fire=False, sleeping=False,
