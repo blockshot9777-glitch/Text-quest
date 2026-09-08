@@ -34,12 +34,42 @@ PROVIDERS = {
 }
 
 
-# JSON Schema замысла: ловит те формы, на которых Qwen3.5 9B сжигал 3 попытки.
-# LM Studio /v1/chat/completions требует name + strict внутри json_schema.
+# JSON Schema замысла. required заставляет LM Studio требовать ключи, не только типы.
+# additionalProperties: true — свободный текст (desc_true, truths, chain[].canon) не в схеме.
+BRIEF_REQUIRED = (
+    "seed", "setting", "tech_ceiling", "ladder", "ladder_root", "physics_on",
+    "start_path", "skills", "sites", "npcs", "factions", "clocks", "truths",
+)
+SITE_REQUIRED = ("path", "name")
+NPC_REQUIRED = ("id", "path")
+FACTION_REQUIRED = ("id", "name")
+BRIEF_FIELD_HINTS = {
+    "seed": "число",
+    "setting": "строка — мир одной фразой",
+    "tech_ceiling": "primitive|preindustrial|industrial|spacefaring",
+    "ladder": "список строк уровней от корня к мелкому",
+    "ladder_root": "строка, корень пути",
+    "physics_on": "список строк из фиксированного enum (холод, голод, …)",
+    "start_path": "полный путь стартовой площадки",
+    "skills": "объект {имя: число}, например {\"survival\": 45} — не список",
+    "sites": "массив [{path, name, ...}]. Не sites_canon.",
+    "npcs": "массив [{id, path, name, ...}]",
+    "factions": "массив [{id, name, ...}]",
+    "clocks": "массив [{name, filled, max, period_h, payoff, ...}]",
+    "truths": "массив строк — скрытые истины",
+}
+
 BRIEF_SCHEMA = {
     "type": "object",
     "additionalProperties": True,
+    "required": list(BRIEF_REQUIRED),
     "properties": {
+        "seed": {"type": "number"},
+        "setting": {"type": "string"},
+        "tech_ceiling": {"type": "string"},
+        "ladder": {"type": "array", "items": {"type": "string"}},
+        "ladder_root": {"type": "string"},
+        "start_path": {"type": "string"},
         "physics_on": {
             "type": "array",
             "items": {"type": "string", "enum": list(sim.PHYSICS_ON)},  # публичное имя бандла; не переименовывать в сборке
@@ -53,7 +83,10 @@ BRIEF_SCHEMA = {
             "items": {
                 "type": "object",
                 "additionalProperties": True,
+                "required": list(SITE_REQUIRED),
                 "properties": {
+                    "path": {"type": "string"},
+                    "name": {"type": "string"},
                     "exits": {
                         "type": "array",
                         "items": {
@@ -72,7 +105,10 @@ BRIEF_SCHEMA = {
             "items": {
                 "type": "object",
                 "additionalProperties": True,
+                "required": list(NPC_REQUIRED),
                 "properties": {
+                    "id": {"type": "string"},
+                    "path": {"type": "string"},
                     "disposition": {"type": "number", "minimum": -100, "maximum": 100},
                 },
             },
@@ -82,13 +118,18 @@ BRIEF_SCHEMA = {
             "items": {
                 "type": "object",
                 "additionalProperties": True,
+                "required": list(FACTION_REQUIRED),
                 "properties": {
+                    "id": {"type": "string"},
+                    "name": {"type": "string"},
                     "power": {"type": "number"},
                     "disposition": {"type": "number", "minimum": -100, "maximum": 100},
                     "stance_to_pc": {"type": "number", "minimum": -100, "maximum": 100},
                 },
             },
         },
+        "clocks": {"type": "array"},
+        "truths": {"type": "array", "items": {"type": "string"}},
     },
 }
 
@@ -103,6 +144,55 @@ def brief_response_format():
             "schema": BRIEF_SCHEMA,
         },
     }
+
+
+def brief_form_errors(brief):
+    """Дыры формы до expand: нет ключа, утечка sites_canon. Не синоним и не физика."""
+    if not isinstance(brief, dict):
+        return ["замысел должен быть объектом JSON"]
+    msgs = []
+    leaked_sites = "sites_canon" in brief and "sites" not in brief
+    if leaked_sites:
+        msgs.append(
+            "в твоём JSON нет обязательного поля sites, добавь его в формате: "
+            "массив [{path, name, ...}]. Поле называется sites, не sites_canon — "
+            "второе имя только внутри движка после генерации.")
+    for k in BRIEF_REQUIRED:
+        if k not in brief:
+            if k == "sites" and leaked_sites:
+                continue
+            hint = BRIEF_FIELD_HINTS.get(k, "см. обязательные поля в инструкции")
+            msgs.append(f"в твоём JSON нет обязательного поля {k}, добавь его в формате: {hint}")
+    for i, s in enumerate(brief.get("sites") or []):
+        if not isinstance(s, dict):
+            continue
+        for k in SITE_REQUIRED:
+            if k not in s:
+                msgs.append(f"sites[{i}] нет поля {k} (нужны path, name)")
+    for i, n in enumerate(brief.get("npcs") or []):
+        if not isinstance(n, dict):
+            continue
+        for k in NPC_REQUIRED:
+            if k not in n:
+                msgs.append(f"npcs[{i}] нет поля {k} (нужны id, path)")
+    for i, f in enumerate(brief.get("factions") or []):
+        if not isinstance(f, dict):
+            continue
+        for k in FACTION_REQUIRED:
+            if k not in f:
+                msgs.append(f"factions[{i}] нет поля {k} (нужны id, name)")
+    return msgs
+
+
+def format_brief_error(exc):
+    """Самопочинка: модели — поле и формат, не сырой traceback."""
+    if isinstance(exc, KeyError):
+        key = exc.args[0] if exc.args else "?"
+        hint = BRIEF_FIELD_HINTS.get(key) if isinstance(key, str) else None
+        if hint:
+            return f"в твоём JSON нет обязательного поля {key}, добавь его в формате: {hint}"
+        return str(exc)[:500]
+    return str(exc)[:500]
 
 
 def llm(cfg, system, user, temperature=0.2, max_tokens=1400, response_format=None):
@@ -391,13 +481,16 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
  start_hour (число), weather, ambient_c, wind_ms,
  climate {t_min,t_max,sunrise,sunset,note}, epoch, start_date, seasons,
  needs {hunger,thirst,fatigue,cold_stress,stress} — числа 0..100,
- skills — необязательно, объект {имя: число} (athletics, stealth, …).
-   Не список и не строки. Нормализатор ещё принимает список
-   {name, value|level|score} или [{имя: число}]; rating/skill_level — отказ.
+ skills — объект {имя: число} (athletics, stealth, …). Не список и не строки.
+   Нормализатор ещё принимает список {name, value|level|score} или [{имя: число}];
+   rating/skill_level — отказ.
  conditions (список),
- chain — список узлов [{path,scale,canon,...}] от корня до региона,
+ chain — список узлов [{path, scale, canon, ...}] от корня до региона.
+   У узла chain поле canon — текст этого уровня лестницы, не имя массива площадок.
  sites — 1-3 площадки [{path,name,z_m,desc_true,exits[{to,mode,travel_min,dz_m,difficulty,gate}],
    resources:[{name,amount,tags?}], hazards, objects, structures?, shelter?, hearth?, touched:true}].
+   Поле в твоём ответе называется sites, не sites_canon — второе имя используется
+   только внутри движка после генерации.
    objects — строки (проза, не ломается) или {name, parts?, tags?}.
    parts — как make_item: [материал, форма, Д, Ш, В]. Без parts объект неразрушим.
    structures — уже стоящие конструкции с тем же составом; теги роли из structure_use,
@@ -419,7 +512,8 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
  factions — 2-4 [{id,name,goal,power,stance_to_pc,relations:{}}],
  clocks — 3-5 [{name,filled,max,period_h,hidden,payoff, on_complete?, fired?}],
    on_complete — список операций при срабатывании (site/sites+env или path+set/add);
-   sites:"*" — только площадки уже в sites_canon на момент срабатывания;
+   sites:"*" в on_complete — площадки уже порождённые движком (внутреннее имя
+   sites_canon); в замысле массив по-прежнему называется sites;
    add на одно поле у двух счётчиков складывается (не идемпотентен и не обязан быть);
    без on_complete payoff остаётся только строкой в журнале;
  truths — 4-6 строк (то, что верно, но игрок не знает),
@@ -639,6 +733,9 @@ def new_game(cfg, scenario):
                   response_format=brief_response_format())
         try:
             brief = json_from(raw)
+            gaps = brief_form_errors(brief)
+            if gaps:
+                errors = "\n".join(gaps); continue
             S = sim.expand(brief)
             err, warn = sim.validate(S)
             if err:
@@ -648,7 +745,7 @@ def new_game(cfg, scenario):
             return {"ok": True, "notes": notes, "warn": warn,
                     "setting": S["meta"]["setting"], "attempt": attempt + 1}
         except Exception as e:
-            errors = str(e)[:500]
+            errors = format_brief_error(e)
     return {"ok": False, "error": errors}
 
 

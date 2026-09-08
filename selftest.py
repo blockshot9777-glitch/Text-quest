@@ -1600,5 +1600,49 @@ good = (_n_bad("mech_intent_diff_string.json", _Sh, "число")
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'high / ключ навык — отказ, не синоним':<40}{'да' if good else 'нет'}")
 
+print("\n── замысел: required в схеме и понятная самопочинка ──")
+_sch_b = _play.BRIEF_SCHEMA
+good = (_sch_b.get("additionalProperties") is True
+        and set(_play.BRIEF_REQUIRED) <= set(_sch_b.get("required") or [])
+        and _sch_b["properties"]["sites"]["items"].get("required") == list(_play.SITE_REQUIRED)
+        and _sch_b["properties"]["npcs"]["items"].get("required") == list(_play.NPC_REQUIRED)
+        and _sch_b["properties"]["factions"]["items"].get("required") == list(_play.FACTION_REQUIRED)
+        and "Поле в твоём ответе называется sites, не sites_canon" in _src_pl2
+        and "format_brief_error" in _src_pl2
+        and "str(e)[:500]" not in _src_pl2)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'required на корне и элементах массивов':<40}{'да' if good else 'нет'}")
+
+_msg_ke = _play.format_brief_error(KeyError("sites"))
+good = ("обязательного поля sites" in _msg_ke and "sites_canon" in _msg_ke
+        and "Traceback" not in _msg_ke and "KeyError" not in _msg_ke)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'KeyError sites — поле и формат, не traceback':<40}{'да' if good else 'нет'}")
+
+def _gaps(name):
+    return _play.brief_form_errors(_json.load(open(os.path.join(HERE, "examples", name), encoding="utf-8")))
+
+_g1 = _gaps("qwen35_9b_sites_canon.json")
+good = any("sites" in x and "sites_canon" in x for x in _g1)
+try:
+    _wg_expand(_json.load(open(os.path.join(HERE, "examples", "qwen35_9b_sites_canon.json"), encoding="utf-8")))
+    good = False
+except KeyError:
+    pass
+except TypeError:
+    good = False
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'sites_canon — отказ, не синоним sites':<40}{'да' if good else 'нет'}")
+
+_g2 = _gaps("qwen35_9b_missing_skills.json")
+good = any("обязательного поля skills" in x for x in _g2)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'нет skills — понятный пропуск поля':<40}{'да' if good else 'нет'}")
+
+_g3 = _gaps("qwen35_9b_npc_no_id.json")
+good = any("npcs[0]" in x and "id" in x for x in _g3)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'NPC без id — дыра элемента массива':<40}{'да' if good else 'нет'}")
+
 print(f"\n{'='*56}\nИТОГО пройдено {ok}, провалено {fail}")
 sys.exit(1 if fail else 0)
