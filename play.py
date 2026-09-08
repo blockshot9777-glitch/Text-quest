@@ -43,6 +43,11 @@ PROVIDERS = {
 # carryover/loadout — после .get / `in`.
 # disposition/power/stance_to_pc — `if k in` / .get, не KeyError.
 # resources/structures/objects — .get; объекты ещё и строки без name.
+# EXIT_REQUIRED = AST KeyError (to) ∪ validate-mandatory (travel_min, difficulty).
+# Живой Qwen: опциональное числовое поле переименовывается (travel_min_min,
+# difficulty_hard, «travel_min »). Не .get: validate требует ключ; схема
+# заставляет LM Studio назвать его точно. schema_required --check лишний
+# required не считает дырой — travel_min в AST нет (`if f not in e`).
 BRIEF_EXPAND_DIRECT = (
     "seed", "setting", "ladder", "ladder_root", "physics_on",
     "start_path", "start_local", "chain", "sites",
@@ -54,8 +59,14 @@ BRIEF_REQUIRED = (
     "factions", "clocks", "truths",
 )
 SITE_REQUIRED = ("path", "name", "exits")
-SITE_EXIT_ALIASES = ("exits_list", "exits_from_here")  # отказ, не синоним
-EXIT_REQUIRED = ("to",)
+SITE_EXIT_ALIASES = (
+    "exits_list", "exits_from_here", "exits_to", "exits_from", "exits_from_site",
+)  # отказ, не синоним; имена с живых прогонов Qwen3.5 9B
+EXIT_REQUIRED = ("to", "travel_min", "difficulty")
+EXIT_FIELD_ALIASES = {
+    "travel_min": ("travel_min_min", "travel_min_"),
+    "difficulty": ("difficulty_hard", "difficulty_", "diff"),
+}
 CLOCK_REQUIRED = ("name", "filled", "max", "period_h", "payoff")
 CLOCK_GUARDED = ("on_complete",)
 NPC_REQUIRED = ("id", "path")
@@ -67,13 +78,15 @@ BRIEF_FIELD_HINTS = {
     "ladder": "список строк уровней от корня к мелкому",
     "ladder_root": "строка, корень пути",
     "physics_on": "список строк из фиксированного enum (холод, голод, …)",
-    "start_path": "полный путь стартовой площадки",
+    "start_path": "полный путь стартовой площадки; первый сегмент = ladder_root",
     "start_local": "строка — где именно стоит персонаж",
     "chain": "список узлов [{path, scale, canon, ...}] от корня до региона",
     "skills": "объект {имя: число}, например {\"survival\": 45} — не список",
     "sites": "массив [{path, name, exits, ...}]. Не sites_canon.",
-    "exits": "массив [{to, travel_min, difficulty, ...}]. Не exits_list и не exits_from_here.",
+    "exits": "массив [{to, travel_min, difficulty, ...}]. Не exits_list / exits_from_here / exits_to.",
     "to": "строка — путь площадки назначения",
+    "travel_min": "число минут перехода, ключ ровно travel_min",
+    "difficulty": "число сложности перехода, ключ ровно difficulty, не «легко»",
     "npcs": "массив [{id, path, name, ...}]",
     "factions": "массив [{id, name, ...}]",
     "clocks": "массив [{name, filled, max, period_h, payoff, ...}]",
@@ -186,8 +199,37 @@ def brief_response_format():
     }
 
 
+def leaked_key(obj, canon, aliases=()):
+    """Канона нет, но есть закрытый псевдоним или ключ с пробелами. Не синоним."""
+    if not isinstance(obj, dict) or canon in obj:
+        return None
+    for a in aliases:
+        if a in obj:
+            return a
+    for k in obj:
+        if isinstance(k, str) and k.strip() == canon and k != canon:
+            return k
+    return None
+
+
+def _on_complete_form(fx):
+    """Две законные формы validate: site/sites+env или path+set/add. Иначе отказ."""
+    if not isinstance(fx, dict):
+        return ("должен быть объектом {site|sites, env:{...}} или {path, set|add}, "
+                "не строкой")
+    env_op = "env" in fx and ("site" in fx or "sites" in fx)
+    has_set, has_add = "set" in fx, "add" in fx
+    path_op = "path" in fx and (has_set or has_add) and not (has_set and has_add)
+    if env_op and not path_op:
+        return None
+    if path_op and not env_op:
+        return None
+    return ("неизвестная операция — нужен site/sites+env или path+set/add "
+            "(add на path — число, не {site, add:...})")
+
+
 def brief_form_errors(brief):
-    """Дыры формы до expand: нет ключа, утечка sites_canon. Не синоним и не физика."""
+    """Дыры формы до expand: нет ключа, утечка псевдонима. Не синоним и не физика."""
     if not isinstance(brief, dict):
         return ["замысел должен быть объектом JSON"]
     msgs = []
@@ -203,6 +245,13 @@ def brief_form_errors(brief):
                 continue
             hint = BRIEF_FIELD_HINTS.get(k, "см. обязательные поля в инструкции")
             msgs.append(f"в твоём JSON нет обязательного поля {k}, добавь его в формате: {hint}")
+    root, path = brief.get("ladder_root"), brief.get("start_path")
+    if isinstance(root, str) and isinstance(path, str) and root and path:
+        first = path.split("/")[0]
+        if first != root:
+            msgs.append(
+                f"start_path должен начинаться с ladder_root «{root}», "
+                f"сейчас первый сегмент «{first}»")
     for i, s in enumerate(brief.get("sites") or []):
         if not isinstance(s, dict):
             continue
@@ -221,9 +270,31 @@ def brief_form_errors(brief):
         for j, e in enumerate(s.get("exits") or []):
             if not isinstance(e, dict):
                 continue
+            need = ", ".join(EXIT_REQUIRED)
             for k in EXIT_REQUIRED:
-                if k not in e:
-                    msgs.append(f"sites[{i}].exits[{j}] нет поля {k} (нужен to)")
+                if k in e:
+                    continue
+                leak = leaked_key(e, k, EXIT_FIELD_ALIASES.get(k, ()))
+                if leak:
+                    msgs.append(
+                        f"sites[{i}].exits[{j}] нет поля {k} (нужны {need}). "
+                        f"Поле называется {k}, не «{leak}».")
+                else:
+                    msgs.append(f"sites[{i}].exits[{j}] нет поля {k} (нужны {need})")
+            dest, here = e.get("to"), s.get("path")
+            if isinstance(dest, str) and isinstance(here, str) and dest and here:
+                if dest.split("/")[-1] == here.split("/")[-1]:
+                    msgs.append(
+                        f"sites[{i}].exits[{j}] ведёт сам в себя "
+                        "(to совпадает с path площадки)")
+        for j, stc in enumerate(s.get("structures") or []):
+            if isinstance(stc, str):
+                msgs.append(
+                    f"sites[{i}].structures[{j}] — объект с name, не строка "
+                    "(строки допустимы только в objects)")
+                continue
+            if not isinstance(stc, dict) or not stc.get("name"):
+                msgs.append(f"sites[{i}].structures[{j}] нет поля name")
     for i, n in enumerate(brief.get("npcs") or []):
         if not isinstance(n, dict):
             continue
@@ -243,6 +314,16 @@ def brief_form_errors(brief):
             if k not in c:
                 need = ", ".join(CLOCK_REQUIRED)
                 msgs.append(f"clocks[{i}] нет поля {k} (нужны {need})")
+        oc = c.get("on_complete")
+        if oc is None:
+            continue
+        if not isinstance(oc, list):
+            msgs.append(f"clocks[{i}].on_complete должен быть списком объектов")
+            continue
+        for j, fx in enumerate(oc):
+            bad = _on_complete_form(fx)
+            if bad:
+                msgs.append(f"clocks[{i}].on_complete[{j}] {bad}")
     return msgs
 
 
@@ -640,7 +721,7 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
  ladder (список уровней от корня к мелкому), ladder_root (строка, корень пути),
  physics_on (список из: холод, жара, голод, жажда, сон, раны, болезни, гипоксия,
    давление, радиация, вакуум, углекислота, невесомость, нагрузка, погода),
- start_path (полный путь площадки), start_local (описание позиции), start_z (число),
+ start_path (полный путь; первый сегмент = ladder_root), start_local (описание позиции), start_z (число),
  start_hour (число), weather, ambient_c, wind_ms,
  climate {t_min,t_max,sunrise,sunset,note}, epoch, start_date, seasons,
  needs {hunger,thirst,fatigue,cold_stress,stress} — числа 0..100,
@@ -656,9 +737,13 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
    Поле в твоём ответе называется sites, не sites_canon — второе имя используется
    только внутри движка после генерации.
    Выходы площадки — поле exits, не exits_list и не exits_from_here.
+   Не exits_to, не exits_from, не exits_from_site.
+   У каждого выхода ключи to, travel_min, difficulty — числа. Не travel_min_min,
+   не difficulty_hard, не diff, не «легко», не ключ с пробелом.
+   to не совпадает с path этой же площадки.
    objects — строки (проза, не ломается) или {name, parts?, tags?}.
    parts — как make_item: [материал, форма, Д, Ш, В]. Без parts объект неразрушим.
-   structures — уже стоящие конструкции с тем же составом; теги роли из structure_use,
+   structures — объекты {name, parts?, tags?}, не строки; теги роли из structure_use,
    не имена «дом»/«сарай». player_made:true защищает площадку от compact.
    tags ресурса обязательны, если его можно взять и использовать.
    Имя само по себе ничего не значит: «кипяток» без тега — просто ресурс.
@@ -676,7 +761,8 @@ SYS_BRIEF = """Ты — генератор миров для безжалост�
  npcs — 4-6 [{id,name,path,goal,long_goal,resources,disposition,knows_about_pc:[],alive:true,schedule,faction}],
  factions — 2-4 [{id,name,goal,power,stance_to_pc,relations:{}}],
  clocks — 3-5 [{name,filled,max,period_h,hidden,payoff, on_complete?, fired?}],
-   on_complete — список операций при срабатывании (site/sites+env или path+set/add);
+   on_complete — список объектов {site|sites, env:{...}} или {path, set|add};
+   add на path — число. Не строка и не {site, add:...};
    sites:"*" в on_complete — площадки уже порождённые движком (внутреннее имя
    sites_canon); в замысле массив по-прежнему называется sites;
    add на одно поле у двух счётчиков складывается (не идемпотентен и не обязан быть);

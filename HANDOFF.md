@@ -148,6 +148,14 @@ done
 - **`PHYSICS_ON` — публичное имя бандла.** `play.py` читает `sim.PHYSICS_ON`.
   Минификация/переименование глобалей в `build_bundle.py` сломает схему
   так же тихо, как когда-то `matter.make_item`.
+- **Схема brief: required = KeyError AST ∪ то, без чего validate падает.**
+  `schema_required.py --check` ловит только прямые `x["k"]`. `validate` с
+  `if f not in e` (`travel_min`, `difficulty`) AST не видит — в
+  `EXIT_REQUIRED` руками. Лишний required не дыра `--check`. Не
+  `.get("travel_min_min")`: закрытый список псевдонимов в
+  `brief_form_errors` — отказ, не синоним. `structures` — объекты с
+  `name`, не строки. `on_complete` — только `site`/`sites`+`env` или
+  `path`+`set`/`add`; `{site, add}` — неизвестная операция.
 - **Формы `skills` в `normalize_brief` исчерпывающие:** объект `{имя: число}`;
   список `{name, value|level|score}`; список одноключевых. `rating` — отказ.
   Список ключей — `SKILL_LIST_VALUE_KEYS`, не догадка в `.get()` цепочке.

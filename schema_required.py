@@ -18,6 +18,10 @@ x["k"] без .get и без `if k in` / `if x.get(k)`.
 
 Второй класс — код не упадёт (.get с дефолтом), но игра без поля пустая.
 Его автоматически не вывести: SEMANTIC_REQUIRED ведётся руками.
+
+Третий класс — validate требует ключ (`if f not in e`), это не KeyError,
+AST не выведет travel_min/difficulty. В схему кладём руками (EXIT_REQUIRED).
+--check: лишний required не дыра; дыра — код читает, схема не требует.
 """
 import ast, json, os, sys
 from collections import defaultdict

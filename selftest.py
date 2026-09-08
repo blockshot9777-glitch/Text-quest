@@ -1614,6 +1614,7 @@ good = (_sch_b.get("additionalProperties") is True
         and _sch_b["properties"]["factions"]["items"].get("required") == list(_play.FACTION_REQUIRED)
         and "exits, не exits_list" in _src_pl2
         and "Поле в твоём ответе называется sites, не sites_canon" in _src_pl2
+        and "Не travel_min_min" in _src_pl2
         and "format_brief_error" in _src_pl2
         and "str(e)[:500]" not in _src_pl2)
 ok, fail = ok+good, fail+(not good)
@@ -1655,10 +1656,13 @@ import schema_required as _sr
 _der = _sr.analyze(os.path.join(HERE, "worldgen.py"))
 _need = _sr.schema_required()
 _holes = _sr.check_against(_play.BRIEF_SCHEMA)
+_ast_exits = set(_der.get(("sites", "exits"), []))
 good = (_holes == []
         and set(_der.get((), [])) == set(_play.BRIEF_EXPAND_DIRECT)
         and set(_der.get(("sites",), [])) == set(_play.SITE_REQUIRED)
-        and set(_der.get(("sites", "exits"), [])) == set(_play.EXIT_REQUIRED)
+        and _ast_exits <= set(_play.EXIT_REQUIRED)
+        and _ast_exits == {"to"}
+        and set(_play.EXIT_REQUIRED) == {"to", "travel_min", "difficulty"}
         and set(_der.get(("clocks",), [])) == set(_play.CLOCK_REQUIRED)
         and "on_complete" not in _der.get(("clocks",), [])
         and ("items",) not in _der and ("worn",) not in _der
@@ -1681,6 +1685,9 @@ _fake2 = copy.deepcopy(_play.BRIEF_SCHEMA)
 _fake2["properties"]["sites"]["items"]["properties"]["exits"]["items"]["required"] = []
 _fake2_h = _sr.check_against(_fake2)
 good = good and any("exits.items" in loc and "to" in miss for loc, miss in _fake2_h)
+_only_to = copy.deepcopy(_play.BRIEF_SCHEMA)
+_only_to["properties"]["sites"]["items"]["properties"]["exits"]["items"]["required"] = ["to"]
+good = good and _sr.check_against(_only_to) == []
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'генератор ловит дыру exits и to без прогона':<40}{'да' if good else 'нет'}")
 
@@ -1743,6 +1750,78 @@ _g6 = _play.brief_form_errors(_clk_brief)
 good = any("clocks[0]" in x and "name" in x for x in _g6)
 ok, fail = ok+good, fail+(not good)
 print(f"  {'ok ' if good else 'MISS'} {'часы без name — вложенный required':<40}{'да' if good else 'нет'}")
+
+def _form_then_validate(name, form_pred, val_pred):
+    brief = _json.load(open(os.path.join(HERE, "examples", name), encoding="utf-8"))
+    g = _play.brief_form_errors(brief)
+    S = _wg_expand(brief)
+    err, _ = _wg_validate(S)
+    return form_pred(g) and val_pred(err)
+
+good = _form_then_validate(
+    "qwen35_9b_travel_min_alias.json",
+    lambda g: (any("travel_min" in x and "travel_min_min" in x for x in g)
+               and any("difficulty" in x and "difficulty_hard" in x for x in g)),
+    lambda err: (any("travel_min" in e for e in err)
+                 and any("difficulty" in e for e in err)))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'travel_min_min — отказ формы, validate тоже':<40}{'да' if good else 'нет'}")
+
+good = _form_then_validate(
+    "qwen35_9b_structures_string.json",
+    lambda g: any("structures" in x and "строка" in x for x in g),
+    lambda err: any("structures[0] без name" in e for e in err))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'structures-строка — отказ формы до expand':<40}{'да' if good else 'нет'}")
+
+good = _form_then_validate(
+    "qwen35_9b_on_complete_unknown.json",
+    lambda g: any("on_complete" in x and "неизвестная операция" in x for x in g),
+    lambda err: any("неизвестная операция" in e for e in err))
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'on_complete site+add — отказ, не новая операция':<40}{'да' if good else 'нет'}")
+
+_ok_brief = _json.loads(_json.dumps(_sl_brief))
+_ok_brief["start_local"] = "у остывшей печи"
+good = _play.brief_form_errors(_ok_brief) == []
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'канонический замысел — форма пустая':<40}{'да' if good else 'нет'}")
+
+_ws = _json.loads(_json.dumps(_ok_brief))
+_ws["sites"][0]["exits"] = [{
+    "to": "gory/hrebet/tropa", "mode": "пешком",
+    "travel_min ": 35, "dz_m": -180, "difficulty": 40, "gate": "обвал"}]
+_g_ws = _play.brief_form_errors(_ws)
+good = any("travel_min" in x and "travel_min " in x for x in _g_ws)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'ключ «travel_min » — отказ, не синоним':<40}{'да' if good else 'нет'}")
+
+_lad = _json.loads(_json.dumps(_ok_brief))
+_lad["ladder_root"] = "выживание в вакууме"
+_lad["start_path"] = "мечта_космоса/каюта"
+_g_lad = _play.brief_form_errors(_lad)
+good = any("ladder_root" in x and "мечта_космоса" in x for x in _g_lad)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'start_path vs ladder_root — форма до validate':<40}{'да' if good else 'нет'}")
+
+_loop = _json.loads(_json.dumps(_ok_brief))
+_loop["sites"][0]["exits"] = [{
+    "to": "gory/hrebet/stanciya/apparatnaya", "mode": "пешком",
+    "travel_min": 1, "dz_m": 0, "difficulty": 0}]
+_g_loop = _play.brief_form_errors(_loop)
+good = any("сам в себя" in x for x in _g_loop)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'выход в себя — отказ формы':<40}{'да' if good else 'нет'}")
+
+_eto = _json.loads(_json.dumps(_ok_brief))
+del _eto["sites"][0]["exits"]
+_eto["sites"][0]["exits_to"] = [{
+    "to": "gory/hrebet/tropa", "mode": "пешком",
+    "travel_min": 35, "dz_m": -180, "difficulty": 40}]
+_g_eto = _play.brief_form_errors(_eto)
+good = any("exits" in x and "exits_to" in x for x in _g_eto)
+ok, fail = ok+good, fail+(not good)
+print(f"  {'ok ' if good else 'MISS'} {'exits_to — отказ схемы до expand':<40}{'да' if good else 'нет'}")
 
 print("\n── замысел: обрыв по length, не JSONDecodeError ──")
 good = (_play.BRIEF_MAX_TOKENS >= 65000
